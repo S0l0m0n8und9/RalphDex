@@ -21,6 +21,7 @@ Related docs:
 - `npm run test:real-cli-smoke`: run one temp-workspace Ralph iteration through the real `codex exec` path and print the preserved artifact paths. This command is optional and requires a working Codex CLI environment.
 - `npm run test:offline-evals` (or `npm run test:evals`): run the offline evaluation harness fixtures from `test/evals/fixtures/` and emit a compact Markdown plus JSON summary; it fails only when fixture expectations drift, not when a fixture intentionally models a failing verifier outcome.
 - `npm run test:ui-harness`: run deterministic UI fixture rendering + accessibility-oriented checks for dashboard/sidebar webviews (`uiFixtureHarness`, panel/sidebar HTML regression checks, and shared theme contrast checks).
+- `npm run build:webview`: bundle the local React + TypeScript webview shell to `out/webview-ui/main.js` and `out/webview-ui/main.css`.
 - `npm run evidence:ui-fixtures`: compile and export deterministic sidebar/dashboard fixture HTML plus a hash manifest to `.ralph/artifacts/ui-fixtures/` for UX review evidence.
 - `npm run dogfood`: run one repeatable local dogfood pass through the real CLI smoke harness and persist a structured report under `.ralph/artifacts/dogfood/` (provider, model, task count, stop reason, duration, failure category) without recording secrets.
 - `npm run validate`: run `compile`, `check:docs`, `check:ledger`, `check:prompt-budget`, `lint`, and `test`.
@@ -51,7 +52,7 @@ Related docs:
 - `test/taskFile.test.ts`: task-file parsing, deterministic task selection, explicit parent/dependency behavior, approved decomposition-apply validation, legacy normalization, status counting, preflight graph diagnostics, and file-backed claim acquisition and release semantics including contested claims, legacy IDE-claim reclamation across one or many active handoff records, lock-mediated concurrent acquisition and release, idempotent release, and stale-claim detection.
 - `test/verifier.test.ts`: cheap validation-command readiness probing for explicit executables, unresolved PATH commands, and portable execution of leading `KEY=value` env-prefix validation commands.
 - `test/docsValidator.test.ts`: deterministic coverage for required doc presence, heading rules, AGENTS.md ownership guardrails, local doc links, verifier-doc alignment checks, and the operator-facing task-seeding command or artifact contract across README, workflows, invariants, and testing docs.
-- `test/ui/` and `test/webview/`: shipped dashboard/sidebar rendering, host, and bridge regression coverage for the production `src/ui/` plus `src/webview/` ownership boundary. The historical `UXrefresh/` prototype bundle is reference-only and is not part of the validation gate.
+- `test/ui/` and `test/webview/`: shipped dashboard/sidebar rendering, host, and bridge regression coverage for the production `src/webview-ui/`, `src/ui/`, and `src/webview/` ownership boundary. The historical `UXrefresh/` prototype bundle is reference-only and is not part of the validation gate.
 - `src/ui/fixtureEvidence.ts`, `scripts/export-ui-fixture-catalog.js`, and `test/ui/uiFixtureEvidenceCatalog.test.ts`: deterministic fixture-catalog evidence export coverage for sidebar/dashboard HTML, including stable sort order, stable hashing, and baseline accessibility/webview hooks.
 - `test/loopLogic.test.ts`: outcome classification, no-progress detection, failure signatures, and stop-decision logic.
 - `test/workspaceInspection.test.ts`: package-manager, lifecycle, and validation-command inference.
@@ -93,7 +94,7 @@ When changing those areas, rely on the authoritative commands above plus manual 
 
 The select legibility guardrail is split between deterministic coverage and one manual host check:
 
-- `npm run validate` proves the shared webview CSS and generated Dashboard/PRD wizard HTML keep select open-state colors tied to VS Code dropdown and active-selection theme tokens.
+- `npm run validate` proves the React webview shell bundles locally, the shared webview CSS and generated Dashboard/PRD wizard HTML keep select open-state colors tied to VS Code dropdown and active-selection theme tokens, and the dashboard/sidebar host message paths still dispatch through the typed bridge.
 - `npm run test:activation` proves those owned surfaces open cleanly in a real Extension Development Host under `Default Light Modern`, `Default Dark Modern`, and `High Contrast`.
 - One manual check is still required because native VS Code select popups are rendered by the host rather than the HTML test harness: open the Dashboard settings tab and the PRD wizard in each theme, expand every select/optionset, and confirm the option rows and selected row stay readable with no near-invisible foreground/background pair.
 

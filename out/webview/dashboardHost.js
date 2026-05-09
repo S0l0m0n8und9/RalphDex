@@ -385,7 +385,8 @@ class DashboardHost {
         }
         this.lastRenderTime = now;
         const nonce = crypto.randomBytes(16).toString('hex');
-        this.webview.html = this.renderFn(this.latestState, nonce);
+        this.webview.html = this.renderFn(this.latestState, nonce, this.webview);
+        this.bridge.send({ type: 'state', state: this.latestState });
     }
     dispose() {
         this.broadcastDisposable.dispose();

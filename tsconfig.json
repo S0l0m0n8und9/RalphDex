@@ -12,5 +12,6 @@
     "skipLibCheck": true,
     "types": ["node", "vscode"]
   },
-  "include": ["src"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/webview-ui/**"]
 }

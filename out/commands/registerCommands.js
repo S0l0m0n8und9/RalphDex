@@ -59,6 +59,7 @@ const integrity_1 = require("../ralph/integrity");
 const crewRoster_1 = require("../ralph/crewRoster");
 const taskSeeding_1 = require("./taskSeeding");
 const prdWizardPersistence_1 = require("./prdWizardPersistence");
+const prdReadinessGate_1 = require("./prdReadinessGate");
 const preflight_1 = require("../ralph/preflight");
 const prdCreationWizardHost_1 = require("../webview/prdCreationWizardHost");
 const statusSnapshot_2 = require("./statusSnapshot");
@@ -138,7 +139,6 @@ const RALPH_GITIGNORE_CONTENT = [
     '/runs',
     '/state.json'
 ].join('\n');
-const RALPH_PRD_PLACEHOLDER = '<!-- TODO: Replace with your Ralph objective before running iterations. -->\n';
 async function withWorkspaceFolder() {
     const folder = vscode.workspace.workspaceFolders?.[0];
     if (!folder) {
@@ -201,15 +201,6 @@ function buildSkipTaskBlocker(diagnosis) {
 function summarizeProviderDiagnostics(messages) {
     return messages.join(' ');
 }
-function isMissingOrDefaultPrd(text, stateManager) {
-    const trimmed = text.trim();
-    return trimmed.length === 0
-        || stateManager.isDefaultObjective(text)
-        || trimmed === RALPH_PRD_PLACEHOLDER.trim()
-        || (trimmed.includes('Describe the current objective for Ralph here.')
-            && trimmed.includes('What should Codex change?')
-            && trimmed.includes('What constraints matter?'));
-}
 async function initializeFreshWorkspace(rootPath) {
     const ralphDir = path.join(rootPath, '.ralph');
     const prdPath = path.join(ralphDir, 'prd.md');
@@ -220,7 +211,7 @@ async function initializeFreshWorkspace(rootPath) {
         throw new Error('Ralph workspace initialization aborted because .ralph/prd.md already exists.');
     }
     await fs.mkdir(ralphDir, { recursive: true });
-    await fs.writeFile(prdPath, RALPH_PRD_PLACEHOLDER, 'utf8');
+    await fs.writeFile(prdPath, prdReadinessGate_1.RALPH_PRD_PLACEHOLDER, 'utf8');
     const taskFileLocked = await (0, taskFile_1.withTaskFileLock)(tasksPath, undefined, async () => {
         await fs.writeFile(tasksPath, `${JSON.stringify({ version: 2, tasks: [] }, null, 2)}\n`, 'utf8');
     });
@@ -394,22 +385,39 @@ function registerCommands(context, logger, broadcaster, panelManager) {
     const strategies = new providerFactory_1.CodexStrategyRegistry(logger);
     const engine = new iterationEngine_1.RalphIterationEngine(stateManager, strategies, logger);
     const activeLoopStops = createActiveLoopStopRegistry();
-    async function ensureRealPrdOrOpenWizard(workspaceFolder, config, progress) {
-        const snapshot = await stateManager.ensureWorkspace(workspaceFolder.uri.fsPath, config);
-        await logger.setWorkspaceLogFile(snapshot.paths.logFilePath);
-        const prdText = await stateManager.readObjectiveText(snapshot.paths);
-        if (!isMissingOrDefaultPrd(prdText, stateManager)) {
-            return true;
-        }
-        progress.report({ message: 'Opening PRD wizard before provider execution' });
-        await openPrdCreationWizard(panelManager, workspaceFolder, config, snapshot.paths, logger, {
-            mode: 'new',
-            initialObjective: '',
-            initialPrdPreview: prdText,
-            initialStep: 1
+    async function ensurePrdReadyOrOpenWizard(workspaceFolder, config, progress) {
+        const gate = await (0, prdReadinessGate_1.evaluatePrdReadinessGate)({
+            workspaceFolder,
+            config,
+            stateManager,
+            logger
         });
-        void vscode.window.showWarningMessage('RalphDex needs a real PRD before running. The PRD wizard is open; finish it, then start the command again.');
-        return false;
+        if (gate.status === 'ready') {
+            return { ...gate, wizardOpened: false };
+        }
+        if (gate.status === 'missing_or_default') {
+            progress.report({ message: 'Opening PRD wizard before RalphDex can continue' });
+            await openPrdCreationWizard(panelManager, workspaceFolder, config, gate.paths, logger, {
+                mode: 'new',
+                initialObjective: '',
+                initialPrdPreview: gate.prdText,
+                initialStep: 1
+            });
+            void vscode.window.showWarningMessage('PRD readiness must be completed first. The PRD wizard is open; finish a real PRD, then start the command again.');
+            return { ...gate, wizardOpened: true };
+        }
+        progress.report({ message: 'Opening PRD wizard for readiness blockers' });
+        if (gate.readinessArtifactPaths) {
+            await openTextFile(gate.readinessArtifactPaths.summaryPath);
+        }
+        await openPrdCreationWizard(panelManager, workspaceFolder, config, gate.paths, logger, {
+            mode: 'regenerate',
+            initialObjective: gate.prdText,
+            initialPrdPreview: gate.prdText,
+            initialStep: 3
+        });
+        void vscode.window.showWarningMessage('PRD readiness must be completed first. Resolve the readiness blockers in the PRD wizard before generating tasks or running RalphDex.');
+        return { ...gate, wizardOpened: true };
     }
     async function loadFocusedDiagnosis(workspaceFolder) {
         const status = await (0, statusSnapshot_2.collectStatusSnapshot)(workspaceFolder, stateManager, logger);
@@ -601,8 +609,13 @@ function registerCommands(context, logger, broadcaster, panelManager) {
     registerCommand(context, logger, {
         commandId: 'ralphCodex.addTask',
         label: 'Ralphdex: Add Task',
-        handler: async () => {
+        handler: async (progress) => {
             const workspaceFolder = await withWorkspaceFolder();
+            const config = (0, readConfig_1.readConfig)(workspaceFolder);
+            const prdGate = await ensurePrdReadyOrOpenWizard(workspaceFolder, config, progress);
+            if (prdGate.status !== 'ready') {
+                return;
+            }
             await runSeedTasksFromFeatureRequestCommand(workspaceFolder, logger, {
                 inputTitle: 'Add Task',
                 inputPrompt: 'High-level feature or epic request to seed into backlog tasks',
@@ -616,8 +629,13 @@ function registerCommands(context, logger, broadcaster, panelManager) {
     registerCommand(context, logger, {
         commandId: 'ralphCodex.seedTasksFromFeatureRequest',
         label: 'Ralphdex: Seed Tasks from Feature Request',
-        handler: async () => {
+        handler: async (progress) => {
             const workspaceFolder = await withWorkspaceFolder();
+            const config = (0, readConfig_1.readConfig)(workspaceFolder);
+            const prdGate = await ensurePrdReadyOrOpenWizard(workspaceFolder, config, progress);
+            if (prdGate.status !== 'ready') {
+                return;
+            }
             await runSeedTasksFromFeatureRequestCommand(workspaceFolder, logger, {
                 inputTitle: 'Seed Tasks from Feature Request',
                 inputPrompt: 'Describe the feature request or epic to seed into backlog tasks',
@@ -634,7 +652,8 @@ function registerCommands(context, logger, broadcaster, panelManager) {
         handler: async (progress) => {
             const workspaceFolder = await withWorkspaceFolder();
             const config = (0, readConfig_1.readConfig)(workspaceFolder);
-            if (!(await ensureRealPrdOrOpenWizard(workspaceFolder, config, progress))) {
+            const prdGate = await ensurePrdReadyOrOpenWizard(workspaceFolder, config, progress);
+            if (prdGate.status !== 'ready') {
                 return;
             }
             const prepared = await engine.preparePrompt(workspaceFolder, progress);
@@ -677,7 +696,8 @@ function registerCommands(context, logger, broadcaster, panelManager) {
         handler: async (progress) => {
             const workspaceFolder = await withWorkspaceFolder();
             const config = (0, readConfig_1.readConfig)(workspaceFolder);
-            if (!(await ensureRealPrdOrOpenWizard(workspaceFolder, config, progress))) {
+            const prdGate = await ensurePrdReadyOrOpenWizard(workspaceFolder, config, progress);
+            if (prdGate.status !== 'ready') {
                 return;
             }
             const prepared = await engine.preparePrompt(workspaceFolder, progress);
@@ -712,7 +732,8 @@ function registerCommands(context, logger, broadcaster, panelManager) {
         handler: async (progress) => {
             const workspaceFolder = await withWorkspaceFolder();
             const config = (0, readConfig_1.readConfig)(workspaceFolder);
-            if (!(await ensureRealPrdOrOpenWizard(workspaceFolder, config, progress))) {
+            const prdGate = await ensurePrdReadyOrOpenWizard(workspaceFolder, config, progress);
+            if (prdGate.status !== 'ready') {
                 return;
             }
             const previousDiagnosisStamp = await readFocusedDiagnosisArtifactStamp(workspaceFolder, stateManager, logger);
@@ -750,7 +771,8 @@ function registerCommands(context, logger, broadcaster, panelManager) {
         handler: async (progress) => {
             const workspaceFolder = await withWorkspaceFolder();
             const config = (0, readConfig_1.readConfig)(workspaceFolder);
-            if (!(await ensureRealPrdOrOpenWizard(workspaceFolder, config, progress))) {
+            const prdGate = await ensurePrdReadyOrOpenWizard(workspaceFolder, config, progress);
+            if (prdGate.status !== 'ready') {
                 return;
             }
             const run = await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
@@ -795,7 +817,8 @@ function registerCommands(context, logger, broadcaster, panelManager) {
         handler: async (progress) => {
             const workspaceFolder = await withWorkspaceFolder();
             const config = (0, readConfig_1.readConfig)(workspaceFolder);
-            if (!(await ensureRealPrdOrOpenWizard(workspaceFolder, config, progress))) {
+            const prdGate = await ensurePrdReadyOrOpenWizard(workspaceFolder, config, progress);
+            if (prdGate.status !== 'ready') {
                 return;
             }
             const run = await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
@@ -822,7 +845,8 @@ function registerCommands(context, logger, broadcaster, panelManager) {
         handler: async (progress) => {
             const workspaceFolder = await withWorkspaceFolder();
             const config = (0, readConfig_1.readConfig)(workspaceFolder);
-            if (!(await ensureRealPrdOrOpenWizard(workspaceFolder, config, progress))) {
+            const prdGate = await ensurePrdReadyOrOpenWizard(workspaceFolder, config, progress);
+            if (prdGate.status !== 'ready') {
                 return;
             }
             const run = await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
@@ -867,7 +891,8 @@ function registerCommands(context, logger, broadcaster, panelManager) {
         handler: async (progress, token) => {
             const workspaceFolder = await withWorkspaceFolder();
             const config = (0, readConfig_1.readConfig)(workspaceFolder);
-            if (!(await ensureRealPrdOrOpenWizard(workspaceFolder, config, progress))) {
+            const prdGate = await ensurePrdReadyOrOpenWizard(workspaceFolder, config, progress);
+            if (prdGate.status !== 'ready') {
                 return;
             }
             const stopHandle = activeLoopStops.begin();
@@ -1037,7 +1062,8 @@ function registerCommands(context, logger, broadcaster, panelManager) {
         handler: async (progress, token) => {
             const workspaceFolder = await withWorkspaceFolder();
             const config = (0, readConfig_1.readConfig)(workspaceFolder);
-            if (!(await ensureRealPrdOrOpenWizard(workspaceFolder, config, progress))) {
+            const prdGate = await ensurePrdReadyOrOpenWizard(workspaceFolder, config, progress);
+            if (prdGate.status !== 'ready') {
                 return;
             }
             const stopHandle = activeLoopStops.begin();
@@ -1177,19 +1203,13 @@ function registerCommands(context, logger, broadcaster, panelManager) {
         handler: async (progress) => {
             const workspaceFolder = await withWorkspaceFolder();
             const config = (0, readConfig_1.readConfig)(workspaceFolder);
-            const paths = (0, pathResolver_1.resolveRalphPaths)(workspaceFolder.uri.fsPath, config);
-            if (!(await ensureRealPrdOrOpenWizard(workspaceFolder, config, progress))) {
+            const prdGate = await ensurePrdReadyOrOpenWizard(workspaceFolder, config, progress);
+            if (prdGate.status !== 'ready') {
                 return;
             }
-            const prdText = await fs.readFile(paths.prdPath, 'utf8');
+            const paths = prdGate.paths;
+            const prdText = prdGate.prdText;
             const prdHash = (0, integrity_1.hashText)(prdText);
-            const readiness = (0, prdReadiness_1.analyzePrdReadiness)(prdText);
-            const readinessArtifacts = await (0, prdReadiness_1.persistLatestPrdReadinessArtifacts)(paths.artifactDir, readiness);
-            if (readiness.blockers.length > 0) {
-                await openTextFile(readinessArtifacts.summaryPath);
-                void vscode.window.showWarningMessage('Run Full Workflow stopped: PRD readiness blockers detected. Resolve blockers in the readiness report before running pipeline.');
-                return;
-            }
             const latestPlan = await (0, prdReadiness_1.readLatestTaskGenerationPlan)(paths.artifactDir);
             const taskFile = (0, taskFile_1.parseTaskFile)(await fs.readFile(paths.taskFilePath, 'utf8'));
             const taskIds = new Set(taskFile.tasks.map((task) => task.id));

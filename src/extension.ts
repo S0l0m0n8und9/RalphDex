@@ -80,7 +80,7 @@ export function activate(context: vscode.ExtensionContext): void {
   // Primary dashboard command — opens the full dashboard in the editor area.
   context.subscriptions.push(
     vscode.commands.registerCommand('ralphCodex.showDashboard', (viewIntent) => {
-      RalphDashboardPanel.createOrReveal(panelManager, broadcaster, dashboardSnapshotLoader, viewIntent ?? null, dashboardHostActions);
+      RalphDashboardPanel.createOrReveal(panelManager, context.extensionUri, broadcaster, dashboardSnapshotLoader, viewIntent ?? null, dashboardHostActions);
     })
   );
 
@@ -88,7 +88,7 @@ export function activate(context: vscode.ExtensionContext): void {
   // saved key bindings working without a breaking change.
   context.subscriptions.push(
     vscode.commands.registerCommand('ralphCodex.openDashboard', (viewIntent) => {
-      RalphDashboardPanel.createOrReveal(panelManager, broadcaster, dashboardSnapshotLoader, viewIntent ?? null, dashboardHostActions);
+      RalphDashboardPanel.createOrReveal(panelManager, context.extensionUri, broadcaster, dashboardSnapshotLoader, viewIntent ?? null, dashboardHostActions);
     })
   );
 

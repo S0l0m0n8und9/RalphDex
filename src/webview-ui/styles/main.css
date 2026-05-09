@@ -1,0 +1,223 @@
+:root {
+  --rdx-bg: var(--vscode-editor-background);
+  --rdx-sidebar-bg: var(--vscode-sideBar-background, var(--vscode-editor-background));
+  --rdx-fg: var(--vscode-foreground);
+  --rdx-muted: var(--vscode-descriptionForeground);
+  --rdx-border: var(--vscode-panel-border, rgba(127, 127, 127, 0.35));
+  --rdx-button-bg: var(--vscode-button-secondaryBackground);
+  --rdx-button-fg: var(--vscode-button-secondaryForeground);
+  --rdx-primary-bg: var(--vscode-button-background);
+  --rdx-primary-fg: var(--vscode-button-foreground);
+  --rdx-danger: var(--vscode-errorForeground);
+  --rdx-warn: var(--vscode-editorWarning-foreground);
+  --rdx-focus: var(--vscode-focusBorder);
+  --rdx-font: var(--vscode-font-family);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--rdx-bg);
+  color: var(--rdx-fg);
+  font-family: var(--rdx-font);
+  font-size: var(--vscode-font-size);
+  line-height: 1.45;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+.rdx-dashboard {
+  padding: 16px 20px;
+  max-width: 1180px;
+}
+
+.rdx-sidebar {
+  min-height: 100vh;
+  padding: 10px;
+  background: var(--rdx-sidebar-bg);
+}
+
+.rdx-topbar,
+.rdx-sidebar-header,
+.rdx-section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rdx-topbar,
+.rdx-sidebar-header {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--rdx-border);
+  margin-bottom: 12px;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: 18px;
+  font-weight: 650;
+}
+
+h2 {
+  font-size: 13px;
+  font-weight: 650;
+}
+
+p,
+li,
+.rdx-state,
+.rdx-task-meta {
+  color: var(--rdx-muted);
+}
+
+.rdx-section {
+  border: 1px solid var(--rdx-border);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+  background: color-mix(in srgb, var(--rdx-bg) 92%, var(--rdx-fg));
+}
+
+.rdx-section.readiness.blocked,
+.rdx-section.readiness.missing-prd,
+.rdx-section.readiness.empty-backlog {
+  border-color: color-mix(in srgb, var(--rdx-warn) 55%, var(--rdx-border));
+}
+
+.rdx-section.readiness.running {
+  border-color: color-mix(in srgb, var(--rdx-primary-bg) 55%, var(--rdx-border));
+}
+
+.rdx-section.readiness p {
+  margin-top: 6px;
+}
+
+.commands {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rdx-sidebar .commands {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.rdx-button {
+  min-height: 30px;
+  border: 1px solid var(--rdx-border);
+  border-radius: 6px;
+  background: var(--rdx-button-bg);
+  color: var(--rdx-button-fg);
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.rdx-button.primary {
+  background: var(--rdx-primary-bg);
+  color: var(--rdx-primary-fg);
+  border-color: var(--rdx-primary-bg);
+}
+
+.rdx-button.danger {
+  color: var(--rdx-danger);
+  border-color: color-mix(in srgb, var(--rdx-danger) 55%, var(--rdx-border));
+}
+
+.rdx-button:disabled {
+  cursor: default;
+  opacity: 0.65;
+}
+
+.rdx-button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+summary:focus-visible {
+  outline: 1px solid var(--rdx-focus);
+  outline-offset: 2px;
+}
+
+.rdx-dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.8fr);
+  gap: 12px;
+}
+
+.rdx-task {
+  display: grid;
+  gap: 3px;
+  margin-top: 8px;
+}
+
+.rdx-task-id {
+  font-family: var(--vscode-editor-font-family);
+  color: var(--rdx-muted);
+}
+
+.rdx-task-title {
+  font-weight: 600;
+}
+
+.rdx-list {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+details {
+  border-top: 1px solid var(--rdx-border);
+  padding-top: 8px;
+  margin-top: 8px;
+}
+
+summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.rdx-settings-grid {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.rdx-setting {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.7fr) minmax(180px, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.rdx-setting input:not([type="checkbox"]),
+.rdx-setting select {
+  min-width: 0;
+  width: 100%;
+  border: 1px solid var(--vscode-input-border, var(--rdx-border));
+  border-radius: 4px;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  padding: 4px 6px;
+}
+
+@media (max-width: 720px) {
+  .rdx-dashboard {
+    padding: 12px;
+  }
+
+  .rdx-dashboard-grid,
+  .rdx-setting {
+    grid-template-columns: 1fr;
+  }
+}

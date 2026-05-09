@@ -4,13 +4,13 @@ import { buildSettingsSurfaceSnapshot } from '../config/settingsSurface';
 import type { RalphCodexConfig } from '../config/types';
 import type { RalphTaskFile } from '../ralph/types';
 import type { IterationBroadcaster } from './iterationBroadcaster';
-import { buildDashboardHtml } from './sidebarHtml';
 import type { RalphWatchedState } from './stateWatcher';
 import type {
   RalphDashboardTask,
 } from './uiTypes';
 import { DashboardHost, type DashboardHostActions } from '../webview/dashboardHost';
 import type { DashboardSnapshotLoader } from '../webview/dashboardDataLoader';
+import { buildWebviewUiHtml } from '../webview/reactWebviewHtml';
 
 /**
  * Provides the sidebar webview launcher for Ralphdex.
@@ -37,12 +37,22 @@ export class RalphSidebarViewProvider implements vscode.WebviewViewProvider {
     _context: vscode.WebviewViewResolveContext,
     _token: vscode.CancellationToken
   ): void {
-    webviewView.webview.options = { enableScripts: true };
+    webviewView.webview.options = {
+      enableScripts: true,
+      localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, 'out', 'webview-ui')]
+    };
 
     // Dispose any previous host before creating a new one (VS Code may call
     // resolveWebviewView again if the view is hidden and re-shown).
     this.host?.dispose();
-    this.host = new DashboardHost(webviewView.webview, this.broadcaster, buildDashboardHtml, this.loadSnapshot, null, this.actions);
+    this.host = new DashboardHost(
+      webviewView.webview,
+      this.broadcaster,
+      (state, nonce, webview) => buildWebviewUiHtml({ mode: 'sidebar', state, nonce, webview, extensionUri: this.extensionUri }),
+      this.loadSnapshot,
+      null,
+      this.actions
+    );
 
     webviewView.onDidDispose(() => {
       this.host?.dispose();

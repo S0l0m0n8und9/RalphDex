@@ -13,6 +13,7 @@ out/shim/**
 scripts/**
 tsconfig.json
 tsconfig.test.json
+tsconfig.webview-ui.json
 tsconfig.tsbuildinfo
 
 # Ralph workspace state — project-specific, not part of extension

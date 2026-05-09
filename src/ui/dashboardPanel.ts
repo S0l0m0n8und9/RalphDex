@@ -2,10 +2,10 @@ import * as vscode from 'vscode';
 import type { IterationBroadcaster } from './iterationBroadcaster';
 import type { RalphWatchedState } from './stateWatcher';
 import type { RalphDashboardViewIntent } from './uiTypes';
-import { buildPanelDashboardHtml } from './panelHtml';
 import { DashboardHost, type DashboardHostActions } from '../webview/dashboardHost';
 import type { WebviewPanelManager } from '../webview/WebviewPanelManager';
 import type { DashboardSnapshotLoader } from '../webview/dashboardDataLoader';
+import { buildWebviewUiHtml } from '../webview/reactWebviewHtml';
 
 /**
  * Editor-area dashboard panel.
@@ -22,12 +22,20 @@ export class RalphDashboardPanel implements vscode.Disposable {
 
   private constructor(
     panel: vscode.WebviewPanel,
+    extensionUri: vscode.Uri,
     broadcaster: IterationBroadcaster,
     loadSnapshot?: DashboardSnapshotLoader,
     initialViewIntent: RalphDashboardViewIntent | null = null,
     actions: DashboardHostActions = {}
   ) {
-    this.host = new DashboardHost(panel.webview, broadcaster, buildPanelDashboardHtml, loadSnapshot, initialViewIntent, actions);
+    this.host = new DashboardHost(
+      panel.webview,
+      broadcaster,
+      (state, nonce, webview) => buildWebviewUiHtml({ mode: 'dashboard', state, nonce, webview, extensionUri }),
+      loadSnapshot,
+      initialViewIntent,
+      actions
+    );
     panel.onDidDispose(() => this.dispose());
   }
 
@@ -38,6 +46,7 @@ export class RalphDashboardPanel implements vscode.Disposable {
    */
   public static createOrReveal(
     manager: WebviewPanelManager,
+    extensionUri: vscode.Uri,
     broadcaster: IterationBroadcaster,
     loadSnapshot?: DashboardSnapshotLoader,
     viewIntent: RalphDashboardViewIntent | null = null,
@@ -47,7 +56,11 @@ export class RalphDashboardPanel implements vscode.Disposable {
       viewType: RalphDashboardPanel.viewType,
       title: 'Ralphdex',
       viewColumn: vscode.ViewColumn.One,
-      options: { enableScripts: true, retainContextWhenHidden: true }
+      options: {
+        enableScripts: true,
+        retainContextWhenHidden: true,
+        localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'out', 'webview-ui')]
+      }
     });
 
     if (RalphDashboardPanel.currentPanel) {
@@ -56,7 +69,7 @@ export class RalphDashboardPanel implements vscode.Disposable {
       return;
     }
 
-    RalphDashboardPanel.currentPanel = new RalphDashboardPanel(panel, broadcaster, loadSnapshot, viewIntent, actions);
+    RalphDashboardPanel.currentPanel = new RalphDashboardPanel(panel, extensionUri, broadcaster, loadSnapshot, viewIntent, actions);
   }
 
   public updateFromWatchedState(watched: RalphWatchedState): void {

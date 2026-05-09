@@ -35,8 +35,8 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RalphDashboardPanel = void 0;
 const vscode = __importStar(require("vscode"));
-const panelHtml_1 = require("./panelHtml");
 const dashboardHost_1 = require("../webview/dashboardHost");
+const reactWebviewHtml_1 = require("../webview/reactWebviewHtml");
 /**
  * Editor-area dashboard panel.
  *
@@ -48,8 +48,8 @@ class RalphDashboardPanel {
     static viewType = 'ralphCodex.dashboardPanel';
     static currentPanel;
     host;
-    constructor(panel, broadcaster, loadSnapshot, initialViewIntent = null, actions = {}) {
-        this.host = new dashboardHost_1.DashboardHost(panel.webview, broadcaster, panelHtml_1.buildPanelDashboardHtml, loadSnapshot, initialViewIntent, actions);
+    constructor(panel, extensionUri, broadcaster, loadSnapshot, initialViewIntent = null, actions = {}) {
+        this.host = new dashboardHost_1.DashboardHost(panel.webview, broadcaster, (state, nonce, webview) => (0, reactWebviewHtml_1.buildWebviewUiHtml)({ mode: 'dashboard', state, nonce, webview, extensionUri }), loadSnapshot, initialViewIntent, actions);
         panel.onDidDispose(() => this.dispose());
     }
     /**
@@ -57,19 +57,23 @@ class RalphDashboardPanel {
      * The `manager` must be the same instance across calls so `createOrReveal`
      * can detect and reveal an already-open panel.
      */
-    static createOrReveal(manager, broadcaster, loadSnapshot, viewIntent = null, actions = {}) {
+    static createOrReveal(manager, extensionUri, broadcaster, loadSnapshot, viewIntent = null, actions = {}) {
         const panel = manager.createOrReveal('dashboard', {
             viewType: RalphDashboardPanel.viewType,
             title: 'Ralphdex',
             viewColumn: vscode.ViewColumn.One,
-            options: { enableScripts: true, retainContextWhenHidden: true }
+            options: {
+                enableScripts: true,
+                retainContextWhenHidden: true,
+                localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'out', 'webview-ui')]
+            }
         });
         if (RalphDashboardPanel.currentPanel) {
             // Existing panel was just revealed by createOrReveal — nothing more to do.
             RalphDashboardPanel.currentPanel.host.applyViewIntent(viewIntent);
             return;
         }
-        RalphDashboardPanel.currentPanel = new RalphDashboardPanel(panel, broadcaster, loadSnapshot, viewIntent, actions);
+        RalphDashboardPanel.currentPanel = new RalphDashboardPanel(panel, extensionUri, broadcaster, loadSnapshot, viewIntent, actions);
     }
     updateFromWatchedState(watched) {
         this.host.updateFromWatchedState(watched);

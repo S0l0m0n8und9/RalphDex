@@ -33,6 +33,8 @@ export interface DashboardHostActions {
   }>;
 }
 
+export type DashboardRenderFn = (state: RalphDashboardState, nonce: string, webview: vscode.Webview) => string;
+
 /**
  * Shared dashboard controller used by both the editor-panel and the sidebar.
  *
@@ -53,7 +55,7 @@ export class DashboardHost implements vscode.Disposable {
   constructor(
     private readonly webview: vscode.Webview,
     broadcaster: IterationBroadcaster,
-    private readonly renderFn: (state: RalphDashboardState, nonce: string) => string,
+    private readonly renderFn: DashboardRenderFn,
     private readonly loadSnapshot?: DashboardSnapshotLoader,
     initialViewIntent: RalphDashboardViewIntent | null = null,
     private readonly actions: DashboardHostActions = {}
@@ -399,7 +401,8 @@ export class DashboardHost implements vscode.Disposable {
     this.lastRenderTime = now;
 
     const nonce = crypto.randomBytes(16).toString('hex');
-    this.webview.html = this.renderFn(this.latestState, nonce);
+    this.webview.html = this.renderFn(this.latestState, nonce, this.webview);
+    this.bridge.send({ type: 'state', state: this.latestState });
   }
 
   dispose(): void {

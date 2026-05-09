@@ -3039,7 +3039,7 @@ test('Seed Tasks from Feature Request reports id collisions discovered at persis
   harness.setInputBoxValue('Seed tasks for a concurrent collision case.');
 
   setProcessRunnerOverride(async (_command, _args, options) => {
-    if (options.cwd !== rootPath) {
+    if (options.cwd !== rootPath || !options.stdinText?.includes('Seed tasks for a concurrent collision case.')) {
       return {
         code: 0,
         stdout: JSON.stringify({

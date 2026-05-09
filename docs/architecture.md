@@ -45,13 +45,15 @@ Related docs:
 
 ## UI Ownership Boundary
 
-The shipped dashboard and sidebar do not have separate prototype and production implementations anymore. One production path owns the live UI:
+The shipped dashboard and sidebar share one production host path:
 
-- `src/webview/` owns shared host lifecycle, durable snapshot assembly, typed message bridging, and reusable webview plumbing through files such as `dashboardHost.ts`, `dashboardSnapshot.ts`, `dashboardDataLoader.ts`, `MessageBridge.ts`, and `WebviewPanelManager.ts`.
-- `src/ui/panelHtml.ts` and `src/ui/sidebarHtml.ts` own the production HTML renderers, while `src/ui/dashboardPanel.ts` and `src/ui/sidebarViewProvider.ts` own the VS Code panel/sidebar adapters that mount those renderers on the shared `src/webview/` host.
-- `test/ui/` and `test/webview/` own the shipped regression coverage for those surfaces and their shared wiring.
+- `src/webview/` owns shared host lifecycle, durable snapshot assembly, typed message bridging, webview-safe HTML scaffolding, and reusable plumbing through files such as `dashboardHost.ts`, `reactWebviewHtml.ts`, `dashboardSnapshot.ts`, `dashboardDataLoader.ts`, `MessageBridge.ts`, and `WebviewPanelManager.ts`.
+- `src/webview-ui/` owns the bundled React + TypeScript dashboard/sidebar shell. The bundle is built locally to `out/webview-ui/` and loaded through VS Code webview resource URIs only.
+- `src/ui/dashboardPanel.ts` and `src/ui/sidebarViewProvider.ts` own the VS Code panel/sidebar adapters that mount the React shell on the shared `DashboardHost`.
+- `src/ui/panelHtml.ts` and `src/ui/sidebarHtml.ts` are retained as legacy string-rendered compatibility surfaces for deterministic fixture coverage and rollback while the React shell is expanded incrementally. They are not the active panel/sidebar render path.
+- `test/ui/` and `test/webview/` own regression coverage for the React shell bootstrap, legacy fixture surfaces, and shared host wiring.
 
-The top-level `UXrefresh/` directory is retained only as a reference-only prototype bundle from the redesign work. It is not loaded by the extension, not part of the production ownership boundary, and should only be consulted as historical design material when the shipped `src/webview/` + `src/ui/` implementation needs visual context.
+The top-level `UXrefresh/` directory is retained only as a reference-only prototype bundle from the redesign work. It is not loaded by the extension, not part of the production ownership boundary, and should only be consulted as historical design material when the shipped `src/webview/` + `src/webview-ui/` implementation needs visual context.
 
 ## End-To-End Flow
 

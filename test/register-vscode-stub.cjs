@@ -134,6 +134,9 @@ const vscodeStub = {
   Uri: {
     file(fsPath) {
       return { fsPath };
+    },
+    joinPath(base, ...segments) {
+      return { fsPath: path.join(base.fsPath, ...segments) };
     }
   },
   RelativePattern: class RelativePattern {
@@ -302,6 +305,14 @@ const vscodeStub = {
     createWebviewPanel(_viewType, _title, _showOptions, _options) {
       const webview = {
         html: '',
+        cspSource: 'vscode-webview://stub',
+        asWebviewUri(uri) {
+          return {
+            toString() {
+              return `vscode-resource:${String(uri.fsPath).replace(/\\/g, '/')}`;
+            }
+          };
+        },
         onDidReceiveMessage(_handler) { return { dispose() {} }; },
         async postMessage() { return true; }
       };

@@ -51,6 +51,7 @@ const WebviewPanelManager_1 = require("./webview/WebviewPanelManager");
 const dashboardDataLoader_1 = require("./webview/dashboardDataLoader");
 const stateManager_1 = require("./ralph/stateManager");
 const taskSeeding_1 = require("./commands/taskSeeding");
+const prdReadinessGate_1 = require("./commands/prdReadinessGate");
 function activate(context) {
     const logger = new logger_1.Logger(vscode.window.createOutputChannel('Ralphdex'));
     context.subscriptions.push(logger);
@@ -70,6 +71,21 @@ function activate(context) {
             if (!workspaceFolder) {
                 throw new Error('Open a workspace folder before seeding tasks.');
             }
+            const config = (0, readConfig_1.readConfig)(workspaceFolder);
+            const prdGate = await (0, prdReadinessGate_1.evaluatePrdReadinessGate)({
+                workspaceFolder,
+                config,
+                stateManager: dashboardStateManager,
+                logger
+            });
+            if (prdGate.status !== 'ready') {
+                await vscode.commands.executeCommand('ralphCodex.openPrdWizard');
+                const message = prdGate.status === 'missing_or_default'
+                    ? 'PRD readiness must be completed first. The PRD wizard is open; finish a real PRD before seeding tasks.'
+                    : `PRD readiness must be completed first. Resolve blockers before seeding tasks. Report: ${prdGate.readinessArtifactPaths.summaryPath}.`;
+                void vscode.window.showWarningMessage(message);
+                throw new Error(message);
+            }
             return (0, taskSeeding_1.seedTasksFromFeatureRequest)(workspaceFolder, logger, {
                 requestText,
                 logContext: 'Task seeding via dashboard webview'
@@ -82,12 +98,12 @@ function activate(context) {
     context.subscriptions.push(vscode.commands.registerCommand('ralphCodex.statusBarQuickPick', statusBarItem_1.showStatusBarQuickPick));
     // Primary dashboard command — opens the full dashboard in the editor area.
     context.subscriptions.push(vscode.commands.registerCommand('ralphCodex.showDashboard', (viewIntent) => {
-        dashboardPanel_1.RalphDashboardPanel.createOrReveal(panelManager, broadcaster, dashboardSnapshotLoader, viewIntent ?? null, dashboardHostActions);
+        dashboardPanel_1.RalphDashboardPanel.createOrReveal(panelManager, context.extensionUri, broadcaster, dashboardSnapshotLoader, viewIntent ?? null, dashboardHostActions);
     }));
     // Legacy alias — keeps existing status bar items, sidebar buttons, and any
     // saved key bindings working without a breaking change.
     context.subscriptions.push(vscode.commands.registerCommand('ralphCodex.openDashboard', (viewIntent) => {
-        dashboardPanel_1.RalphDashboardPanel.createOrReveal(panelManager, broadcaster, dashboardSnapshotLoader, viewIntent ?? null, dashboardHostActions);
+        dashboardPanel_1.RalphDashboardPanel.createOrReveal(panelManager, context.extensionUri, broadcaster, dashboardSnapshotLoader, viewIntent ?? null, dashboardHostActions);
     }));
     // Forces a fresh snapshot reload on the open panel, if any. Idempotent: no-op
     // when no panel is open. Show Status commands call this after revealing the

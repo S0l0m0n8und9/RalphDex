@@ -1190,10 +1190,12 @@
     }
   },
   "scripts": {
-    "compile": "tsc -p ./",
+    "build:webview": "esbuild src/webview-ui/main.tsx --bundle --platform=browser --format=iife --target=es2022 --outfile=out/webview-ui/main.js --sourcemap --minify",
+    "typecheck:webview": "tsc -p ./tsconfig.webview-ui.json",
+    "compile": "npm run build:webview && tsc -p ./",
     "compile:tests": "tsc -p ./tsconfig.test.json",
     "watch": "tsc -watch -p ./",
-    "lint": "tsc --noEmit -p ./ && tsc --noEmit -p ./tsconfig.test.json",
+    "lint": "tsc --noEmit -p ./ && tsc --noEmit -p ./tsconfig.test.json && npm run typecheck:webview",
     "check:docs": "node ./scripts/check-docs.js",
     "check:ledger": "node ./scripts/check-ledger.js",
     "prompt:calibrate": "node ./scripts/calibrate-prompt-budget.js",
@@ -1216,9 +1218,14 @@
   },
   "devDependencies": {
     "@types/node": "^22.19.15",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "@types/vscode": "^1.95.0",
     "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^3.7.1",
+    "esbuild": "^0.28.0",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
     "typescript": "^5.8.2"
   },
   "dependencies": {
