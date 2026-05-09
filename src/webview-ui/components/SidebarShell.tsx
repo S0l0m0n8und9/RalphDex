@@ -82,7 +82,12 @@ export function SidebarShell({ state, model, mode, onModeChange, onCommand, onSe
     if (activeTab === 'diagnostics') {
       return <DiagnosticsPanel diagnostics={state.diagnostics} />;
     }
-    if (activeTab === 'orchestration' && snapshot?.cost) {
+    if (activeTab === 'orchestration') {
+      if (!snapshot?.cost) {
+        return <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--rdx-dim)', fontSize: 13 }}>
+          No orchestration data yet — run a loop iteration to populate.
+        </div>;
+      }
       return <Orchestration cost={snapshot.cost} />;
     }
     if (activeTab === 'settings') {

@@ -24,7 +24,7 @@ export function DiagnosticsPanel({ diagnostics }: DiagnosticsPanelProps) {
         {diagnostics.map((d, i) => {
           const { icon, color } = severityStyle(d.severity);
           return (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 12, padding: '3px 0' }}>
+            <div key={`${d.severity}:${d.message}`} style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 12, padding: '3px 0' }}>
               <span style={{ color, display: 'flex', flexShrink: 0 }}>{icon}</span>
               <span>{d.message}</span>
             </div>
