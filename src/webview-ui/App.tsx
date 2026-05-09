@@ -53,9 +53,7 @@ export function App({ mode, initialState }: AppProps) {
     return (
       <SidebarShell
         state={state} model={model}
-        mode={dashboardMode} onModeChange={handleModeChange}
-        onCommand={sendCommand} onSettingUpdate={sendSettingUpdate}
-        onOpenArtifact={sendOpenArtifact}
+        onCommand={sendCommand}
       />
     );
   }
