@@ -331,14 +331,14 @@ test('package manifest contributes and activates the showTasks command', async (
   );
 });
 
-test('package manifest activity bar entry includes placeholder navigation views', async () => {
+test('package manifest activity bar entry includes dashboard webview and no legacy tree views', async () => {
   const manifest = await readPackageManifest();
   const views = (manifest.contributes as Record<string, unknown> & { views?: Record<string, Array<{ id?: string }>> })?.views ?? {};
   const ralphViews = views['ralphCodex'] ?? [];
 
   assert.ok(ralphViews.some((v) => v.id === 'ralphCodex.dashboard'), 'ralphCodex container must include dashboard view');
-  assert.ok(ralphViews.some((v) => v.id === 'ralphCodex.tasks'), 'ralphCodex container must include placeholder tasks view');
-  assert.ok(ralphViews.some((v) => v.id === 'ralphCodex.logs'), 'ralphCodex container must include placeholder logs view');
+  assert.ok(!ralphViews.some((v) => v.id === 'ralphCodex.tasks'), 'ralphCodex container must not include legacy tasks tree view');
+  assert.ok(!ralphViews.some((v) => v.id === 'ralphCodex.logs'), 'ralphCodex container must not include legacy logs tree view');
 });
 
 test('package manifest does not contribute legacy orchestration sidebar entries', async () => {

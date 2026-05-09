@@ -14,7 +14,6 @@ import { IterationBroadcaster } from './ui/iterationBroadcaster';
 import { RalphSidebarViewProvider } from './ui/sidebarViewProvider';
 import { RalphStateWatcher } from './ui/stateWatcher';
 import { RalphStatusBar, showStatusBarQuickPick } from './ui/statusBarItem';
-import { RalphTaskTreeDataProvider } from './ui/taskTreeView';
 import { WebviewPanelManager } from './webview/WebviewPanelManager';
 import { createDashboardSnapshotLoader } from './webview/dashboardDataLoader';
 import { RalphStateManager } from './ralph/stateManager';
@@ -113,16 +112,6 @@ export function activate(context: vscode.ExtensionContext): void {
   // State watcher — responds to .ralph/ file changes
   const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
   if (workspaceRoot) {
-    const primaryWorkspaceFolder = vscode.workspace.workspaceFolders?.[0];
-    if (!primaryWorkspaceFolder) {
-      return;
-    }
-
-    const taskTreeProvider = new RalphTaskTreeDataProvider(primaryWorkspaceFolder);
-    context.subscriptions.push(
-      vscode.window.registerTreeDataProvider('ralphCodex.tasks', taskTreeProvider)
-    );
-
     const watcher = new RalphStateWatcher(workspaceRoot);
     context.subscriptions.push(watcher);
 
@@ -130,7 +119,6 @@ export function activate(context: vscode.ExtensionContext): void {
       statusBar.updateFromWatchedState(state);
       sidebarProvider.updateFromWatchedState(state);
       RalphDashboardPanel.currentPanel?.updateFromWatchedState(state);
-      taskTreeProvider.refresh();
     });
 
     // Initial read

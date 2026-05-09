@@ -324,18 +324,6 @@
           "type": "webview",
           "id": "ralphCodex.dashboard",
           "name": "Dashboard"
-        },
-        {
-          "type": "tree",
-          "id": "ralphCodex.tasks",
-          "name": "Tasks",
-          "visibility": "collapsed"
-        },
-        {
-          "type": "tree",
-          "id": "ralphCodex.logs",
-          "name": "Logs",
-          "visibility": "collapsed"
         }
       ]
     },
