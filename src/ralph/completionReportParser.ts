@@ -248,16 +248,19 @@ function parseWatchdogActions(candidate: unknown): RalphWatchdogAction[] | undef
     .filter((action): action is RalphWatchdogAction => action !== null);
 }
 
+interface BalancedJsonObject {
+  objectText: string;
+  endIndex: number;
+}
+
 interface ExtractedJsonObject {
   objectText: string;
   ignoredTrailingContent: boolean;
   ambiguousTrailingJsonObject: boolean;
 }
 
-function extractBalancedJsonObjectFromBlock(block: string): ExtractedJsonObject | null {
-  const leadingWhitespaceLength = block.length - block.trimStart().length;
-  const start = leadingWhitespaceLength;
-  if (block[start] !== '{') {
+function extractBalancedJsonObjectAt(text: string, start: number): BalancedJsonObject | null {
+  if (text[start] !== '{') {
     return null;
   }
 
@@ -265,8 +268,8 @@ function extractBalancedJsonObjectFromBlock(block: string): ExtractedJsonObject 
   let inString = false;
   let escaped = false;
 
-  for (let i = start; i < block.length; i += 1) {
-    const char = block[i];
+  for (let i = start; i < text.length; i += 1) {
+    const char = text[i];
 
     if (inString) {
       if (escaped) {
@@ -292,13 +295,9 @@ function extractBalancedJsonObjectFromBlock(block: string): ExtractedJsonObject 
     if (char === '}') {
       depth -= 1;
       if (depth === 0) {
-        const objectText = block.slice(start, i + 1).trim();
-        const trailing = block.slice(i + 1);
-        const trimmedTrailing = trailing.trimStart();
         return {
-          objectText,
-          ignoredTrailingContent: trailing.trim().length > 0,
-          ambiguousTrailingJsonObject: trimmedTrailing.startsWith('{')
+          objectText: text.slice(start, i + 1).trim(),
+          endIndex: i + 1
         };
       }
       if (depth < 0) {
@@ -308,6 +307,46 @@ function extractBalancedJsonObjectFromBlock(block: string): ExtractedJsonObject 
   }
 
   return null;
+}
+
+function containsLaterStrictJsonObject(text: string): boolean {
+  for (let i = 0; i < text.length; i += 1) {
+    if (text[i] !== '{') {
+      continue;
+    }
+
+    const extracted = extractBalancedJsonObjectAt(text, i);
+    if (!extracted) {
+      continue;
+    }
+
+    try {
+      const parsed = JSON.parse(extracted.objectText);
+      if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+        return true;
+      }
+    } catch {
+      // Ignore ordinary prose braces and object-shaped snippets that are not strict JSON.
+    }
+  }
+
+  return false;
+}
+
+function extractBalancedJsonObjectFromBlock(block: string): ExtractedJsonObject | null {
+  const leadingWhitespaceLength = block.length - block.trimStart().length;
+  const start = leadingWhitespaceLength;
+  const extracted = extractBalancedJsonObjectAt(block, start);
+  if (!extracted) {
+    return null;
+  }
+
+  const trailing = block.slice(extracted.endIndex);
+  return {
+    objectText: extracted.objectText,
+    ignoredTrailingContent: trailing.trim().length > 0,
+    ambiguousTrailingJsonObject: containsLaterStrictJsonObject(trailing)
+  };
 }
 
 export function extractTrailingJsonObject(text: string): string | null {
@@ -396,8 +435,8 @@ export function parseCompletionReport(lastMessage: string): ParsedCompletionRepo
   if (fencedMatch?.[1] !== undefined) {
     // Fenced reports are the preferred contract. Deterministically accept the
     // first balanced object in the fence only when it starts the JSON block;
-    // trailing prose is tolerated, but a second object is ambiguous and invalid.
-    // JSON.parse below remains the authority for whether the extracted object is strict JSON.
+    // trailing prose is tolerated, but any later strict JSON object is ambiguous
+    // and invalid. JSON.parse below remains the authority for the extracted object.
     const extracted = extractBalancedJsonObjectFromBlock(fencedMatch[1]);
     if (extracted?.ambiguousTrailingJsonObject) {
       return {
