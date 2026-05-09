@@ -45,7 +45,6 @@ src/webview-ui/
       AgentLanes.tsx
       Timeline.tsx
       FailurePanel.tsx
-      DeadLetter.tsx
       DiagnosticsPanel.tsx
     tasks/
       TaskPanel.tsx           # expandable task list (graph deferred)
@@ -90,8 +89,8 @@ All data flows from `RalphDashboardState` → `WebviewUiModel` → components. N
 | Phase tracker | `state.agentLanes[0].phase` | `RalphIterationPhase \| null`; null → hide tracker |
 | Iteration current / cap | `state.nextIteration`, `state.iterationCap` | |
 | Progress done / total | `viewModel.doneCount`, `viewModel.taskTotal` | |
-| Attention count | `state.taskCounts.blocked` + `snapshot.deadLetter.entries.length` | 0 → green, >0 → warn |
-| Cost | `snapshot.cost.executionCostUsd` | `null` → `'—'` |
+| Attention count | `state.taskCounts.blocked` | 0 → green, >0 → warn |
+| Cache | `snapshot.cost.promptCacheStats.staticPrefixBytes` formatted as KB | sub: "cache hit" / "cache miss" from `cacheHit`; cell hidden when `promptCacheStats === null` |
 | Start loop | command `ralphCodex.runRalphLoop` | hidden when `loopState === 'running'` |
 | Stop loop | command `ralphCodex.stopLoop` | hidden when `loopState !== 'running'` |
 | Run one iteration | command `ralphCodex.runIteration` | Standard + Advanced only |
@@ -135,21 +134,8 @@ Renders only when `snapshot.diagnosis !== null`.
 | What went wrong | `snapshot.diagnosis.summary` |
 | Suggested fix | `snapshot.diagnosis.suggestedAction` |
 | "Open failure artifact" | `snapshot.diagnosis.failureAnalysisPath` — hidden when null |
-| "Skip task" | command (TBD — deferred if not plumbed) |
-| "Send to dead-letter" | command (TBD — deferred if not plumbed) |
-
-### Dead Letter
-
-Renders only when `snapshot.deadLetter.entries.length > 0`.
-
-| UI field | Source |
-|---|---|
-| Task ID | `entry.taskId` |
-| Title | `entry.taskTitle` |
-| Attempts | `entry.recoveryAttemptCount` |
-| Last category | `entry.diagnosticHistory[entry.diagnosticHistory.length - 1]?.rootCauseCategory` (omit when empty) |
-
-Requeue button is **deferred**.
+| "Skip task" | **deferred** — command existence unverified |
+| "Send to dead-letter" | **deferred** — command existence unverified |
 
 ### Diagnostics Panel
 
@@ -171,11 +157,10 @@ SVG task graph is **deferred** (no dynamic layout solver).
 
 | UI field | Source |
 |---|---|
-| Loop cost | `snapshot.cost.executionCostUsd` |
-| Diagnostic cost | `snapshot.cost.diagnosticCostUsd` |
-| Prompt cache stats | `snapshot.cost.promptCacheStats` |
+| Prompt prefix size | `snapshot.cost.promptCacheStats.staticPrefixBytes` formatted as KB |
+| Cache hit | `snapshot.cost.promptCacheStats.cacheHit` — "hit" / "miss" / "—" |
 
-Policy rules, model routing table, and raw iteration log are **deferred** (no backing data in state).
+Entire section hidden when `snapshot.cost.promptCacheStats === null`. Cost figures, policy rules, model routing table, and raw iteration log are **deferred** (no backing data in state).
 
 ### Settings
 
@@ -192,7 +177,7 @@ Shared across all panels. Exposes:
 - `StatusPill` — coloured pill for `running | idle | stopped | warn | bad | ok | accent | neutral`
 - `Btn` — `primary | secondary | ghost | danger` × `sm | md | lg`
 - `HealthPulse` — animated dot for loop state
-- `Icon` — inline SVG set (play, pause, stop, check, warn, x, bolt, clock, skull, arrow, dot, cog, graph, plus, ask)
+- `Icon` — inline SVG set (play, pause, stop, check, warn, x, bolt, clock, arrow, dot, cog, graph, plus, ask)
 
 Tokens map to existing VS Code CSS vars:
 ```css
@@ -241,7 +226,7 @@ Full-width. Tab bar at top (same tabs as mode dictates), content below. No inter
 - Simple mode: large plain-English `h2` from `viewModel.readiness`
 - Standard/Advanced: task ID badge (mono) + title + PhaseTracker
 - Right: action buttons (Start/Stop, Run one iteration)
-- Bottom: 4-cell HealthStrip grid (Progress, Iteration, Attention, Cost)
+- Bottom: 3–4 cell HealthStrip grid (Progress, Iteration, Attention, Cache) — Cache cell hidden when `promptCacheStats === null`
 
 ### PhaseTracker
 
@@ -270,8 +255,8 @@ Hidden when `recentIterations.length === 0`.
 ### Overview tab content (per mode)
 
 **Simple:** HeroNow → FailurePanel (if present) → Timeline  
-**Standard:** HeroNow → FailurePanel (if present) → AgentLanes + Timeline (side by side) → DeadLetter  
-**Advanced:** HeroNow → FailurePanel (if present) → AgentLanes + Timeline → DeadLetter  
+**Standard:** HeroNow → FailurePanel (if present) → AgentLanes + Timeline (side by side)  
+**Advanced:** HeroNow → FailurePanel (if present) → AgentLanes + Timeline (side by side)  
 
 ---
 
@@ -285,12 +270,12 @@ These features are **not implemented** in this pass. Each should become a backlo
 | SVG task dependency graph | No dynamic layout solver; hardcoded positions not viable for real tasks | `TaskPanel.tsx` |
 | Agent lane model labels | `RalphAgentLaneState` has no `model` field | `AgentLanes.tsx` |
 | Timeline duration column | `RalphDashboardIteration` has no duration field | `Timeline.tsx` |
-| Timeline cost column | `RalphDashboardIteration` has no cost field | `Timeline.tsx` |
+| Timeline per-iteration token counts | `RalphDashboardIteration` has no token fields; requires provider to surface input/output/cache token counts in iteration artifacts and propagate to state | `Timeline.tsx`, `RalphDashboardIteration` type, `dashboardDataLoader` |
+| Cache cell: per-iteration token breakdown | `PromptCacheStats` only has `staticPrefixBytes` + `cacheHit`; full counts (input, output, cache-read tokens) require provider-level token reporting | `HealthCell.tsx`, `PromptCacheStats` type |
 | Failure panel "Auto-recover" | No command registered | `FailurePanel.tsx` |
 | Failure panel "Apply & retry" | No command registered | `FailurePanel.tsx` |
 | Failure panel "Skip task" | Command existence unverified — audit before enabling | `FailurePanel.tsx` |
 | Failure panel "Send to dead-letter" | Command existence unverified — audit before enabling | `FailurePanel.tsx` |
-| Dead letter "Requeue" | No command registered | `DeadLetter.tsx` |
 | Pause loop button | `RalphUiLoopState` has no `paused` state | `HeroNow.tsx` |
 | Orchestration: policy rules panel | No policy data in `RalphDashboardState` | `Orchestration.tsx` |
 | Orchestration: model routing table | No routing data in `RalphDashboardState` | `Orchestration.tsx` |
