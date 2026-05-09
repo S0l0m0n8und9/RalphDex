@@ -37,6 +37,7 @@ exports.RalphDashboardPanel = void 0;
 const vscode = __importStar(require("vscode"));
 const dashboardHost_1 = require("../webview/dashboardHost");
 const reactWebviewHtml_1 = require("../webview/reactWebviewHtml");
+const panelHtml_1 = require("./panelHtml");
 /**
  * Editor-area dashboard panel.
  *
@@ -49,7 +50,14 @@ class RalphDashboardPanel {
     static currentPanel;
     host;
     constructor(panel, extensionUri, broadcaster, loadSnapshot, initialViewIntent = null, actions = {}) {
-        this.host = new dashboardHost_1.DashboardHost(panel.webview, broadcaster, (state, nonce, webview) => (0, reactWebviewHtml_1.buildWebviewUiHtml)({ mode: 'dashboard', state, nonce, webview, extensionUri }), loadSnapshot, initialViewIntent, actions);
+        this.host = new dashboardHost_1.DashboardHost(panel.webview, broadcaster, (state, nonce, webview) => (0, reactWebviewHtml_1.buildWebviewUiHtml)({
+            mode: 'dashboard',
+            state,
+            nonce,
+            webview,
+            extensionUri,
+            fallbackHtml: panelHtml_1.buildPanelDashboardHtml
+        }), loadSnapshot, initialViewIntent, actions);
         panel.onDidDispose(() => this.dispose());
     }
     /**

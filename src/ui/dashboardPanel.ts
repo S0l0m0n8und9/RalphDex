@@ -6,6 +6,7 @@ import { DashboardHost, type DashboardHostActions } from '../webview/dashboardHo
 import type { WebviewPanelManager } from '../webview/WebviewPanelManager';
 import type { DashboardSnapshotLoader } from '../webview/dashboardDataLoader';
 import { buildWebviewUiHtml } from '../webview/reactWebviewHtml';
+import { buildPanelDashboardHtml } from './panelHtml';
 
 /**
  * Editor-area dashboard panel.
@@ -31,7 +32,14 @@ export class RalphDashboardPanel implements vscode.Disposable {
     this.host = new DashboardHost(
       panel.webview,
       broadcaster,
-      (state, nonce, webview) => buildWebviewUiHtml({ mode: 'dashboard', state, nonce, webview, extensionUri }),
+      (state, nonce, webview) => buildWebviewUiHtml({
+        mode: 'dashboard',
+        state,
+        nonce,
+        webview,
+        extensionUri,
+        fallbackHtml: buildPanelDashboardHtml
+      }),
       loadSnapshot,
       initialViewIntent,
       actions

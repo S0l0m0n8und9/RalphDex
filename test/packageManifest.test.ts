@@ -375,3 +375,23 @@ test('package manifest excludes the shim entry point from the VSIX payload', asy
     '.vscodeignore must exclude out/shim/** from packaged files'
   );
 });
+
+test('debug watch script keeps the React webview bundle fresh', async () => {
+  const manifest = await readPackageManifest();
+  const scripts = (manifest as PackageManifest & { scripts?: Record<string, string> }).scripts ?? {};
+
+  assert.equal(scripts['watch'], 'node ./scripts/watch-extension-dev.js');
+  assert.ok(scripts['watch:ts']?.includes('tsc -watch -p ./'));
+  assert.ok(scripts['watch:webview']?.includes('build:webview'));
+  assert.ok(scripts['watch:webview']?.includes('--watch=forever'));
+});
+
+test('webview build uses React automatic JSX runtime for browser-safe bundle output', async () => {
+  const manifest = await readPackageManifest();
+  const scripts = (manifest as PackageManifest & { scripts?: Record<string, string> }).scripts ?? {};
+
+  assert.ok(
+    scripts['build:webview']?.includes('--jsx=automatic'),
+    'webview bundle must not rely on a browser-global React symbol'
+  );
+});

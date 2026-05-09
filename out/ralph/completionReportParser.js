@@ -187,6 +187,85 @@ function parseWatchdogActions(candidate) {
         .map(parseWatchdogAction)
         .filter((action) => action !== null);
 }
+function extractBalancedJsonObjectAt(text, start) {
+    if (text[start] !== '{') {
+        return null;
+    }
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    for (let i = start; i < text.length; i += 1) {
+        const char = text[i];
+        if (inString) {
+            if (escaped) {
+                escaped = false;
+            }
+            else if (char === '\\') {
+                escaped = true;
+            }
+            else if (char === '"') {
+                inString = false;
+            }
+            continue;
+        }
+        if (char === '"') {
+            inString = true;
+            continue;
+        }
+        if (char === '{') {
+            depth += 1;
+            continue;
+        }
+        if (char === '}') {
+            depth -= 1;
+            if (depth === 0) {
+                return {
+                    objectText: text.slice(start, i + 1).trim(),
+                    endIndex: i + 1
+                };
+            }
+            if (depth < 0) {
+                return null;
+            }
+        }
+    }
+    return null;
+}
+function containsLaterStrictJsonObject(text) {
+    for (let i = 0; i < text.length; i += 1) {
+        if (text[i] !== '{') {
+            continue;
+        }
+        const extracted = extractBalancedJsonObjectAt(text, i);
+        if (!extracted) {
+            continue;
+        }
+        try {
+            const parsed = JSON.parse(extracted.objectText);
+            if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+                return true;
+            }
+        }
+        catch {
+            // Ignore ordinary prose braces and object-shaped snippets that are not strict JSON.
+        }
+    }
+    return false;
+}
+function extractBalancedJsonObjectFromBlock(block) {
+    const leadingWhitespaceLength = block.length - block.trimStart().length;
+    const start = leadingWhitespaceLength;
+    const extracted = extractBalancedJsonObjectAt(block, start);
+    if (!extracted) {
+        return null;
+    }
+    const trailing = block.slice(extracted.endIndex);
+    return {
+        objectText: extracted.objectText,
+        ignoredTrailingContent: trailing.trim().length > 0,
+        ambiguousTrailingJsonObject: containsLaterStrictJsonObject(trailing)
+    };
+}
 function extractTrailingJsonObject(text) {
     const trimmed = text.trimEnd();
     if (!trimmed.endsWith('}')) {
@@ -258,7 +337,31 @@ function parseCompletionReport(lastMessage) {
         };
     }
     const fencedMatch = /```json\s*([\s\S]*?)\s*```\s*$/i.exec(trimmed);
-    const rawBlock = fencedMatch?.[1]?.trim() ?? extractTrailingJsonObject(trimmed);
+    const warnings = [];
+    let rawBlock = null;
+    if (fencedMatch?.[1] !== undefined) {
+        // Fenced reports are the preferred contract. Deterministically accept the
+        // first balanced object in the fence only when it starts the JSON block;
+        // trailing prose is tolerated, but any later strict JSON object is ambiguous
+        // and invalid. JSON.parse below remains the authority for the extracted object.
+        const extracted = extractBalancedJsonObjectFromBlock(fencedMatch[1]);
+        if (extracted?.ambiguousTrailingJsonObject) {
+            return {
+                status: 'invalid',
+                report: null,
+                rawBlock: fencedMatch[1].trim(),
+                parseError: 'Completion report contains multiple JSON objects in the fenced block.',
+                warnings: []
+            };
+        }
+        rawBlock = extracted?.objectText ?? fencedMatch[1].trim();
+        if (extracted?.ignoredTrailingContent) {
+            warnings.push('Ignored trailing content after completion report JSON object.');
+        }
+    }
+    else {
+        rawBlock = extractTrailingJsonObject(trimmed);
+    }
     if (!rawBlock) {
         return {
             status: 'missing',
@@ -282,7 +385,7 @@ function parseCompletionReport(lastMessage) {
             report: null,
             rawBlock,
             parseError: error instanceof Error ? error.message : String(error),
-            warnings: []
+            warnings
         };
     }
     if (typeof candidate.selectedTaskId !== 'string' || !candidate.selectedTaskId.trim()) {
@@ -291,7 +394,7 @@ function parseCompletionReport(lastMessage) {
             report: null,
             rawBlock,
             parseError: 'Completion report requires a non-empty selectedTaskId string.',
-            warnings: []
+            warnings
         };
     }
     if (typeof candidate.requestedStatus !== 'string' || !isAllowedCompletionStatus(candidate.requestedStatus)) {
@@ -300,7 +403,7 @@ function parseCompletionReport(lastMessage) {
             report: null,
             rawBlock,
             parseError: 'Completion report requestedStatus must be one of done, blocked, or in_progress.',
-            warnings: []
+            warnings
         };
     }
     if (candidate.needsHumanReview !== undefined && typeof candidate.needsHumanReview !== 'boolean') {
@@ -309,7 +412,7 @@ function parseCompletionReport(lastMessage) {
             report: null,
             rawBlock,
             parseError: 'Completion report needsHumanReview must be a boolean when provided.',
-            warnings: []
+            warnings
         };
     }
     const suggestedChildTasks = parseSuggestedChildTasks(candidate.suggestedChildTasks);
@@ -319,7 +422,7 @@ function parseCompletionReport(lastMessage) {
             report: null,
             rawBlock,
             parseError: 'Completion report suggestedChildTasks must be an array of valid suggested child tasks when provided.',
-            warnings: []
+            warnings
         };
     }
     const doctrineUpdates = (0, doctrineProposals_1.parseDoctrineUpdatesFromCompletionReport)(candidate.doctrineUpdates);
@@ -343,7 +446,7 @@ function parseCompletionReport(lastMessage) {
         report,
         rawBlock,
         parseError: null,
-        warnings: doctrineUpdates.warnings
+        warnings: [...warnings, ...doctrineUpdates.warnings]
     };
 }
 //# sourceMappingURL=completionReportParser.js.map

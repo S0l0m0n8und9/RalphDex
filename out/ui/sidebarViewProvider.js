@@ -42,6 +42,7 @@ const vscode = __importStar(require("vscode"));
 const settingsSurface_1 = require("../config/settingsSurface");
 const dashboardHost_1 = require("../webview/dashboardHost");
 const reactWebviewHtml_1 = require("../webview/reactWebviewHtml");
+const sidebarHtml_1 = require("./sidebarHtml");
 /**
  * Provides the sidebar webview launcher for Ralphdex.
  * Registered as a WebviewViewProvider for the `ralphCodex.dashboard` view.
@@ -71,7 +72,14 @@ class RalphSidebarViewProvider {
         // Dispose any previous host before creating a new one (VS Code may call
         // resolveWebviewView again if the view is hidden and re-shown).
         this.host?.dispose();
-        this.host = new dashboardHost_1.DashboardHost(webviewView.webview, this.broadcaster, (state, nonce, webview) => (0, reactWebviewHtml_1.buildWebviewUiHtml)({ mode: 'sidebar', state, nonce, webview, extensionUri: this.extensionUri }), this.loadSnapshot, null, this.actions);
+        this.host = new dashboardHost_1.DashboardHost(webviewView.webview, this.broadcaster, (state, nonce, webview) => (0, reactWebviewHtml_1.buildWebviewUiHtml)({
+            mode: 'sidebar',
+            state,
+            nonce,
+            webview,
+            extensionUri: this.extensionUri,
+            fallbackHtml: sidebarHtml_1.buildDashboardHtml
+        }), this.loadSnapshot, null, this.actions);
         webviewView.onDidDispose(() => {
             this.host?.dispose();
             this.host = undefined;

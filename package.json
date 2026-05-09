@@ -1190,11 +1190,13 @@
     }
   },
   "scripts": {
-    "build:webview": "esbuild src/webview-ui/main.tsx --bundle --platform=browser --format=iife --target=es2022 --outfile=out/webview-ui/main.js --sourcemap --minify",
+    "build:webview": "esbuild src/webview-ui/main.tsx --bundle --platform=browser --format=iife --target=es2022 --jsx=automatic --outfile=out/webview-ui/main.js --sourcemap --minify",
     "typecheck:webview": "tsc -p ./tsconfig.webview-ui.json",
     "compile": "npm run build:webview && tsc -p ./",
     "compile:tests": "tsc -p ./tsconfig.test.json",
-    "watch": "tsc -watch -p ./",
+    "watch:ts": "tsc -watch -p ./",
+    "watch:webview": "npm run build:webview -- --watch=forever",
+    "watch": "node ./scripts/watch-extension-dev.js",
     "lint": "tsc --noEmit -p ./ && tsc --noEmit -p ./tsconfig.test.json && npm run typecheck:webview",
     "check:docs": "node ./scripts/check-docs.js",
     "check:ledger": "node ./scripts/check-ledger.js",

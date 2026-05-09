@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as fs from 'node:fs';
 import type { RalphDashboardState } from '../ui/uiTypes';
 
 export type WebviewUiMode = 'dashboard' | 'sidebar';
@@ -9,6 +10,7 @@ export interface BuildWebviewUiHtmlInput {
   nonce: string;
   webview: Pick<vscode.Webview, 'asWebviewUri' | 'cspSource'>;
   extensionUri: vscode.Uri;
+  fallbackHtml?: (state: RalphDashboardState, nonce: string) => string;
 }
 
 function escapeBootstrapJson(value: unknown): string {
@@ -21,8 +23,15 @@ function escapeBootstrapJson(value: unknown): string {
 }
 
 export function buildWebviewUiHtml(input: BuildWebviewUiHtmlInput): string {
-  const scriptUri = input.webview.asWebviewUri(vscode.Uri.joinPath(input.extensionUri, 'out', 'webview-ui', 'main.js'));
-  const styleUri = input.webview.asWebviewUri(vscode.Uri.joinPath(input.extensionUri, 'out', 'webview-ui', 'main.css'));
+  const scriptPath = vscode.Uri.joinPath(input.extensionUri, 'out', 'webview-ui', 'main.js');
+  const stylePath = vscode.Uri.joinPath(input.extensionUri, 'out', 'webview-ui', 'main.css');
+
+  if ((!fs.existsSync(scriptPath.fsPath) || !fs.existsSync(stylePath.fsPath)) && input.fallbackHtml) {
+    return input.fallbackHtml(input.state, input.nonce);
+  }
+
+  const scriptUri = input.webview.asWebviewUri(scriptPath);
+  const styleUri = input.webview.asWebviewUri(stylePath);
   const bootstrap = escapeBootstrapJson({
     mode: input.mode,
     state: input.state

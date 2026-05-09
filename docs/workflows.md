@@ -19,7 +19,7 @@ Before running provider-facing commands, review [docs/security.md](security.md).
 1. Run `npm install`.
 2. Run `npm run compile`.
 3. Start the Extension Development Host with `F5`.
-4. Re-run `npm run compile` after TypeScript changes, or use `npm run watch`.
+4. Re-run `npm run compile` after TypeScript changes, or use `npm run watch`. The watch command runs both TypeScript and the bundled React webview build so the Extension Development Host can load the dashboard/sidebar assets after source edits.
 
 Use [docs/testing.md](testing.md) for the validation gate and test coverage.
 

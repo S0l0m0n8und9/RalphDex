@@ -22,6 +22,7 @@ Related docs:
 - `npm run test:offline-evals` (or `npm run test:evals`): run the offline evaluation harness fixtures from `test/evals/fixtures/` and emit a compact Markdown plus JSON summary; it fails only when fixture expectations drift, not when a fixture intentionally models a failing verifier outcome.
 - `npm run test:ui-harness`: run deterministic UI fixture rendering + accessibility-oriented checks for dashboard/sidebar webviews (`uiFixtureHarness`, panel/sidebar HTML regression checks, and shared theme contrast checks).
 - `npm run build:webview`: bundle the local React + TypeScript webview shell to `out/webview-ui/main.js` and `out/webview-ui/main.css`.
+- `npm run watch`: run the TypeScript compiler watcher and the webview bundle watcher together so Extension Development Host debugging does not serve missing or stale dashboard/sidebar assets.
 - `npm run evidence:ui-fixtures`: compile and export deterministic sidebar/dashboard fixture HTML plus a hash manifest to `.ralph/artifacts/ui-fixtures/` for UX review evidence.
 - `npm run dogfood`: run one repeatable local dogfood pass through the real CLI smoke harness and persist a structured report under `.ralph/artifacts/dogfood/` (provider, model, task count, stop reason, duration, failure category) without recording secrets.
 - `npm run validate`: run `compile`, `check:docs`, `check:ledger`, `check:prompt-budget`, `lint`, and `test`.

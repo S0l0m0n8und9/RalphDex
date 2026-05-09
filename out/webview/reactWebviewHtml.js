@@ -35,6 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.buildWebviewUiHtml = buildWebviewUiHtml;
 const vscode = __importStar(require("vscode"));
+const fs = __importStar(require("node:fs"));
 function escapeBootstrapJson(value) {
     return JSON.stringify(value)
         .replace(/</g, '\\u003c')
@@ -44,8 +45,13 @@ function escapeBootstrapJson(value) {
         .replace(/\u2029/g, '\\u2029');
 }
 function buildWebviewUiHtml(input) {
-    const scriptUri = input.webview.asWebviewUri(vscode.Uri.joinPath(input.extensionUri, 'out', 'webview-ui', 'main.js'));
-    const styleUri = input.webview.asWebviewUri(vscode.Uri.joinPath(input.extensionUri, 'out', 'webview-ui', 'main.css'));
+    const scriptPath = vscode.Uri.joinPath(input.extensionUri, 'out', 'webview-ui', 'main.js');
+    const stylePath = vscode.Uri.joinPath(input.extensionUri, 'out', 'webview-ui', 'main.css');
+    if ((!fs.existsSync(scriptPath.fsPath) || !fs.existsSync(stylePath.fsPath)) && input.fallbackHtml) {
+        return input.fallbackHtml(input.state, input.nonce);
+    }
+    const scriptUri = input.webview.asWebviewUri(scriptPath);
+    const styleUri = input.webview.asWebviewUri(stylePath);
     const bootstrap = escapeBootstrapJson({
         mode: input.mode,
         state: input.state
