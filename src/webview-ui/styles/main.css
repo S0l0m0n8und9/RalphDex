@@ -12,6 +12,15 @@
   --rdx-warn: var(--vscode-editorWarning-foreground);
   --rdx-focus: var(--vscode-focusBorder);
   --rdx-font: var(--vscode-font-family);
+  /* UX refresh tokens — new components use these semantic names */
+  --rdx-surface:    var(--vscode-editor-background);
+  --rdx-surface-2:  var(--vscode-sideBar-background, var(--vscode-editor-background));
+  --rdx-ok:         var(--vscode-testing-iconPassed, #4ec994);
+  --rdx-dim:        var(--vscode-descriptionForeground);
+  --rdx-accent:     var(--vscode-button-background);
+  --rdx-bad:        var(--vscode-errorForeground);
+  --rdx-mono:       var(--vscode-editor-font-family, ui-monospace, 'Courier New', monospace);
+  --rdx-cyan:       var(--vscode-terminal-ansiBrightCyan, #6fc3df);
 }
 
 * {
@@ -62,6 +71,7 @@ select {
 
 h1,
 h2,
+h3,
 p {
   margin: 0;
 }
@@ -76,10 +86,19 @@ h2 {
   font-weight: 650;
 }
 
+h3 {
+  font-size: 12px;
+  font-weight: 650;
+}
+
 p,
 li,
 .rdx-state,
-.rdx-task-meta {
+.rdx-task-meta,
+.rdx-pipeline-panel span,
+.rdx-pipeline-panel p,
+.rdx-pipeline-run p,
+.rdx-metric span {
   color: var(--rdx-muted);
 }
 
@@ -176,6 +195,128 @@ summary:focus-visible {
   padding-left: 18px;
 }
 
+.rdx-mono,
+.rdx-pipeline-id {
+  font-family: var(--vscode-editor-font-family);
+}
+
+.rdx-pipeline {
+  display: grid;
+  gap: 12px;
+}
+
+.rdx-pipeline-run {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--rdx-border);
+  border-radius: 8px;
+  padding: 12px;
+  background: color-mix(in srgb, var(--rdx-bg) 88%, var(--rdx-fg));
+}
+
+.rdx-pipeline-id {
+  color: var(--rdx-fg);
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.rdx-metric-grid,
+.rdx-pipeline-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.rdx-metric-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.rdx-pipeline-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.rdx-metric,
+.rdx-pipeline-panel,
+.rdx-node {
+  border: 1px solid var(--rdx-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--rdx-bg) 90%, var(--rdx-fg));
+}
+
+.rdx-metric {
+  display: grid;
+  gap: 3px;
+  padding: 8px 10px;
+}
+
+.rdx-metric strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rdx-pipeline-panel {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+
+.rdx-node-list {
+  display: grid;
+  gap: 8px;
+}
+
+.rdx-node {
+  display: grid;
+  gap: 3px;
+  padding: 9px 10px;
+}
+
+.rdx-node.active {
+  border-color: color-mix(in srgb, var(--rdx-primary-bg) 55%, var(--rdx-border));
+}
+
+.rdx-node.completed {
+  border-color: color-mix(in srgb, var(--rdx-primary-bg) 40%, var(--rdx-border));
+}
+
+.rdx-node.pending {
+  border-color: color-mix(in srgb, var(--rdx-warn) 50%, var(--rdx-border));
+}
+
+.rdx-fanin-list {
+  display: grid;
+}
+
+.rdx-fanin-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px solid var(--rdx-border);
+  padding: 5px 0;
+}
+
+.rdx-fanin-row:last-child {
+  border-bottom: none;
+}
+
+.rdx-pill {
+  border: 1px solid var(--rdx-border);
+  border-radius: 6px;
+  padding: 1px 6px;
+  color: var(--rdx-muted);
+}
+
+.rdx-pill.ok {
+  color: var(--rdx-primary-bg);
+  border-color: color-mix(in srgb, var(--rdx-primary-bg) 55%, var(--rdx-border));
+}
+
+.rdx-pill.warn {
+  color: var(--rdx-warn);
+  border-color: color-mix(in srgb, var(--rdx-warn) 55%, var(--rdx-border));
+}
+
 details {
   border-top: 1px solid var(--rdx-border);
   padding-top: 8px;
@@ -217,7 +358,66 @@ summary {
   }
 
   .rdx-dashboard-grid,
+  .rdx-metric-grid,
+  .rdx-pipeline-grid,
   .rdx-setting {
     grid-template-columns: 1fr;
   }
+}
+
+/* UX refresh shell layouts */
+.rdx-shell {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  font-family: var(--rdx-font);
+  background: var(--rdx-surface);
+  color: var(--rdx-fg);
+}
+
+.rdx-shell-nav {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--rdx-surface-2);
+  border-right: 1px solid var(--rdx-border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.rdx-shell-main {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.rdx-tab-bar {
+  display: flex;
+  border-bottom: 1px solid var(--rdx-border);
+  background: var(--rdx-surface-2);
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+
+.rdx-tab-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+@keyframes rdx-pulse {
+  0%   { transform: scale(1);   opacity: 0.7; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+
+@keyframes rdx-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
 }
