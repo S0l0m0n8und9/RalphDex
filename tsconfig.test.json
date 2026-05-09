@@ -4,11 +4,15 @@
     "composite": true,
     "outDir": "out-test",
     "rootDir": ".",
-    "sourceMap": false
+    "sourceMap": false,
+    "jsx": "react-jsx",
+    "lib": ["ES2022", "DOM"]
   },
   "include": [
     "src/**/*.ts",
-    "test/**/*.ts"
+    "src/webview-ui/**/*.tsx",
+    "test/**/*.ts",
+    "test/**/*.tsx"
   ],
   "exclude": []
 }
