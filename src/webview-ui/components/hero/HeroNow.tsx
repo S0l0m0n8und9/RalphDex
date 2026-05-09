@@ -1,6 +1,6 @@
 import React from 'react';
 import type { RalphDashboardState } from '../../../ui/uiTypes';
-import type { WebviewUiModel, DashboardMode } from '../../viewModel';
+import type { WebviewUiModel } from '../../viewModel';
 import { Card, StatusPill, Btn, HealthPulse, Icon, formatBytes } from '../primitives/Card';
 import { PhaseTracker } from './PhaseTracker';
 import { HealthCell } from './HealthCell';
@@ -8,21 +8,22 @@ import { HealthCell } from './HealthCell';
 interface HeroNowProps {
   state: RalphDashboardState;
   model: WebviewUiModel;
-  mode: DashboardMode;
   onStartLoop: () => void;
   onStopLoop: () => void;
   onRunIteration: () => void;
 }
 
-export function HeroNow({ state, model, mode, onStartLoop, onStopLoop, onRunIteration }: HeroNowProps) {
+export function HeroNow({ state, model, onStartLoop, onStopLoop, onRunIteration }: HeroNowProps) {
   const running  = state.loopState === 'running';
   const total    = model.taskTotal;
   const done     = model.doneCount;
   const donePct  = total > 0 ? Math.round((done / total) * 100) : 0;
   const iterPct  = state.iterationCap > 0 ? Math.round((state.nextIteration / state.iterationCap) * 100) : 0;
   const attention = state.taskCounts?.blocked ?? 0;
+  const deadLetterCount = state.dashboardSnapshot?.deadLetter.entries.length ?? 0;
   const snapshot  = state.dashboardSnapshot;
   const cacheStats = snapshot?.cost.promptCacheStats ?? null;
+  const executionCost = snapshot?.cost.executionCostUsd ?? null;
 
   const loopPillKind = running ? 'running' : state.loopState === 'stopped' ? 'stopped' : 'idle';
 
@@ -49,43 +50,30 @@ export function HeroNow({ state, model, mode, onStartLoop, onStopLoop, onRunIter
             )}
           </div>
 
-          {mode === 'simple' ? (
+          {model.currentTask ? (
             <>
-              <h2 style={{ fontSize: 22, fontWeight: 500, lineHeight: 1.25, margin: '0 0 4px 0', letterSpacing: -0.3 }}>
-                {primaryExplain}
+              <div style={{ fontSize: 13, color: 'var(--dim)', marginBottom: 4 }}>Current task</div>
+              <h2 style={{
+                fontSize: 19, fontWeight: 500, lineHeight: 1.3, margin: '0 0 10px 0',
+                letterSpacing: -0.2, display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap',
+              }}>
+                <span style={{
+                  fontFamily: 'var(--font-mono)', fontSize: 12, padding: '3px 8px',
+                  background: 'var(--surface-2)', border: '1px solid var(--border)',
+                  borderRadius: 4, color: 'var(--accent)',
+                }}>
+                  {model.currentTask.id}
+                </span>
+                <span>{model.currentTask.title}</span>
               </h2>
-              <p style={{ fontSize: 13, color: 'var(--dim)', margin: 0 }}>
-                {model.readiness.detail}
-              </p>
-            </>
-          ) : (
-            <>
-              {model.currentTask ? (
-                <>
-                  <div style={{ fontSize: 13, color: 'var(--dim)', marginBottom: 4 }}>Current task</div>
-                  <h2 style={{
-                    fontSize: 19, fontWeight: 500, lineHeight: 1.3, margin: '0 0 10px 0',
-                    letterSpacing: -0.2, display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap',
-                  }}>
-                    <span style={{
-                      fontFamily: 'var(--font-mono)', fontSize: 12, padding: '3px 8px',
-                      background: 'var(--surface-2)', border: '1px solid var(--border)',
-                      borderRadius: 4, color: 'var(--accent)',
-                    }}>
-                      {model.currentTask.id}
-                    </span>
-                    <span>{model.currentTask.title}</span>
-                  </h2>
-                  {state.agentLanes[0]?.phase != null && (
-                    <PhaseTracker phase={state.agentLanes[0].phase} />
-                  )}
-                </>
-              ) : (
-                <p style={{ fontSize: 14, lineHeight: 1.5, margin: 0, color: 'var(--dim)' }}>
-                  {model.readiness.detail}
-                </p>
+              {state.agentLanes[0]?.phase != null && (
+                <PhaseTracker phase={state.agentLanes[0].phase} />
               )}
             </>
+          ) : (
+            <p style={{ fontSize: 14, lineHeight: 1.5, margin: 0, color: 'var(--dim)' }}>
+              {model.readiness.detail}
+            </p>
           )}
         </div>
 
@@ -95,11 +83,9 @@ export function HeroNow({ state, model, mode, onStartLoop, onStopLoop, onRunIter
           ) : (
             <Btn variant="primary" size="md" onClick={onStartLoop}>{Icon.play} Start loop</Btn>
           )}
-          {mode !== 'simple' && (
-            <Btn variant="secondary" size="md" onClick={onRunIteration}>
-              {Icon.bolt} Run one iteration
-            </Btn>
-          )}
+          <Btn variant="secondary" size="md" onClick={onRunIteration}>
+            {Icon.bolt} Run one iteration
+          </Btn>
         </div>
       </div>
 
@@ -124,11 +110,21 @@ export function HeroNow({ state, model, mode, onStartLoop, onStopLoop, onRunIter
         />
         <HealthCell
           label="Attention"
-          value={String(attention)}
-          sub={attention === 0 ? 'all clear' : `${attention} blocked`}
-          tone={attention > 0 ? 'warn' : 'ok'}
+          value={String(attention + deadLetterCount)}
+          sub={
+            attention === 0 && deadLetterCount === 0
+              ? 'all clear'
+              : [attention > 0 && `${attention} blocked`, deadLetterCount > 0 && `${deadLetterCount} dead-letter`].filter(Boolean).join(' · ')
+          }
+          tone={attention + deadLetterCount > 0 ? 'warn' : 'ok'}
         />
-        {cacheStats && (
+        {executionCost !== null ? (
+          <HealthCell
+            label="Last iteration"
+            value={`$${executionCost.toFixed(3)}`}
+            sub={snapshot?.cost.diagnosticCostUsd != null ? `+$${snapshot.cost.diagnosticCostUsd.toFixed(3)} diag` : 'execution cost'}
+          />
+        ) : cacheStats ? (
           <HealthCell
             label="Cache"
             value={formatBytes(cacheStats.staticPrefixBytes)}
@@ -138,7 +134,7 @@ export function HeroNow({ state, model, mode, onStartLoop, onStopLoop, onRunIter
             }
             tone={cacheStats.cacheHit === true ? 'ok' : 'neutral'}
           />
-        )}
+        ) : null}
       </div>
     </Card>
   );

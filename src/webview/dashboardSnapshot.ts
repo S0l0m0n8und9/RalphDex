@@ -18,6 +18,7 @@ import {
 } from '../ralph/multiAgentStatus';
 import type { DeadLetterEntry } from '../ralph/deadLetter';
 import type { FailureCategoryId, PromptCacheStats, RalphTaskCounts } from '../ralph/types';
+import type { PipelineRunStatus, PipelinePhase } from '../ralph/pipeline';
 
 // ---------------------------------------------------------------------------
 // Task board
@@ -134,6 +135,54 @@ export interface DashboardPreflightSection {
   firstRunChecklist: DashboardFirstRunChecklistItem[];
 }
 
+export interface DashboardPipelineSection {
+  latestRun: {
+    runId: string;
+    status: PipelineRunStatus;
+    phase: PipelinePhase | null;
+    rootTaskId: string;
+    decomposedTaskIds: string[];
+    startedAt: string;
+    finishedAt: string | null;
+    prUrl: string | null;
+    taskGraphSource: 'approved-plan' | 'legacy-heading-scaffold' | null;
+    orchestrationGraphPath: string | null;
+  } | null;
+  orchestration: {
+    activeNodeId: string | null;
+    activeNodeLabel: string | null;
+    completedNodes: Array<{ nodeId: string; label: string; outcome: string; finishedAt: string | null }>;
+    pendingBranchNodes: Array<{ nodeId: string; label: string }>;
+  } | null;
+  replan: Array<{
+    parentTaskId: string;
+    replanIndex: number;
+    triggerDetails: string;
+    chosenMutation: string;
+    addedTaskIds: string[];
+    removedTaskIds: string[];
+    modifiedTaskIds: string[];
+    createdAt: string;
+  }>;
+  fanIn: {
+    waveIndex: number;
+    result: 'passed' | 'failed';
+    memberOutcomes: Record<string, 'done' | 'blocked' | 'failed'>;
+    errors: string[];
+    evaluatedAt: string;
+  } | null;
+  nodeSpans: Array<{
+    nodeId: string;
+    runId: string;
+    agentId: string | null;
+    agentRole: string | null;
+    stopClassification: string | null;
+    outputCount: number;
+    startedAt: string;
+    finishedAt: string;
+  }>;
+}
+
 export type DashboardChecklistStatus = 'blocker' | 'warning' | 'complete';
 
 export interface DashboardFirstRunChecklistItem {
@@ -162,6 +211,7 @@ export interface DashboardSnapshot {
   quickActions: QuickActionsSection;
   cost: DashboardCostSection;
   preflight?: DashboardPreflightSection;
+  pipeline?: DashboardPipelineSection;
 }
 
 // ---------------------------------------------------------------------------
@@ -194,6 +244,58 @@ export function buildDashboardSnapshot(
     quickActions: buildQuickActions(snapshot),
     cost: buildCostSection(snapshot),
     preflight: buildPreflightSection(snapshot),
+    pipeline: buildPipelineSection(snapshot),
+  };
+}
+
+function buildPipelineSection(snapshot: RalphStatusSnapshot): DashboardPipelineSection {
+  const latestRun = snapshot.latestPipelineRun
+    ? {
+        runId: snapshot.latestPipelineRun.runId,
+        status: snapshot.latestPipelineRun.status,
+        phase: snapshot.latestPipelineRun.phase ?? null,
+        rootTaskId: snapshot.latestPipelineRun.rootTaskId,
+        decomposedTaskIds: snapshot.latestPipelineRun.decomposedTaskIds,
+        startedAt: snapshot.latestPipelineRun.loopStartTime,
+        finishedAt: snapshot.latestPipelineRun.loopEndTime ?? null,
+        prUrl: snapshot.latestPipelineRun.prUrl ?? null,
+        taskGraphSource: snapshot.latestPipelineRun.taskGraphSource ?? null,
+        orchestrationGraphPath: snapshot.latestPipelineRun.orchestrationGraphPath ?? null,
+      }
+    : null;
+
+  return {
+    latestRun,
+    orchestration: snapshot.orchestration ?? null,
+    replan: (snapshot.replanArtifacts ?? []).map((artifact) => ({
+      parentTaskId: artifact.parentTaskId,
+      replanIndex: artifact.replanIndex,
+      triggerDetails: artifact.triggerDetails,
+      chosenMutation: artifact.chosenMutation,
+      addedTaskIds: artifact.taskGraphDiff.addedTaskIds,
+      removedTaskIds: artifact.taskGraphDiff.removedTaskIds,
+      modifiedTaskIds: artifact.taskGraphDiff.modifiedTaskIds,
+      createdAt: artifact.createdAt,
+    })),
+    fanIn: snapshot.fanInRecord
+      ? {
+          waveIndex: snapshot.fanInRecord.waveIndex,
+          result: snapshot.fanInRecord.fanInResult,
+          memberOutcomes: snapshot.fanInRecord.memberOutcomes,
+          errors: snapshot.fanInRecord.fanInErrors,
+          evaluatedAt: snapshot.fanInRecord.evaluatedAt,
+        }
+      : null,
+    nodeSpans: (snapshot.nodeSpans ?? []).map((span) => ({
+      nodeId: span.nodeId,
+      runId: span.runId,
+      agentId: span.agentId ?? null,
+      agentRole: span.agentRole ?? null,
+      stopClassification: span.stopClassification ?? null,
+      outputCount: span.outputRefs.length,
+      startedAt: span.startedAt,
+      finishedAt: span.finishedAt,
+    })),
   };
 }
 

@@ -36,7 +36,6 @@ function currentTask(state: RalphDashboardState): RalphDashboardTask | null {
   return state.tasks.find((task) => task.isCurrent) ?? state.tasks.find((task) => task.status !== 'done') ?? state.tasks[0] ?? null;
 }
 
-export type DashboardMode = 'simple' | 'standard' | 'advanced';
 
 export function getWebviewUiModel(state: RalphDashboardState): WebviewUiModel {
   const total = taskTotal(state);

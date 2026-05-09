@@ -36,6 +36,7 @@ function minimalSnapshot(
       | 'latestFailureAnalysisPath'
       | 'recoveryStatePath'
       | 'latestProvenanceBundle'
+      | 'latestPipelineRun'
       | 'preflightReport'
       | 'orchestration'
       | 'replanArtifacts'
@@ -570,6 +571,53 @@ test('buildDashboardSnapshot: cost section exposes only executionCostUsd when di
   assert.strictEqual(result.cost.executionCostUsd, 0.0055);
   assert.strictEqual(result.cost.diagnosticCostUsd, null);
   assert.strictEqual(result.cost.hasAnyCostData, true);
+});
+
+test('buildDashboardSnapshot: pipeline section projects latest run and orchestration evidence', () => {
+  const snapshot = minimalSnapshot({
+    latestPipelineRun: {
+      schemaVersion: 1,
+      kind: 'pipelineRun',
+      runId: 'pipeline-20260509T010000Z-abcd',
+      prdHash: 'hash-1',
+      prdPath: '.ralph/prd.md',
+      rootTaskId: 'T100',
+      decomposedTaskIds: ['T101', 'T102'],
+      loopStartTime: '2026-05-09T01:00:00.000Z',
+      status: 'running',
+      phase: 'loop',
+      orchestrationGraphPath: '.ralph/orchestration/pipeline-20260509T010000Z-abcd/graph.json',
+      taskGraphSource: 'approved-plan'
+    },
+    orchestration: makeOrchestrationState({
+      activeNodeId: 'node-exec-1',
+      activeNodeLabel: 'Execute T101',
+      completedNodes: [{ nodeId: 'node-plan', label: 'Plan work', outcome: 'completed', finishedAt: '2026-05-09T01:02:00.000Z' }],
+      pendingBranchNodes: [{ nodeId: 'node-review', label: 'Review output' }]
+    }),
+    replanArtifacts: [makeReplanArtifact(1)],
+    fanInRecord: makeFanInRecord('failed'),
+    nodeSpans: [makeNodeSpan('node-exec-1', {
+      agentId: 'impl-1',
+      agentRole: 'implementer',
+      outputRefs: ['out-a', 'out-b'],
+      stopClassification: 'partial_progress'
+    })]
+  });
+
+  const result = buildDashboardSnapshot(snapshot);
+  assert.ok(result.pipeline, 'pipeline section should be populated by buildDashboardSnapshot');
+
+  assert.equal(result.pipeline.latestRun?.runId, 'pipeline-20260509T010000Z-abcd');
+  assert.equal(result.pipeline.latestRun?.phase, 'loop');
+  assert.equal(result.pipeline.latestRun?.taskGraphSource, 'approved-plan');
+  assert.equal(result.pipeline.orchestration?.activeNodeLabel, 'Execute T101');
+  assert.equal(result.pipeline.orchestration?.completedNodes[0]?.label, 'Plan work');
+  assert.equal(result.pipeline.replan[0]?.chosenMutation, '2 waves written');
+  assert.equal(result.pipeline.fanIn?.result, 'failed');
+  assert.deepEqual(result.pipeline.fanIn?.errors, ['Merge conflict in src/util.ts']);
+  assert.equal(result.pipeline.nodeSpans[0]?.agentId, 'impl-1');
+  assert.equal(result.pipeline.nodeSpans[0]?.outputCount, 2);
 });
 
 // ---------------------------------------------------------------------------

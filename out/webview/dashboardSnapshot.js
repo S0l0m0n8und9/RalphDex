@@ -39,6 +39,56 @@ function buildDashboardSnapshot(snapshot, agentSummaries = null) {
         quickActions: buildQuickActions(snapshot),
         cost: buildCostSection(snapshot),
         preflight: buildPreflightSection(snapshot),
+        pipeline: buildPipelineSection(snapshot),
+    };
+}
+function buildPipelineSection(snapshot) {
+    const latestRun = snapshot.latestPipelineRun
+        ? {
+            runId: snapshot.latestPipelineRun.runId,
+            status: snapshot.latestPipelineRun.status,
+            phase: snapshot.latestPipelineRun.phase ?? null,
+            rootTaskId: snapshot.latestPipelineRun.rootTaskId,
+            decomposedTaskIds: snapshot.latestPipelineRun.decomposedTaskIds,
+            startedAt: snapshot.latestPipelineRun.loopStartTime,
+            finishedAt: snapshot.latestPipelineRun.loopEndTime ?? null,
+            prUrl: snapshot.latestPipelineRun.prUrl ?? null,
+            taskGraphSource: snapshot.latestPipelineRun.taskGraphSource ?? null,
+            orchestrationGraphPath: snapshot.latestPipelineRun.orchestrationGraphPath ?? null,
+        }
+        : null;
+    return {
+        latestRun,
+        orchestration: snapshot.orchestration ?? null,
+        replan: (snapshot.replanArtifacts ?? []).map((artifact) => ({
+            parentTaskId: artifact.parentTaskId,
+            replanIndex: artifact.replanIndex,
+            triggerDetails: artifact.triggerDetails,
+            chosenMutation: artifact.chosenMutation,
+            addedTaskIds: artifact.taskGraphDiff.addedTaskIds,
+            removedTaskIds: artifact.taskGraphDiff.removedTaskIds,
+            modifiedTaskIds: artifact.taskGraphDiff.modifiedTaskIds,
+            createdAt: artifact.createdAt,
+        })),
+        fanIn: snapshot.fanInRecord
+            ? {
+                waveIndex: snapshot.fanInRecord.waveIndex,
+                result: snapshot.fanInRecord.fanInResult,
+                memberOutcomes: snapshot.fanInRecord.memberOutcomes,
+                errors: snapshot.fanInRecord.fanInErrors,
+                evaluatedAt: snapshot.fanInRecord.evaluatedAt,
+            }
+            : null,
+        nodeSpans: (snapshot.nodeSpans ?? []).map((span) => ({
+            nodeId: span.nodeId,
+            runId: span.runId,
+            agentId: span.agentId ?? null,
+            agentRole: span.agentRole ?? null,
+            stopClassification: span.stopClassification ?? null,
+            outputCount: span.outputRefs.length,
+            startedAt: span.startedAt,
+            finishedAt: span.finishedAt,
+        })),
     };
 }
 function buildPreflightSection(snapshot) {

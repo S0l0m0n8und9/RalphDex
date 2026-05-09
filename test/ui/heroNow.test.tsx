@@ -28,7 +28,7 @@ function makeModel(overrides: Partial<WebviewUiModel> = {}): WebviewUiModel {
 
 test('HeroNow shows Start button when loop is idle', () => {
   const html = renderToStaticMarkup(
-    <HeroNow state={makeState({ loopState: 'idle' })} model={makeModel()} mode="standard"
+    <HeroNow state={makeState({ loopState: 'idle' })} model={makeModel()}
       onStartLoop={() => {}} onStopLoop={() => {}} onRunIteration={() => {}} />
   );
   assert.ok(html.includes('Start loop'));
@@ -37,48 +37,42 @@ test('HeroNow shows Start button when loop is idle', () => {
 
 test('HeroNow shows Stop button when loop is running', () => {
   const html = renderToStaticMarkup(
-    <HeroNow state={makeState({ loopState: 'running' })} model={makeModel()} mode="standard"
+    <HeroNow state={makeState({ loopState: 'running' })} model={makeModel()}
       onStartLoop={() => {}} onStopLoop={() => {}} onRunIteration={() => {}} />
   );
   assert.ok(html.includes('Stop loop'));
   assert.ok(!html.includes('Start loop'));
 });
 
-test('HeroNow simple mode shows plain-English readiness text', () => {
+test('HeroNow shows readiness detail when no current task', () => {
   const html = renderToStaticMarkup(
     <HeroNow state={makeState()} model={makeModel({ readiness: { kind: 'ready', title: 'Ready', detail: 'Ralph is idle. 4 of 10 tasks done.' } })}
-      mode="simple" onStartLoop={() => {}} onStopLoop={() => {}} onRunIteration={() => {}} />
+      onStartLoop={() => {}} onStopLoop={() => {}} onRunIteration={() => {}} />
   );
   assert.ok(html.includes('Ralph is idle. 4 of 10 tasks done.'));
 });
 
-test('HeroNow standard mode shows task ID when current task is set', () => {
+test('HeroNow shows task ID when current task is set', () => {
   const html = renderToStaticMarkup(
     <HeroNow state={makeState({ loopState: 'running' })}
       model={makeModel({ currentTask: { id: 'T-42', title: 'Fix the thing', status: 'in_progress', isCurrent: true, priority: 'high', childIds: [], dependsOn: [] } })}
-      mode="standard" onStartLoop={() => {}} onStopLoop={() => {}} onRunIteration={() => {}} />
+      onStartLoop={() => {}} onStopLoop={() => {}} onRunIteration={() => {}} />
   );
   assert.ok(html.includes('T-42'));
   assert.ok(html.includes('Fix the thing'));
 });
 
-test('HeroNow shows Run one iteration only in standard and advanced', () => {
-  const htmlStd = renderToStaticMarkup(
-    <HeroNow state={makeState()} model={makeModel()} mode="standard"
+test('HeroNow always shows Run one iteration button', () => {
+  const html = renderToStaticMarkup(
+    <HeroNow state={makeState()} model={makeModel()}
       onStartLoop={() => {}} onStopLoop={() => {}} onRunIteration={() => {}} />
   );
-  assert.ok(htmlStd.includes('Run one iteration'));
-
-  const htmlSimple = renderToStaticMarkup(
-    <HeroNow state={makeState()} model={makeModel()} mode="simple"
-      onStartLoop={() => {}} onStopLoop={() => {}} onRunIteration={() => {}} />
-  );
-  assert.ok(!htmlSimple.includes('Run one iteration'));
+  assert.ok(html.includes('Run one iteration'));
 });
 
 test('HeroNow renders health strip', () => {
   const html = renderToStaticMarkup(
-    <HeroNow state={makeState()} model={makeModel()} mode="standard"
+    <HeroNow state={makeState()} model={makeModel()}
       onStartLoop={() => {}} onStopLoop={() => {}} onRunIteration={() => {}} />
   );
   assert.ok(html.includes('PROGRESS'));

@@ -17,7 +17,7 @@ export function CommandButton({ command, onCommand }: CommandButtonProps) {
       type="button"
       className={className}
       data-command={command.command}
-      disabled={pending}
+      disabled={pending || command.disabled}
       onClick={() => {
         setPending(true);
         onCommand(command.command);

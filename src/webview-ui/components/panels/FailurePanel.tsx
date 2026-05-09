@@ -5,9 +5,10 @@ import { Card, StatusPill, Btn, Icon } from '../primitives/Card';
 interface FailurePanelProps {
   diagnosis: DiagnosisSection;
   onOpenArtifact: (path: string) => void;
+  onCommand: (command: string) => void;
 }
 
-export function FailurePanel({ diagnosis: d, onOpenArtifact }: FailurePanelProps) {
+export function FailurePanel({ diagnosis: d, onOpenArtifact, onCommand }: FailurePanelProps) {
   const confidenceKind = d.confidence === 'high' ? 'bad' : d.confidence === 'medium' ? 'warn' : 'neutral';
   return (
     <Card padding="16px 18px" style={{
@@ -60,9 +61,18 @@ export function FailurePanel({ diagnosis: d, onOpenArtifact }: FailurePanelProps
       </div>
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <Btn size="sm" variant="primary" onClick={() => onCommand('ralphCodex.autoRecoverTask')}>
+          Auto-Recover
+        </Btn>
+        <Btn size="sm" variant="secondary" onClick={() => onCommand('ralphCodex.openFailureDiagnosis')}>
+          Open Diagnosis
+        </Btn>
+        <Btn size="sm" variant="secondary" onClick={() => onCommand('ralphCodex.skipTask')}>
+          Skip Task
+        </Btn>
         {d.failureAnalysisPath && (
           <Btn size="sm" variant="secondary" onClick={() => onOpenArtifact(d.failureAnalysisPath!)}>
-            Open failure artifact
+            Open artifact
           </Btn>
         )}
       </div>
