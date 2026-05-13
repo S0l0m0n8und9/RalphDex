@@ -76,7 +76,7 @@ import {
 import { collectStatusSnapshot } from './statusSnapshot';
 import { buildDashboardSnapshot, type DiagnosisSection } from '../webview/dashboardSnapshot';
 import { autoApplyMarkBlockedRemediation } from '../ralph/taskDecomposition';
-import { createDoctrinePack } from '../ralph/doctrine';
+import { createDoctrinePack, DOCTRINE_ROOT_RELATIVE } from '../ralph/doctrine';
 
 interface RegisteredCommandSpec {
   commandId: string;
@@ -151,6 +151,21 @@ function summarizeRelativePaths(rootPath: string, targetPaths: string[]): string
   return targetPaths
     .map((target) => path.relative(rootPath, target) || path.basename(target))
     .join(', ');
+}
+
+
+async function openWorkspaceFile(targetPath: string): Promise<void> {
+  const document = await vscode.workspace.openTextDocument(vscode.Uri.file(targetPath));
+  await vscode.window.showTextDocument(document, { preview: false });
+}
+
+async function openDoctrineFile(workspaceFolder: vscode.WorkspaceFolder, fileName: string): Promise<void> {
+  const targetPath = path.join(workspaceFolder.uri.fsPath, DOCTRINE_ROOT_RELATIVE, fileName);
+  if (!(await pathExists(targetPath))) {
+    void vscode.window.showWarningMessage(`Doctrine file ${DOCTRINE_ROOT_RELATIVE}/${fileName} does not exist yet. Run "Ralphdex: Initialize Doctrine Pack" first.`);
+    return;
+  }
+  await openWorkspaceFile(targetPath);
 }
 
 function buildDoctrinePackMessage(rootPath: string, result: {
@@ -793,6 +808,56 @@ export function registerCommands(
       void vscode.window.showInformationMessage(
         buildDoctrinePackMessage(workspaceFolder.uri.fsPath, result)
       );
+    }
+  });
+
+
+  registerCommand(context, logger, {
+    commandId: 'ralphCodex.openDoctrineFolder',
+    label: 'Ralphdex: Open Doctrine Folder',
+    requiresTrustedWorkspace: false,
+    handler: async (progress) => {
+      const workspaceFolder = await withWorkspaceFolder();
+      const doctrineDir = path.join(workspaceFolder.uri.fsPath, DOCTRINE_ROOT_RELATIVE);
+      progress.report({ message: 'Opening the Ralph doctrine folder' });
+      if (!(await pathExists(doctrineDir))) {
+        void vscode.window.showWarningMessage('Doctrine folder does not exist yet. Run "Ralphdex: Initialize Doctrine Pack" first.');
+        return;
+      }
+      await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(doctrineDir));
+    }
+  });
+
+  registerCommand(context, logger, {
+    commandId: 'ralphCodex.openDoctrineInvariants',
+    label: 'Ralphdex: Open Doctrine Invariants',
+    requiresTrustedWorkspace: false,
+    handler: async (progress) => {
+      const workspaceFolder = await withWorkspaceFolder();
+      progress.report({ message: 'Opening doctrine invariants.md' });
+      await openDoctrineFile(workspaceFolder, 'invariants.md');
+    }
+  });
+
+  registerCommand(context, logger, {
+    commandId: 'ralphCodex.openDoctrineBoundaries',
+    label: 'Ralphdex: Open Doctrine Boundaries',
+    requiresTrustedWorkspace: false,
+    handler: async (progress) => {
+      const workspaceFolder = await withWorkspaceFolder();
+      progress.report({ message: 'Opening doctrine boundaries.md' });
+      await openDoctrineFile(workspaceFolder, 'boundaries.md');
+    }
+  });
+
+  registerCommand(context, logger, {
+    commandId: 'ralphCodex.openDoctrineAgents',
+    label: 'Ralphdex: Open Doctrine Agents',
+    requiresTrustedWorkspace: false,
+    handler: async (progress) => {
+      const workspaceFolder = await withWorkspaceFolder();
+      progress.report({ message: 'Opening doctrine agents.md' });
+      await openDoctrineFile(workspaceFolder, 'agents.md');
     }
   });
 

@@ -395,3 +395,27 @@ test('webview build uses React automatic JSX runtime for browser-safe bundle out
     'webview bundle must not rely on a browser-global React symbol'
   );
 });
+
+test('package manifest keeps doctrine command-palette workflow available', async () => {
+  const manifest = await readPackageManifest();
+  const commands = manifest.contributes?.commands ?? [];
+  const required = new Map([
+    ['ralphCodex.initializeDoctrinePack', 'Ralphdex: Initialize Doctrine Pack'],
+    ['ralphCodex.openLatestDoctrineProposal', 'Ralphdex: Open Latest Doctrine Proposal'],
+    ['ralphCodex.openDoctrineFolder', 'Ralphdex: Open Doctrine Folder'],
+    ['ralphCodex.openDoctrineInvariants', 'Ralphdex: Open Doctrine Invariants'],
+    ['ralphCodex.openDoctrineBoundaries', 'Ralphdex: Open Doctrine Boundaries'],
+    ['ralphCodex.openDoctrineAgents', 'Ralphdex: Open Doctrine Agents']
+  ]);
+
+  for (const [command, title] of required) {
+    assert.ok(
+      manifest.activationEvents?.includes(`onCommand:${command}`),
+      `package.json must activate on ${command}`
+    );
+    assert.ok(
+      commands.some((entry) => entry.command === command && entry.title === title),
+      `package.json must contribute ${title}`
+    );
+  }
+});

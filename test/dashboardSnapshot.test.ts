@@ -36,6 +36,11 @@ function minimalSnapshot(
       | 'latestFailureAnalysisPath'
       | 'recoveryStatePath'
       | 'latestProvenanceBundle'
+      | 'doctrineInspection'
+      | 'doctrineContext'
+      | 'pendingDoctrineProposalCountsByRisk'
+      | 'latestDoctrineProposalPath'
+      | 'latestDoctrineProposalMdPath'
       | 'latestPipelineRun'
       | 'preflightReport'
       | 'orchestration'
@@ -59,6 +64,21 @@ function minimalSnapshot(
     latestFailureAnalysisPath: null,
     recoveryStatePath: null,
     latestProvenanceBundle: null,
+    latestDoctrineProposalPath: null,
+    latestDoctrineProposalMdPath: null,
+    doctrineInspection: {
+      doctrineDir: '.ralph/doctrine',
+      health: 'missing',
+      protectedFiles: ['invariants.md', 'boundaries.md', 'agents.md'],
+      diagnostics: []
+    },
+    doctrineContext: {
+      entries: [],
+      totalChars: 0,
+      budgetChars: 8000,
+      budgetExceeded: false
+    },
+    pendingDoctrineProposalCountsByRisk: { low: 0, medium: 0, high: 0 },
     preflightReport: {
       ready: true,
       summary: 'Preflight ready: no blocking diagnostics.',
@@ -672,3 +692,96 @@ function makeNodeSpan(nodeId: string, overrides: Partial<OrchestrationNodeSpan> 
     ...overrides,
   };
 }
+
+
+// ---------------------------------------------------------------------------
+// Doctrine observability
+// ---------------------------------------------------------------------------
+
+test('buildDashboardSnapshot: doctrine missing state exposes initialize and open commands', () => {
+  const result = buildDashboardSnapshot(minimalSnapshot({
+    doctrineInspection: {
+      doctrineDir: '/repo/.ralph/doctrine',
+      health: 'missing',
+      protectedFiles: ['invariants.md', 'boundaries.md', 'agents.md'],
+      diagnostics: [{
+        severity: 'warning',
+        code: 'doctrine_directory_missing',
+        message: 'Doctrine health: missing.',
+      }]
+    }
+  }));
+
+  assert.equal(result.doctrine?.health, 'missing');
+  assert.equal(result.doctrine?.diagnostics.missingFiles.length, 1);
+  assert.equal(result.doctrine?.actionTargets.initializeOrRepairCommand, 'ralphCodex.initializeDoctrinePack');
+  assert.equal(result.doctrine?.actionTargets.openFolderCommand, 'ralphCodex.openDoctrineFolder');
+});
+
+test('buildDashboardSnapshot: doctrine incomplete diagnostics are categorized', () => {
+  const result = buildDashboardSnapshot(minimalSnapshot({
+    doctrineInspection: {
+      doctrineDir: '/repo/.ralph/doctrine',
+      health: 'incomplete',
+      protectedFiles: ['invariants.md', 'boundaries.md', 'agents.md'],
+      diagnostics: [
+        { severity: 'warning', code: 'doctrine_required_file_missing', file: '.ralph/doctrine/risks.md', message: 'Missing file.' },
+        { severity: 'warning', code: 'doctrine_required_heading_missing', file: '.ralph/doctrine/agents.md', message: 'Missing heading.' }
+      ]
+    }
+  }));
+
+  assert.equal(result.doctrine?.health, 'incomplete');
+  assert.equal(result.doctrine?.diagnostics.missingFiles.length, 1);
+  assert.equal(result.doctrine?.diagnostics.missingHeadings.length, 1);
+});
+
+test('buildDashboardSnapshot: healthy doctrine renders protected files and budget usage', () => {
+  const result = buildDashboardSnapshot(minimalSnapshot({
+    doctrineInspection: {
+      doctrineDir: '/repo/.ralph/doctrine',
+      health: 'healthy',
+      protectedFiles: ['invariants.md', 'boundaries.md', 'agents.md'],
+      diagnostics: []
+    },
+    doctrineContext: { entries: [], totalChars: 4000, budgetChars: 8000, budgetExceeded: false }
+  }));
+
+  assert.equal(result.doctrine?.health, 'healthy');
+  assert.deepEqual(result.doctrine?.protectedFiles, ['invariants.md', 'boundaries.md', 'agents.md']);
+  assert.equal(result.doctrine?.contextBudget.usedChars, 4000);
+  assert.equal(result.doctrine?.contextBudget.budgetChars, 8000);
+  assert.equal(result.doctrine?.contextBudget.usagePercent, 50);
+});
+
+test('buildDashboardSnapshot: invalid evidence index and truncation state are visible', () => {
+  const result = buildDashboardSnapshot(minimalSnapshot({
+    doctrineInspection: {
+      doctrineDir: '/repo/.ralph/doctrine',
+      health: 'invalid evidence index',
+      protectedFiles: ['invariants.md', 'boundaries.md', 'agents.md'],
+      diagnostics: [{ severity: 'warning', code: 'doctrine_evidence_index_invalid', file: '.ralph/doctrine/evidence-index.json', message: 'Invalid JSON.' }]
+    },
+    doctrineContext: {
+      entries: [{ fileName: 'agents.md', relativePath: '.ralph/doctrine/agents.md', content: 'x', isProtected: true, truncated: true }],
+      totalChars: 8000,
+      budgetChars: 8000,
+      budgetExceeded: true
+    }
+  }));
+
+  assert.equal(result.doctrine?.health, 'invalid_evidence_index');
+  assert.equal(result.doctrine?.contextTruncated, true);
+  assert.equal(result.doctrine?.diagnostics.invalidEvidenceIndex.length, 1);
+});
+
+test('buildDashboardSnapshot: pending doctrine proposal counts render from fixture data', () => {
+  const result = buildDashboardSnapshot(minimalSnapshot({
+    pendingDoctrineProposalCountsByRisk: { low: 2, medium: 1, high: 3 },
+    latestDoctrineProposalPath: '/repo/.ralph/artifacts/latest-doctrine-proposal.json',
+    latestDoctrineProposalMdPath: '/repo/.ralph/artifacts/latest-doctrine-proposal.md'
+  }));
+
+  assert.deepEqual(result.doctrine?.pendingProposalCountsByRisk, { low: 2, medium: 1, high: 3, total: 6 });
+  assert.equal(result.doctrine?.actionTargets.reviewProposalsCommand, 'ralphCodex.openLatestDoctrineProposal');
+});
