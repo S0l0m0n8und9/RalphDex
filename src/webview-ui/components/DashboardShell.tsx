@@ -16,6 +16,7 @@ import { AgentGridPanel } from './panels/AgentGridPanel';
 import { FailureFeedPanel } from './panels/FailureFeedPanel';
 import { CostTickerPanel } from './panels/CostTickerPanel';
 import { FirstRunReadiness } from './panels/FirstRunReadiness';
+import { DoctrineCard } from './panels/DoctrineCard';
 
 interface DashboardShellProps {
   state: RalphDashboardState;
@@ -95,6 +96,7 @@ export function DashboardShell({ state, model, onCommand, onSettingUpdate, onOpe
   const diagnosis: DiagnosisSection | null = snapshot?.diagnosis ?? null;
   const deadLetter = snapshot?.deadLetter ?? { entries: [] };
   const pipeline = snapshot?.pipeline ?? null;
+  const doctrine = snapshot?.doctrine ?? null;
 
   const onStartLoop    = () => onCommand('ralphCodex.runRalphLoop');
   const onStopLoop     = () => onCommand('ralphCodex.stopLoop');
@@ -107,6 +109,7 @@ export function DashboardShell({ state, model, onCommand, onSettingUpdate, onOpe
           <HeroNow state={state} model={model}
             onStartLoop={onStartLoop} onStopLoop={onStopLoop} onRunIteration={onRunIteration} />
           {pipeline && <PipelineRunStrip pipeline={pipeline} onCommand={onCommand} />}
+          <DoctrineCard doctrine={doctrine} onCommand={onCommand} />
           {diagnosis && <FailurePanel diagnosis={diagnosis} onOpenArtifact={onOpenArtifact} onCommand={onCommand} />}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 14 }}>
             <AgentLanes lanes={state.agentLanes} />
@@ -127,6 +130,7 @@ export function DashboardShell({ state, model, onCommand, onSettingUpdate, onOpe
       return (
         <>
           <FirstRunReadiness checklist={checklist} />
+          <DoctrineCard doctrine={doctrine} onCommand={onCommand} />
           {diagnosis && <FailurePanel diagnosis={diagnosis} onOpenArtifact={onOpenArtifact} onCommand={onCommand} />}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 14 }}>
             <DiagnosticsPanel diagnostics={state.diagnostics} />

@@ -45,10 +45,10 @@ import { pathExists } from '../util/fs';
 import { validateRecord } from '../util/validate';
 import { scanWorkspaceCached } from '../services/workspaceScanner';
 import { CompletionReportArtifact } from '../ralph/completionReportParser';
-import { DoctrineProposalArtifact, DoctrineProposalStatus } from '../ralph/doctrineProposals';
+import { DoctrineProposalArtifact, DoctrineProposalRisk, DoctrineProposalStatus } from '../ralph/doctrineProposals';
 import { getEffectivePolicy } from '../ralph/rolePolicy';
 import type { ContextEnvelope } from '../ralph/types';
-import { inspectDoctrinePack } from '../ralph/doctrine';
+import { collectDoctrineContext, inspectDoctrinePack } from '../ralph/doctrine';
 
 export async function readJsonArtifact(target: string | null): Promise<unknown | null> {
   if (!target) {
@@ -289,6 +289,32 @@ function normalizeDoctrineProposedUpdate(candidate: unknown): DoctrineProposalAr
   };
 }
 
+
+async function countPendingDoctrineProposalsByRisk(artifactRootDir: string): Promise<Record<DoctrineProposalRisk, number>> {
+  const counts: Record<DoctrineProposalRisk, number> = { low: 0, medium: 0, high: 0 };
+  const directory = path.join(artifactRootDir, 'doctrine-proposals');
+
+  let entries: import('fs').Dirent[];
+  try {
+    entries = await fs.readdir(directory, { withFileTypes: true });
+  } catch {
+    return counts;
+  }
+
+  await Promise.all(entries
+    .filter((entry) => entry.isFile() && entry.name.endsWith('.json') && !entry.name.endsWith('.review.json'))
+    .map(async (entry) => {
+      const artifact = normalizeDoctrineProposalArtifact(
+        await readJsonArtifact(path.join(directory, entry.name))
+      );
+      if (artifact?.status === 'proposed') {
+        counts[artifact.risk] += 1;
+      }
+    }));
+
+  return counts;
+}
+
 export function normalizeDoctrineProposalArtifact(candidate: unknown): DoctrineProposalArtifact | null {
   if (typeof candidate !== 'object' || candidate === null) {
     return null;
@@ -436,7 +462,7 @@ export async function collectStatusSnapshot(
     command: validationCommand,
     rootPath: rootPolicy.verificationRootPath
   });
-  const [artifactReadinessDiagnostics, staleStateDiagnostics, handoffHealthDiagnostics, doctrineInspection] = await Promise.all([
+  const [artifactReadinessDiagnostics, staleStateDiagnostics, handoffHealthDiagnostics, doctrineInspection, doctrineContext, pendingDoctrineProposalCountsByRisk] = await Promise.all([
     inspectPreflightArtifactReadiness({
       rootPath: workspaceFolder.uri.fsPath,
       artifactRootDir: inspection.paths.artifactDir,
@@ -454,7 +480,9 @@ export async function collectStatusSnapshot(
       staleClaimTtlMs: config.watchdogStaleTtlMs
     }),
     checkHandoffHealth({ ralphRoot: inspection.paths.ralphDir }),
-    inspectDoctrinePack(workspaceFolder.uri.fsPath)
+    inspectDoctrinePack(workspaceFolder.uri.fsPath),
+    collectDoctrineContext(workspaceFolder.uri.fsPath),
+    countPendingDoctrineProposalsByRisk(inspection.paths.artifactDir)
   ]);
   const agentHealthDiagnostics = [...staleStateDiagnostics, ...handoffHealthDiagnostics];
   const claimGraph = await inspectTaskClaimGraph(inspection.paths.claimFilePath);
@@ -769,6 +797,9 @@ export async function collectStatusSnapshot(
     latestCliInvocation,
     latestRemediation,
     latestDoctrineProposal,
+    doctrineInspection,
+    doctrineContext,
+    pendingDoctrineProposalCountsByRisk,
     latestProvenanceBundle,
     latestArtifactRepair: latestArtifacts.repair,
     generatedArtifactRetention,

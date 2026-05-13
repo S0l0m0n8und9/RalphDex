@@ -19,6 +19,7 @@ import {
 import type { DeadLetterEntry } from '../ralph/deadLetter';
 import type { FailureCategoryId, PromptCacheStats, RalphTaskCounts } from '../ralph/types';
 import type { PipelineRunStatus, PipelinePhase } from '../ralph/pipeline';
+import { DOCTRINE_ROOT_RELATIVE } from '../ralph/doctrine';
 
 // ---------------------------------------------------------------------------
 // Task board
@@ -197,6 +198,45 @@ export interface DashboardFirstRunChecklistItem {
   detail: string;
 }
 
+
+// ---------------------------------------------------------------------------
+// Doctrine observability
+// ---------------------------------------------------------------------------
+
+export type DashboardDoctrineHealth = 'missing' | 'incomplete' | 'invalid_evidence_index' | 'healthy';
+
+export interface DashboardDoctrineDiagnostic {
+  severity: 'warning' | 'info';
+  code: string;
+  message: string;
+  file: string | null;
+}
+
+export interface DashboardDoctrineActionTargets {
+  initializeOrRepairCommand: string;
+  openFolderCommand: string;
+  openFileCommands: Record<string, string>;
+  reviewProposalsCommand: string | null;
+  doctrineFolderPath: string;
+  latestProposalPath: string | null;
+  latestProposalMarkdownPath: string | null;
+}
+
+export interface DashboardDoctrineSection {
+  health: DashboardDoctrineHealth;
+  protectedFiles: string[];
+  contextBudget: { usedChars: number; budgetChars: number; usagePercent: number };
+  contextTruncated: boolean;
+  diagnostics: {
+    missingFiles: DashboardDoctrineDiagnostic[];
+    missingHeadings: DashboardDoctrineDiagnostic[];
+    invalidEvidenceIndex: DashboardDoctrineDiagnostic[];
+    other: DashboardDoctrineDiagnostic[];
+  };
+  pendingProposalCountsByRisk: { low: number; medium: number; high: number; total: number };
+  actionTargets: DashboardDoctrineActionTargets;
+}
+
 // ---------------------------------------------------------------------------
 // Top-level dashboard snapshot
 // ---------------------------------------------------------------------------
@@ -212,6 +252,7 @@ export interface DashboardSnapshot {
   cost: DashboardCostSection;
   preflight?: DashboardPreflightSection;
   pipeline?: DashboardPipelineSection;
+  doctrine?: DashboardDoctrineSection;
 }
 
 // ---------------------------------------------------------------------------
@@ -245,6 +286,79 @@ export function buildDashboardSnapshot(
     cost: buildCostSection(snapshot),
     preflight: buildPreflightSection(snapshot),
     pipeline: buildPipelineSection(snapshot),
+    doctrine: buildDoctrineSection(snapshot),
+  };
+}
+
+
+function buildDoctrineSection(snapshot: RalphStatusSnapshot): DashboardDoctrineSection {
+  const inspection = snapshot.doctrineInspection ?? {
+    doctrineDir: DOCTRINE_ROOT_RELATIVE,
+    health: 'missing' as const,
+    protectedFiles: ['invariants.md', 'boundaries.md', 'agents.md'],
+    diagnostics: []
+  };
+  const context = snapshot.doctrineContext ?? {
+    entries: [],
+    totalChars: 0,
+    budgetChars: 0,
+    budgetExceeded: false
+  };
+  const health: DashboardDoctrineHealth = inspection.health === 'invalid evidence index'
+    ? 'invalid_evidence_index'
+    : inspection.health;
+  const diagnostics = inspection.diagnostics.map((diagnostic) => ({
+    severity: diagnostic.severity,
+    code: diagnostic.code,
+    message: diagnostic.message,
+    file: diagnostic.file ?? null
+  }));
+  const pending = snapshot.pendingDoctrineProposalCountsByRisk ?? { low: 0, medium: 0, high: 0 };
+  const usedChars = context.totalChars;
+  const budgetChars = context.budgetChars;
+
+  return {
+    health,
+    protectedFiles: inspection.protectedFiles,
+    contextBudget: {
+      usedChars,
+      budgetChars,
+      usagePercent: budgetChars > 0 ? Math.min(100, Math.round((usedChars / budgetChars) * 100)) : 0
+    },
+    contextTruncated: context.budgetExceeded || context.entries.some((entry) => entry.truncated),
+    diagnostics: {
+      missingFiles: diagnostics.filter((diagnostic) => diagnostic.code === 'doctrine_directory_missing' || diagnostic.code === 'doctrine_required_file_missing'),
+      missingHeadings: diagnostics.filter((diagnostic) => diagnostic.code === 'doctrine_required_heading_missing'),
+      invalidEvidenceIndex: diagnostics.filter((diagnostic) => diagnostic.code === 'doctrine_evidence_index_invalid'),
+      other: diagnostics.filter((diagnostic) => !new Set([
+        'doctrine_directory_missing',
+        'doctrine_required_file_missing',
+        'doctrine_required_heading_missing',
+        'doctrine_evidence_index_invalid',
+        'doctrine_pack_healthy'
+      ]).has(diagnostic.code))
+    },
+    pendingProposalCountsByRisk: {
+      low: pending.low,
+      medium: pending.medium,
+      high: pending.high,
+      total: pending.low + pending.medium + pending.high
+    },
+    actionTargets: {
+      initializeOrRepairCommand: 'ralphCodex.initializeDoctrinePack',
+      openFolderCommand: 'ralphCodex.openDoctrineFolder',
+      openFileCommands: {
+        'invariants.md': 'ralphCodex.openDoctrineInvariants',
+        'boundaries.md': 'ralphCodex.openDoctrineBoundaries',
+        'agents.md': 'ralphCodex.openDoctrineAgents'
+      },
+      reviewProposalsCommand: snapshot.latestDoctrineProposalPath || snapshot.latestDoctrineProposalMdPath
+        ? 'ralphCodex.openLatestDoctrineProposal'
+        : null,
+      doctrineFolderPath: DOCTRINE_ROOT_RELATIVE,
+      latestProposalPath: snapshot.latestDoctrineProposalPath,
+      latestProposalMarkdownPath: snapshot.latestDoctrineProposalMdPath
+    }
   };
 }
 

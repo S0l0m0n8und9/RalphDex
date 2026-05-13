@@ -133,6 +133,10 @@
     "onCommand:ralphCodex.applyLatestDoctrineProposal",
     "onCommand:ralphCodex.rejectLatestDoctrineProposal",
     "onCommand:ralphCodex.initializeDoctrinePack",
+    "onCommand:ralphCodex.openDoctrineAgents",
+    "onCommand:ralphCodex.openDoctrineBoundaries",
+    "onCommand:ralphCodex.openDoctrineInvariants",
+    "onCommand:ralphCodex.openDoctrineFolder",
     "onCommand:ralphCodex.openPrdWizard",
     "onCommand:ralphCodex.regeneratePrd",
     "onCommand:ralphCodex.requeueDeadLetterTask",
@@ -163,6 +167,22 @@
       {
         "command": "ralphCodex.initializeDoctrinePack",
         "title": "Ralphdex: Initialize Doctrine Pack"
+      },
+      {
+        "command": "ralphCodex.openDoctrineFolder",
+        "title": "Ralphdex: Open Doctrine Folder"
+      },
+      {
+        "command": "ralphCodex.openDoctrineInvariants",
+        "title": "Ralphdex: Open Doctrine Invariants"
+      },
+      {
+        "command": "ralphCodex.openDoctrineBoundaries",
+        "title": "Ralphdex: Open Doctrine Boundaries"
+      },
+      {
+        "command": "ralphCodex.openDoctrineAgents",
+        "title": "Ralphdex: Open Doctrine Agents"
       },
       {
         "command": "ralphCodex.openCodexAndCopyPrompt",
@@ -380,7 +400,7 @@
             "approvalMode": "allow-tools-only",
             "maxAutopilotContinues": 200
           },
-          "description": "Copilot CLI + BYOK provider settings (used by both copilot-byok and copilot-foundry). Auth credentials are inherited from the operator process environment — RalphDex never reads or stores API key values.",
+          "description": "Copilot CLI + BYOK provider settings (used by both copilot-byok and copilot-foundry). Auth credentials are inherited from the operator process environment \u2014 RalphDex never reads or stores API key values.",
           "properties": {
             "commandPath": {
               "type": "string",

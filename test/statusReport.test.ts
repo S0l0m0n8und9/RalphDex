@@ -539,6 +539,19 @@ function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnap
     },
     latestRemediation: null,
     latestDoctrineProposal: null,
+    doctrineInspection: {
+      doctrineDir: '/workspace/.ralph/doctrine',
+      health: 'healthy',
+      protectedFiles: ['invariants.md', 'boundaries.md', 'agents.md'],
+      diagnostics: []
+    },
+    doctrineContext: {
+      entries: [],
+      totalChars: 0,
+      budgetChars: 8000,
+      budgetExceeded: false
+    },
+    pendingDoctrineProposalCountsByRisk: { low: 0, medium: 0, high: 0 },
     latestProvenanceBundle: {
       schemaVersion: 1,
       kind: 'provenanceBundle',

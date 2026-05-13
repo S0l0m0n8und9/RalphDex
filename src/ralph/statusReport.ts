@@ -3,8 +3,8 @@ import * as path from 'path';
 import { RalphCodexConfig } from '../config/types';
 import { WorkspaceScan } from '../services/workspaceInspection';
 import { pathExists } from '../util/fs';
-import { DOCTRINE_MARKDOWN_FILES } from './doctrine';
-import type { DoctrineProposalArtifact } from './doctrineProposals';
+import { DOCTRINE_MARKDOWN_FILES, type DoctrineContext, type DoctrineInspection } from './doctrine';
+import type { DoctrineProposalArtifact, DoctrineProposalRisk } from './doctrineProposals';
 import { EffectiveTierInfo } from './complexityScorer';
 import { deriveRootPolicy } from './rootPolicy';
 import { PipelineRunArtifact } from './pipeline';
@@ -100,6 +100,12 @@ export interface RalphStatusSnapshot {
   latestCliInvocation: RalphCliInvocation | null;
   latestRemediation: RalphLatestRemediationStatus | null;
   latestDoctrineProposal: DoctrineProposalArtifact | null;
+  /** Current doctrine pack inspection collected without mutating .ralph/doctrine. */
+  doctrineInspection: DoctrineInspection;
+  /** Current bounded prompt doctrine context collected without mutating .ralph/doctrine. */
+  doctrineContext: DoctrineContext;
+  /** Proposed/pending doctrine proposal counts by artifact risk. */
+  pendingDoctrineProposalCountsByRisk: Record<DoctrineProposalRisk, number>;
   latestProvenanceBundle: RalphProvenanceBundle | null;
   latestArtifactRepair: RalphLatestArtifactRepairSummary;
   generatedArtifactRetention: RalphGeneratedArtifactRetentionSummary;
