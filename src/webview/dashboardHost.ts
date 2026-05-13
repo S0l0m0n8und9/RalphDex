@@ -10,6 +10,7 @@ import type {
   RalphBroadcastEvent,
   RalphDashboardIteration,
   RalphDashboardState,
+  RalphDoctrineProposalActionPayload,
   RalphIterationPhase,
   RalphWebviewCommand,
   RalphWebviewMessage
@@ -30,6 +31,10 @@ export interface DashboardHostActions {
     createdTaskCount: number;
     tasksPath: string;
     artifactPath: string;
+  }>;
+  doctrineProposalAction?: (action: RalphDoctrineProposalActionPayload) => Promise<{
+    status: 'done' | 'error';
+    message: string;
   }>;
 }
 
@@ -108,6 +113,9 @@ export class DashboardHost implements vscode.Disposable {
       }
       if (msg.type === 'seed-tasks') {
         await this.handleSeedTasksMessage(msg.requestText, msg.source);
+      }
+      if (msg.type === 'doctrine-proposal-action') {
+        await this.handleDoctrineProposalAction(msg);
       }
     });
 
@@ -423,6 +431,56 @@ export class DashboardHost implements vscode.Disposable {
     const nonce = crypto.randomBytes(16).toString('hex');
     this.webview.html = this.renderFn(this.latestState, nonce, this.webview);
     this.bridge.send({ type: 'state', state: this.latestState });
+  }
+
+  private async handleDoctrineProposalAction(action: RalphDoctrineProposalActionPayload): Promise<void> {
+    if (!this.actions.doctrineProposalAction) {
+      const message = 'Doctrine proposal review is unavailable because the dashboard host has no review action configured.';
+      this.bridge.send({
+        type: 'doctrine-proposal-action-result',
+        status: 'error',
+        proposalId: action.proposalId,
+        action: action.action,
+        message
+      });
+      return;
+    }
+
+    this.bridge.send({
+      type: 'doctrine-proposal-action-result',
+      status: 'started',
+      proposalId: action.proposalId,
+      action: action.action
+    });
+
+    try {
+      const { action: actionKind, proposalId, selectedUpdateIndexes, explicitProtectedApproval } = action;
+      const result = await this.actions.doctrineProposalAction({
+        action: actionKind,
+        proposalId,
+        ...(selectedUpdateIndexes !== undefined ? { selectedUpdateIndexes } : {}),
+        ...(explicitProtectedApproval !== undefined ? { explicitProtectedApproval } : {})
+      });
+      this.bridge.send({
+        type: 'doctrine-proposal-action-result',
+        status: result.status,
+        proposalId: action.proposalId,
+        action: action.action,
+        message: result.message
+      });
+      if (result.status === 'done') {
+        await this.refreshDashboardSnapshot();
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.bridge.send({
+        type: 'doctrine-proposal-action-result',
+        status: 'error',
+        proposalId: action.proposalId,
+        action: action.action,
+        message
+      });
+    }
   }
 
   dispose(): void {

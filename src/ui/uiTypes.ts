@@ -140,6 +140,15 @@ export interface RalphDashboardTaskSeedingState {
   artifactPath: string | null;
 }
 
+export type RalphDoctrineProposalActionKind = 'apply' | 'reject' | 'partialApply' | 'openTarget';
+
+export interface RalphDoctrineProposalActionPayload {
+  action: RalphDoctrineProposalActionKind;
+  proposalId: string;
+  selectedUpdateIndexes?: number[];
+  explicitProtectedApproval?: boolean;
+}
+
 export interface RalphDashboardState {
   workspaceName: string;
   loopState: RalphUiLoopState;
@@ -178,6 +187,13 @@ export type RalphWebviewMessage =
       createdTaskCount?: number;
       artifactPath?: string;
       message?: string;
+    }
+  | {
+      type: 'doctrine-proposal-action-result';
+      status: 'started' | 'done' | 'error';
+      proposalId: string;
+      action: RalphDoctrineProposalActionKind;
+      message?: string;
     };
 
 /** Messages sent from webview to extension. */
@@ -186,4 +202,5 @@ export type RalphWebviewCommand =
   | { type: 'expand-task'; taskId: string }
   | { type: 'update-setting'; key: string; value: unknown }
   | { type: 'open-iteration-artifact'; artifactDir: string }
-  | { type: 'seed-tasks'; requestText: string; source: 'panel' | 'sidebar' };
+  | { type: 'seed-tasks'; requestText: string; source: 'panel' | 'sidebar' }
+  | ({ type: 'doctrine-proposal-action' } & RalphDoctrineProposalActionPayload);

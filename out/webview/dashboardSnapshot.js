@@ -13,6 +13,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.buildDashboardSnapshot = buildDashboardSnapshot;
 const multiAgentStatus_1 = require("../ralph/multiAgentStatus");
+const doctrine_1 = require("../ralph/doctrine");
 // ---------------------------------------------------------------------------
 // Assembly
 // ---------------------------------------------------------------------------
@@ -40,6 +41,136 @@ function buildDashboardSnapshot(snapshot, agentSummaries = null) {
         cost: buildCostSection(snapshot),
         preflight: buildPreflightSection(snapshot),
         pipeline: buildPipelineSection(snapshot),
+        doctrine: buildDoctrineSection(snapshot),
+    };
+}
+function buildDoctrineSection(snapshot) {
+    const inspection = snapshot.doctrineInspection ?? {
+        doctrineDir: doctrine_1.DOCTRINE_ROOT_RELATIVE,
+        health: 'missing',
+        protectedFiles: ['invariants.md', 'boundaries.md', 'agents.md'],
+        diagnostics: []
+    };
+    const context = snapshot.doctrineContext ?? {
+        entries: [],
+        totalChars: 0,
+        budgetChars: 0,
+        budgetExceeded: false
+    };
+    const health = inspection.health === 'invalid evidence index'
+        ? 'invalid_evidence_index'
+        : inspection.health;
+    const diagnostics = inspection.diagnostics.map((diagnostic) => ({
+        severity: diagnostic.severity,
+        code: diagnostic.code,
+        message: diagnostic.message,
+        file: diagnostic.file ?? null
+    }));
+    const pending = snapshot.pendingDoctrineProposalCountsByRisk ?? { low: 0, medium: 0, high: 0 };
+    const usedChars = context.totalChars;
+    const budgetChars = context.budgetChars;
+    return {
+        health,
+        protectedFiles: inspection.protectedFiles,
+        contextBudget: {
+            usedChars,
+            budgetChars,
+            usagePercent: budgetChars > 0 ? Math.min(100, Math.round((usedChars / budgetChars) * 100)) : 0
+        },
+        contextTruncated: context.budgetExceeded || context.entries.some((entry) => entry.truncated),
+        diagnostics: {
+            missingFiles: diagnostics.filter((diagnostic) => diagnostic.code === 'doctrine_directory_missing' || diagnostic.code === 'doctrine_required_file_missing'),
+            missingHeadings: diagnostics.filter((diagnostic) => diagnostic.code === 'doctrine_required_heading_missing'),
+            invalidEvidenceIndex: diagnostics.filter((diagnostic) => diagnostic.code === 'doctrine_evidence_index_invalid'),
+            other: diagnostics.filter((diagnostic) => !new Set([
+                'doctrine_directory_missing',
+                'doctrine_required_file_missing',
+                'doctrine_required_heading_missing',
+                'doctrine_evidence_index_invalid',
+                'doctrine_pack_healthy'
+            ]).has(diagnostic.code))
+        },
+        pendingProposalCountsByRisk: {
+            low: pending.low,
+            medium: pending.medium,
+            high: pending.high,
+            total: pending.low + pending.medium + pending.high
+        },
+        actionTargets: {
+            initializeOrRepairCommand: 'ralphCodex.initializeDoctrinePack',
+            openFolderCommand: 'ralphCodex.openDoctrineFolder',
+            openFileCommands: {
+                'invariants.md': 'ralphCodex.openDoctrineInvariants',
+                'boundaries.md': 'ralphCodex.openDoctrineBoundaries',
+                'agents.md': 'ralphCodex.openDoctrineAgents'
+            },
+            reviewProposalsCommand: snapshot.latestDoctrineProposalPath || snapshot.latestDoctrineProposalMdPath
+                ? 'ralphCodex.openLatestDoctrineProposal'
+                : null,
+            doctrineFolderPath: doctrine_1.DOCTRINE_ROOT_RELATIVE,
+            latestProposalPath: snapshot.latestDoctrineProposalPath,
+            latestProposalMarkdownPath: snapshot.latestDoctrineProposalMdPath
+        },
+        proposalReview: buildDoctrineProposalReviewSection(snapshot)
+    };
+}
+const DOCTRINE_DETAIL_TEXT_LIMIT = 1800;
+function boundedText(value, limit = DOCTRINE_DETAIL_TEXT_LIMIT) {
+    if (value.length <= limit) {
+        return { text: value, truncated: false, fullLength: value.length };
+    }
+    return {
+        text: `${value.slice(0, limit)}\n\n[Truncated: ${value.length - limit} more character(s)]`,
+        truncated: true,
+        fullLength: value.length
+    };
+}
+function compactUnique(values) {
+    const unique = Array.from(new Set(values));
+    return unique.length === 1 ? unique[0] : `${unique[0]} (+${unique.length - 1} more)`;
+}
+function buildDoctrineProposalReviewSection(snapshot) {
+    const entries = [...(snapshot.pendingDoctrineProposals ?? [])].sort((left, right) => {
+        const byId = left.proposal.proposalId.localeCompare(right.proposal.proposalId);
+        return byId !== 0 ? byId : left.path.localeCompare(right.path);
+    });
+    return {
+        hasPendingProposals: entries.length > 0,
+        proposals: entries.map(({ path: proposalPath, proposal }) => ({
+            proposalId: proposal.proposalId,
+            path: proposalPath,
+            createdAt: proposal.createdAt,
+            source: proposal.source,
+            risk: proposal.risk,
+            status: proposal.status,
+            targetFile: compactUnique(proposal.updates.map((update) => update.targetFile)),
+            operation: compactUnique(proposal.updates.map((update) => update.operation)),
+            protectedTarget: proposal.updates.some((update) => update.protectedTarget),
+            requiresApproval: proposal.updates.some((update) => update.requiresApproval),
+            updateCount: proposal.updates.length
+        })),
+        details: entries.map(({ path: proposalPath, proposal }) => ({
+            proposalId: proposal.proposalId,
+            path: proposalPath,
+            createdAt: proposal.createdAt,
+            source: proposal.source,
+            risk: proposal.risk,
+            status: proposal.status,
+            summary: proposal.summary,
+            warnings: proposal.warnings,
+            updates: proposal.updates.map((update, updateIndex) => ({
+                updateIndex,
+                targetFile: update.targetFile,
+                operation: update.operation,
+                section: update.section,
+                protectedTarget: update.protectedTarget,
+                requiresApproval: update.requiresApproval,
+                risk: update.risk,
+                proposedText: boundedText(update.proposedText),
+                rationale: boundedText(update.rationale, 800),
+                evidence: update.evidence
+            }))
+        }))
     };
 }
 function buildPipelineSection(snapshot) {

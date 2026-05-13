@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { RalphDashboardState, RalphWebviewMessage } from '../ui/uiTypes';
+import type { RalphDashboardState, RalphDoctrineProposalActionPayload, RalphWebviewMessage } from '../ui/uiTypes';
 import { DashboardShell } from './components/DashboardShell';
 import { SidebarShell } from './components/SidebarShell';
 import { vscodeApi } from './bridge/vscode';
@@ -14,6 +14,7 @@ interface AppProps {
 
 export function App({ mode, initialState }: AppProps) {
   const [state, setState] = useState(initialState);
+  const [lastDoctrineActionResult, setLastDoctrineActionResult] = useState<Extract<RalphWebviewMessage, { type: 'doctrine-proposal-action-result' }> | null>(null);
   const model = useMemo(() => getWebviewUiModel(state), [state]);
 
   useEffect(() => {
@@ -21,6 +22,9 @@ export function App({ mode, initialState }: AppProps) {
       const message = event.data;
       if (message.type === 'state') {
         setState(message.state);
+      }
+      if (message.type === 'doctrine-proposal-action-result') {
+        setLastDoctrineActionResult(message);
       }
     };
     window.addEventListener('message', onMessage);
@@ -39,6 +43,9 @@ export function App({ mode, initialState }: AppProps) {
   const sendSeedTasks = (requestText: string) => {
     vscodeApi().postMessage({ type: 'seed-tasks', requestText, source: 'panel' });
   };
+  const sendDoctrineAction = (action: RalphDoctrineProposalActionPayload) => {
+    vscodeApi().postMessage({ type: 'doctrine-proposal-action', ...action });
+  };
 
   if (mode === 'sidebar') {
     return (
@@ -54,6 +61,8 @@ export function App({ mode, initialState }: AppProps) {
       state={state} model={model}
       onCommand={sendCommand} onSettingUpdate={sendSettingUpdate}
       onOpenArtifact={sendOpenArtifact} onSeedTasks={sendSeedTasks}
+      onDoctrineAction={sendDoctrineAction}
+      lastDoctrineActionResult={lastDoctrineActionResult}
     />
   );
 }

@@ -552,6 +552,7 @@ function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnap
       budgetExceeded: false
     },
     pendingDoctrineProposalCountsByRisk: { low: 0, medium: 0, high: 0 },
+    pendingDoctrineProposals: [],
     latestProvenanceBundle: {
       schemaVersion: 1,
       kind: 'provenanceBundle',

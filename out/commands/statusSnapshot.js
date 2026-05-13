@@ -287,6 +287,51 @@ function normalizeDoctrineProposedUpdate(candidate) {
         risk: u.risk
     };
 }
+async function countPendingDoctrineProposalsByRisk(artifactRootDir) {
+    const counts = { low: 0, medium: 0, high: 0 };
+    const directory = path.join(artifactRootDir, 'doctrine-proposals');
+    let entries;
+    try {
+        entries = await fs.readdir(directory, { withFileTypes: true });
+    }
+    catch {
+        return counts;
+    }
+    await Promise.all(entries
+        .filter((entry) => entry.isFile() && entry.name.endsWith('.json') && !entry.name.endsWith('.review.json'))
+        .map(async (entry) => {
+        const artifact = normalizeDoctrineProposalArtifact(await readJsonArtifact(path.join(directory, entry.name)));
+        if (artifact?.status === 'proposed') {
+            counts[artifact.risk] += 1;
+        }
+    }));
+    return counts;
+}
+async function readPendingDoctrineProposals(artifactRootDir) {
+    const directory = path.join(artifactRootDir, 'doctrine-proposals');
+    let entries;
+    try {
+        entries = await fs.readdir(directory, { withFileTypes: true });
+    }
+    catch {
+        return [];
+    }
+    const proposals = [];
+    for (const entry of entries
+        .filter((candidate) => candidate.isFile() && candidate.name.endsWith('.json') && !candidate.name.endsWith('.review.json'))
+        .sort((left, right) => left.name.localeCompare(right.name))) {
+        const proposalPath = path.join(directory, entry.name);
+        const proposal = normalizeDoctrineProposalArtifact(await readJsonArtifact(proposalPath));
+        if (proposal?.status === 'proposed') {
+            proposals.push({ path: proposalPath, proposal });
+        }
+    }
+    proposals.sort((left, right) => {
+        const byId = left.proposal.proposalId.localeCompare(right.proposal.proposalId);
+        return byId !== 0 ? byId : left.path.localeCompare(right.path);
+    });
+    return proposals;
+}
 function normalizeDoctrineProposalArtifact(candidate) {
     if (typeof candidate !== 'object' || candidate === null) {
         return null;
@@ -422,7 +467,7 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         command: validationCommand,
         rootPath: rootPolicy.verificationRootPath
     });
-    const [artifactReadinessDiagnostics, staleStateDiagnostics, handoffHealthDiagnostics, doctrineInspection] = await Promise.all([
+    const [artifactReadinessDiagnostics, staleStateDiagnostics, handoffHealthDiagnostics, doctrineInspection, doctrineContext, pendingDoctrineProposalCountsByRisk, pendingDoctrineProposals] = await Promise.all([
         (0, preflight_1.inspectPreflightArtifactReadiness)({
             rootPath: workspaceFolder.uri.fsPath,
             artifactRootDir: inspection.paths.artifactDir,
@@ -440,7 +485,10 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
             staleClaimTtlMs: config.watchdogStaleTtlMs
         }),
         (0, preflight_1.checkHandoffHealth)({ ralphRoot: inspection.paths.ralphDir }),
-        (0, doctrine_1.inspectDoctrinePack)(workspaceFolder.uri.fsPath)
+        (0, doctrine_1.inspectDoctrinePack)(workspaceFolder.uri.fsPath),
+        (0, doctrine_1.collectDoctrineContext)(workspaceFolder.uri.fsPath),
+        countPendingDoctrineProposalsByRisk(inspection.paths.artifactDir),
+        readPendingDoctrineProposals(inspection.paths.artifactDir)
     ]);
     const agentHealthDiagnostics = [...staleStateDiagnostics, ...handoffHealthDiagnostics];
     const claimGraph = await (0, taskFile_1.inspectTaskClaimGraph)(inspection.paths.claimFilePath);
@@ -744,6 +792,10 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         latestCliInvocation,
         latestRemediation,
         latestDoctrineProposal,
+        doctrineInspection,
+        doctrineContext,
+        pendingDoctrineProposalCountsByRisk,
+        pendingDoctrineProposals,
         latestProvenanceBundle,
         latestArtifactRepair: latestArtifacts.repair,
         generatedArtifactRetention,

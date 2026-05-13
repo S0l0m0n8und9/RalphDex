@@ -12,6 +12,7 @@ function doctrine(overrides: Partial<DashboardDoctrineSection> = {}): DashboardD
     contextTruncated: false,
     diagnostics: { missingFiles: [], missingHeadings: [], invalidEvidenceIndex: [], other: [] },
     pendingProposalCountsByRisk: { low: 0, medium: 0, high: 0, total: 0 },
+    proposalReview: { hasPendingProposals: false, proposals: [], details: [] },
     actionTargets: {
       initializeOrRepairCommand: 'ralphCodex.initializeDoctrinePack',
       openFolderCommand: 'ralphCodex.openDoctrineFolder',

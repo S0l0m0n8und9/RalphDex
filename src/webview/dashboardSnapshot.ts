@@ -222,6 +222,57 @@ export interface DashboardDoctrineActionTargets {
   latestProposalMarkdownPath: string | null;
 }
 
+export interface DashboardDoctrineBoundedText {
+  text: string;
+  truncated: boolean;
+  fullLength: number;
+}
+
+export interface DashboardDoctrineProposalListItem {
+  proposalId: string;
+  path: string;
+  createdAt: string;
+  source: string;
+  risk: string;
+  status: string;
+  targetFile: string;
+  operation: string;
+  protectedTarget: boolean;
+  requiresApproval: boolean;
+  updateCount: number;
+}
+
+export interface DashboardDoctrineProposalUpdateDetail {
+  updateIndex: number;
+  targetFile: string;
+  operation: string;
+  section: string | null;
+  protectedTarget: boolean;
+  requiresApproval: boolean;
+  risk: string;
+  proposedText: DashboardDoctrineBoundedText;
+  rationale: DashboardDoctrineBoundedText;
+  evidence: string[];
+}
+
+export interface DashboardDoctrineProposalDetail {
+  proposalId: string;
+  path: string;
+  createdAt: string;
+  source: string;
+  risk: string;
+  status: string;
+  summary: string;
+  warnings: string[];
+  updates: DashboardDoctrineProposalUpdateDetail[];
+}
+
+export interface DashboardDoctrineProposalReviewSection {
+  hasPendingProposals: boolean;
+  proposals: DashboardDoctrineProposalListItem[];
+  details: DashboardDoctrineProposalDetail[];
+}
+
 export interface DashboardDoctrineSection {
   health: DashboardDoctrineHealth;
   protectedFiles: string[];
@@ -235,6 +286,7 @@ export interface DashboardDoctrineSection {
   };
   pendingProposalCountsByRisk: { low: number; medium: number; high: number; total: number };
   actionTargets: DashboardDoctrineActionTargets;
+  proposalReview: DashboardDoctrineProposalReviewSection;
 }
 
 // ---------------------------------------------------------------------------
@@ -358,7 +410,73 @@ function buildDoctrineSection(snapshot: RalphStatusSnapshot): DashboardDoctrineS
       doctrineFolderPath: DOCTRINE_ROOT_RELATIVE,
       latestProposalPath: snapshot.latestDoctrineProposalPath,
       latestProposalMarkdownPath: snapshot.latestDoctrineProposalMdPath
-    }
+    },
+    proposalReview: buildDoctrineProposalReviewSection(snapshot)
+  };
+}
+
+const DOCTRINE_DETAIL_TEXT_LIMIT = 1800;
+
+function boundedText(value: string, limit = DOCTRINE_DETAIL_TEXT_LIMIT): DashboardDoctrineBoundedText {
+  if (value.length <= limit) {
+    return { text: value, truncated: false, fullLength: value.length };
+  }
+
+  return {
+    text: `${value.slice(0, limit)}\n\n[Truncated: ${value.length - limit} more character(s)]`,
+    truncated: true,
+    fullLength: value.length
+  };
+}
+
+function compactUnique(values: string[]): string {
+  const unique = Array.from(new Set(values));
+  return unique.length === 1 ? unique[0] : `${unique[0]} (+${unique.length - 1} more)`;
+}
+
+function buildDoctrineProposalReviewSection(snapshot: RalphStatusSnapshot): DashboardDoctrineProposalReviewSection {
+  const entries = [...(snapshot.pendingDoctrineProposals ?? [])].sort((left, right) => {
+    const byId = left.proposal.proposalId.localeCompare(right.proposal.proposalId);
+    return byId !== 0 ? byId : left.path.localeCompare(right.path);
+  });
+
+  return {
+    hasPendingProposals: entries.length > 0,
+    proposals: entries.map(({ path: proposalPath, proposal }) => ({
+      proposalId: proposal.proposalId,
+      path: proposalPath,
+      createdAt: proposal.createdAt,
+      source: proposal.source,
+      risk: proposal.risk,
+      status: proposal.status,
+      targetFile: compactUnique(proposal.updates.map((update) => update.targetFile)),
+      operation: compactUnique(proposal.updates.map((update) => update.operation)),
+      protectedTarget: proposal.updates.some((update) => update.protectedTarget),
+      requiresApproval: proposal.updates.some((update) => update.requiresApproval),
+      updateCount: proposal.updates.length
+    })),
+    details: entries.map(({ path: proposalPath, proposal }) => ({
+      proposalId: proposal.proposalId,
+      path: proposalPath,
+      createdAt: proposal.createdAt,
+      source: proposal.source,
+      risk: proposal.risk,
+      status: proposal.status,
+      summary: proposal.summary,
+      warnings: proposal.warnings,
+      updates: proposal.updates.map((update, updateIndex) => ({
+        updateIndex,
+        targetFile: update.targetFile,
+        operation: update.operation,
+        section: update.section,
+        protectedTarget: update.protectedTarget,
+        requiresApproval: update.requiresApproval,
+        risk: update.risk,
+        proposedText: boundedText(update.proposedText),
+        rationale: boundedText(update.rationale, 800),
+        evidence: update.evidence
+      }))
+    }))
   };
 }
 

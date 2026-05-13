@@ -106,6 +106,8 @@ export interface RalphStatusSnapshot {
   doctrineContext: DoctrineContext;
   /** Proposed/pending doctrine proposal counts by artifact risk. */
   pendingDoctrineProposalCountsByRisk: Record<DoctrineProposalRisk, number>;
+  /** Pending doctrine proposal artifacts available for dashboard review. */
+  pendingDoctrineProposals: Array<{ path: string; proposal: DoctrineProposalArtifact }>;
   latestProvenanceBundle: RalphProvenanceBundle | null;
   latestArtifactRepair: RalphLatestArtifactRepairSummary;
   generatedArtifactRetention: RalphGeneratedArtifactRetentionSummary;

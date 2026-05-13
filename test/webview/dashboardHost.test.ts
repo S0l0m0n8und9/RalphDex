@@ -227,6 +227,59 @@ test('DashboardHost: inbound seed-tasks triggers typed result updates and snapsh
   broadcaster.dispose();
 });
 
+test('DashboardHost: inbound doctrine-proposal-action delegates selected proposal review and refreshes snapshot', async () => {
+  const wv = makeMockWebview();
+  const broadcaster = new IterationBroadcaster();
+  const actions: unknown[] = [];
+  let refreshCount = 0;
+
+  new DashboardHost(
+    wv as unknown as import('vscode').Webview,
+    broadcaster,
+    makeSimpleRenderFn('p') as never,
+    async () => {
+      refreshCount += 1;
+      return { workspaceName: `snapshot-${refreshCount}` } as never;
+    },
+    null,
+    {
+      doctrineProposalAction: async (action) => {
+        actions.push(action);
+        return { status: 'done', message: 'Applied proposal.' };
+      }
+    }
+  );
+
+  await new Promise((resolve) => setImmediate(resolve));
+  wv.posted.length = 0;
+
+  webviewSends(wv, {
+    type: 'doctrine-proposal-action',
+    action: 'partialApply',
+    proposalId: 'prop-1',
+    selectedUpdateIndexes: [0],
+    explicitProtectedApproval: true
+  });
+
+  await new Promise((resolve) => setImmediate(resolve));
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.deepEqual(actions, [{
+    action: 'partialApply',
+    proposalId: 'prop-1',
+    selectedUpdateIndexes: [0],
+    explicitProtectedApproval: true
+  }]);
+  const resultMessages = wv.posted.filter((msg): msg is { type: string; status: string; proposalId: string } =>
+    typeof msg === 'object' && msg !== null && (msg as { type?: string }).type === 'doctrine-proposal-action-result'
+  );
+  assert.equal(resultMessages[0]?.status, 'started');
+  assert.equal(resultMessages.at(-1)?.status, 'done');
+  assert.ok(refreshCount >= 2, 'successful doctrine proposal action should refresh dashboard snapshot');
+
+  broadcaster.dispose();
+});
+
 test('DashboardHost: inbound sidebar seed-tasks failure returns typed source error and skips snapshot refresh', async () => {
   const wv = makeMockWebview();
   const broadcaster = new IterationBroadcaster();

@@ -39,6 +39,7 @@ function minimalSnapshot(
       | 'doctrineInspection'
       | 'doctrineContext'
       | 'pendingDoctrineProposalCountsByRisk'
+      | 'pendingDoctrineProposals'
       | 'latestDoctrineProposalPath'
       | 'latestDoctrineProposalMdPath'
       | 'latestPipelineRun'
@@ -79,6 +80,7 @@ function minimalSnapshot(
       budgetExceeded: false
     },
     pendingDoctrineProposalCountsByRisk: { low: 0, medium: 0, high: 0 },
+    pendingDoctrineProposals: [],
     preflightReport: {
       ready: true,
       summary: 'Preflight ready: no blocking diagnostics.',
@@ -816,4 +818,96 @@ test('buildDashboardSnapshot: pending doctrine proposal counts render from fixtu
 
   assert.deepEqual(result.doctrine?.pendingProposalCountsByRisk, { low: 2, medium: 1, high: 3, total: 6 });
   assert.equal(result.doctrine?.actionTargets.reviewProposalsCommand, 'ralphCodex.openLatestDoctrineProposal');
+});
+
+test('buildDashboardSnapshot: doctrine proposal review data is stable and bounded', () => {
+  const result = buildDashboardSnapshot(minimalSnapshot({
+    pendingDoctrineProposalCountsByRisk: { low: 1, medium: 1, high: 0 },
+    pendingDoctrineProposals: [
+      {
+        path: '/repo/.ralph/artifacts/doctrine-proposals/prop-b.json',
+        proposal: {
+          schemaVersion: 1,
+          kind: 'doctrineUpdateProposal',
+          proposalId: 'prop-b',
+          createdAt: '2026-05-01T00:00:00.000Z',
+          provenanceId: 'prov-b',
+          iteration: 2,
+          selectedTaskId: 'T2',
+          selectedTaskTitle: 'Task two',
+          source: 'completionReport',
+          status: 'proposed',
+          risk: 'medium',
+          summary: 'Replace protected section.',
+          warnings: [],
+          updates: [{
+            targetFile: '.ralph/doctrine/invariants.md',
+            operation: 'replaceSection',
+            section: 'Core Invariants',
+            proposedText: 'x'.repeat(2100),
+            rationale: 'Protected invariant update.',
+            evidence: ['src/a.ts'],
+            requiresApproval: true,
+            protectedTarget: true,
+            risk: 'high'
+          }]
+        }
+      },
+      {
+        path: '/repo/.ralph/artifacts/doctrine-proposals/prop-a.json',
+        proposal: {
+          schemaVersion: 1,
+          kind: 'doctrineUpdateProposal',
+          proposalId: 'prop-a',
+          createdAt: '2026-05-02T00:00:00.000Z',
+          provenanceId: 'prov-a',
+          iteration: 1,
+          selectedTaskId: 'T1',
+          selectedTaskTitle: 'Task one',
+          source: 'manual',
+          status: 'proposed',
+          risk: 'low',
+          summary: 'Append workflow note.',
+          warnings: [],
+          updates: [{
+            targetFile: '.ralph/doctrine/workflows.md',
+            operation: 'append',
+            section: null,
+            proposedText: '- Run npm run validate.',
+            rationale: 'Observed validation command.',
+            evidence: ['package.json'],
+            requiresApproval: false,
+            protectedTarget: false,
+            risk: 'low'
+          }]
+        }
+      }
+    ]
+  }));
+
+  assert.deepEqual(
+    result.doctrine?.proposalReview.proposals.map((proposal) => proposal.proposalId),
+    ['prop-a', 'prop-b'],
+    'proposal list should sort deterministically by proposal id'
+  );
+  assert.equal(result.doctrine?.proposalReview.hasPendingProposals, true);
+  assert.equal(result.doctrine?.proposalReview.proposals[0]?.targetFile, '.ralph/doctrine/workflows.md');
+  assert.equal(result.doctrine?.proposalReview.proposals[1]?.protectedTarget, true);
+  assert.equal(result.doctrine?.proposalReview.proposals[1]?.requiresApproval, true);
+  const protectedDetail = result.doctrine?.proposalReview.details.find((detail) => detail.proposalId === 'prop-b');
+  assert.ok(protectedDetail);
+  assert.equal(protectedDetail.updates[0]?.proposedText.truncated, true);
+  assert.equal(protectedDetail.updates[0]?.proposedText.fullLength, 2100);
+  assert.ok(protectedDetail.updates[0]?.proposedText.text.length < 2100);
+});
+
+test('buildDashboardSnapshot: doctrine proposal review no-proposals state is explicit', () => {
+  const result = buildDashboardSnapshot(minimalSnapshot({
+    pendingDoctrineProposalCountsByRisk: { low: 0, medium: 0, high: 0 },
+    pendingDoctrineProposals: []
+  }));
+
+  assert.equal(result.doctrine?.proposalReview.hasPendingProposals, false);
+  assert.deepEqual(result.doctrine?.proposalReview.proposals, []);
+  assert.deepEqual(result.doctrine?.proposalReview.details, []);
 });

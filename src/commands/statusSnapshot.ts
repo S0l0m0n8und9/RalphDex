@@ -315,6 +315,36 @@ async function countPendingDoctrineProposalsByRisk(artifactRootDir: string): Pro
   return counts;
 }
 
+async function readPendingDoctrineProposals(
+  artifactRootDir: string
+): Promise<Array<{ path: string; proposal: DoctrineProposalArtifact }>> {
+  const directory = path.join(artifactRootDir, 'doctrine-proposals');
+
+  let entries: import('fs').Dirent[];
+  try {
+    entries = await fs.readdir(directory, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+
+  const proposals: Array<{ path: string; proposal: DoctrineProposalArtifact }> = [];
+  for (const entry of entries
+    .filter((candidate) => candidate.isFile() && candidate.name.endsWith('.json') && !candidate.name.endsWith('.review.json'))
+    .sort((left, right) => left.name.localeCompare(right.name))) {
+    const proposalPath = path.join(directory, entry.name);
+    const proposal = normalizeDoctrineProposalArtifact(await readJsonArtifact(proposalPath));
+    if (proposal?.status === 'proposed') {
+      proposals.push({ path: proposalPath, proposal });
+    }
+  }
+
+  proposals.sort((left, right) => {
+    const byId = left.proposal.proposalId.localeCompare(right.proposal.proposalId);
+    return byId !== 0 ? byId : left.path.localeCompare(right.path);
+  });
+  return proposals;
+}
+
 export function normalizeDoctrineProposalArtifact(candidate: unknown): DoctrineProposalArtifact | null {
   if (typeof candidate !== 'object' || candidate === null) {
     return null;
@@ -462,7 +492,15 @@ export async function collectStatusSnapshot(
     command: validationCommand,
     rootPath: rootPolicy.verificationRootPath
   });
-  const [artifactReadinessDiagnostics, staleStateDiagnostics, handoffHealthDiagnostics, doctrineInspection, doctrineContext, pendingDoctrineProposalCountsByRisk] = await Promise.all([
+  const [
+    artifactReadinessDiagnostics,
+    staleStateDiagnostics,
+    handoffHealthDiagnostics,
+    doctrineInspection,
+    doctrineContext,
+    pendingDoctrineProposalCountsByRisk,
+    pendingDoctrineProposals
+  ] = await Promise.all([
     inspectPreflightArtifactReadiness({
       rootPath: workspaceFolder.uri.fsPath,
       artifactRootDir: inspection.paths.artifactDir,
@@ -482,7 +520,8 @@ export async function collectStatusSnapshot(
     checkHandoffHealth({ ralphRoot: inspection.paths.ralphDir }),
     inspectDoctrinePack(workspaceFolder.uri.fsPath),
     collectDoctrineContext(workspaceFolder.uri.fsPath),
-    countPendingDoctrineProposalsByRisk(inspection.paths.artifactDir)
+    countPendingDoctrineProposalsByRisk(inspection.paths.artifactDir),
+    readPendingDoctrineProposals(inspection.paths.artifactDir)
   ]);
   const agentHealthDiagnostics = [...staleStateDiagnostics, ...handoffHealthDiagnostics];
   const claimGraph = await inspectTaskClaimGraph(inspection.paths.claimFilePath);
@@ -800,6 +839,7 @@ export async function collectStatusSnapshot(
     doctrineInspection,
     doctrineContext,
     pendingDoctrineProposalCountsByRisk,
+    pendingDoctrineProposals,
     latestProvenanceBundle,
     latestArtifactRepair: latestArtifacts.repair,
     generatedArtifactRetention,

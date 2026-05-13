@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs/promises';
+import * as path from 'path';
 import { registerCommands } from './commands/registerCommands';
 import { readConfig } from './config/readConfig';
 import {
@@ -19,6 +21,13 @@ import { createDashboardSnapshotLoader } from './webview/dashboardDataLoader';
 import { RalphStateManager } from './ralph/stateManager';
 import { seedTasksFromFeatureRequest } from './commands/taskSeeding';
 import { evaluatePrdReadinessGate } from './commands/prdReadinessGate';
+import {
+  applySelectedDoctrineProposalReview,
+  rejectSelectedDoctrineProposalReview
+} from './ralph/doctrineProposalReview';
+import { resolveDoctrineProposalCanonicalPaths } from './ralph/artifactStore';
+import type { DoctrineProposalArtifact } from './ralph/doctrineProposals';
+import type { RalphDoctrineProposalActionPayload } from './ui/uiTypes';
 
 export function activate(context: vscode.ExtensionContext): void {
   const logger = new Logger(vscode.window.createOutputChannel('Ralphdex'));
@@ -63,6 +72,50 @@ export function activate(context: vscode.ExtensionContext): void {
         requestText,
         logContext: 'Task seeding via dashboard webview'
       });
+    },
+    doctrineProposalAction: async (action: RalphDoctrineProposalActionPayload) => {
+      const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+      if (!workspaceFolder) {
+        throw new Error('Open a workspace folder before reviewing doctrine proposals.');
+      }
+
+      const config = readConfig(workspaceFolder);
+      const inspection = await dashboardStateManager.inspectWorkspace(workspaceFolder.uri.fsPath, config);
+      await logger.setWorkspaceLogFile(inspection.paths.logFilePath);
+
+      if (action.action === 'openTarget') {
+        const proposalPath = resolveDoctrineProposalCanonicalPaths(inspection.paths.artifactDir, action.proposalId).jsonPath;
+        const proposal = JSON.parse(await fs.readFile(proposalPath, 'utf8')) as DoctrineProposalArtifact;
+        const targetFile = proposal.updates[0]?.targetFile;
+        if (!targetFile) {
+          throw new Error(`Doctrine proposal "${action.proposalId}" has no target file to open.`);
+        }
+        const document = await vscode.workspace.openTextDocument(vscode.Uri.file(path.join(workspaceFolder.uri.fsPath, targetFile)));
+        await vscode.window.showTextDocument(document, { preview: false });
+        return { status: 'done' as const, message: `Opened ${targetFile}.` };
+      }
+
+      if (action.action === 'reject') {
+        const result = await rejectSelectedDoctrineProposalReview({
+          artifactRootDir: inspection.paths.artifactDir,
+          proposalId: action.proposalId,
+          reviewNotes: null
+        });
+        return { status: 'done' as const, message: `Rejected doctrine proposal ${result.updatedProposal.proposalId}.` };
+      }
+
+      const result = await applySelectedDoctrineProposalReview({
+        artifactRootDir: inspection.paths.artifactDir,
+        rootPath: workspaceFolder.uri.fsPath,
+        proposalId: action.proposalId,
+        selectedUpdateIndexes: action.action === 'partialApply' ? action.selectedUpdateIndexes : undefined,
+        explicitProtectedApproval: action.explicitProtectedApproval === true,
+        reviewNotes: null
+      });
+      return {
+        status: 'done' as const,
+        message: `Doctrine proposal ${result.updatedProposal.proposalId}: ${result.updatedProposal.status}.`
+      };
     }
   };
 

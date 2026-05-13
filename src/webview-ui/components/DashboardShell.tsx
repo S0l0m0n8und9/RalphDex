@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { RalphDashboardState } from '../../ui/uiTypes';
+import type { RalphDashboardState, RalphDoctrineProposalActionPayload, RalphWebviewMessage } from '../../ui/uiTypes';
 import type { WebviewUiModel } from '../viewModel';
 import type { DiagnosisSection } from '../../webview/dashboardSnapshot';
 import { HealthPulse, Icon, Btn } from './primitives/Card';
@@ -17,6 +17,7 @@ import { FailureFeedPanel } from './panels/FailureFeedPanel';
 import { CostTickerPanel } from './panels/CostTickerPanel';
 import { FirstRunReadiness } from './panels/FirstRunReadiness';
 import { DoctrineCard } from './panels/DoctrineCard';
+import { DoctrineProposalReviewPanel } from './panels/DoctrineProposalReviewPanel';
 
 interface DashboardShellProps {
   state: RalphDashboardState;
@@ -25,6 +26,8 @@ interface DashboardShellProps {
   onSettingUpdate: (key: string, value: unknown) => void;
   onOpenArtifact: (artifactDir: string) => void;
   onSeedTasks: (requestText: string) => void;
+  onDoctrineAction: (action: RalphDoctrineProposalActionPayload) => void;
+  lastDoctrineActionResult: Extract<RalphWebviewMessage, { type: 'doctrine-proposal-action-result' }> | null;
 }
 
 type TabId = 'overview' | 'tasks' | 'diagnostics' | 'settings';
@@ -90,7 +93,7 @@ function SnapshotBanner({ state }: { state: RalphDashboardState }) {
   );
 }
 
-export function DashboardShell({ state, model, onCommand, onSettingUpdate, onOpenArtifact, onSeedTasks }: DashboardShellProps) {
+export function DashboardShell({ state, model, onCommand, onSettingUpdate, onOpenArtifact, onSeedTasks, onDoctrineAction, lastDoctrineActionResult }: DashboardShellProps) {
   const [activeTab, setActiveTab] = useState<TabId>('overview');
   const snapshot = state.dashboardSnapshot;
   const diagnosis: DiagnosisSection | null = snapshot?.diagnosis ?? null;
@@ -110,6 +113,7 @@ export function DashboardShell({ state, model, onCommand, onSettingUpdate, onOpe
             onStartLoop={onStartLoop} onStopLoop={onStopLoop} onRunIteration={onRunIteration} />
           {pipeline && <PipelineRunStrip pipeline={pipeline} onCommand={onCommand} />}
           <DoctrineCard doctrine={doctrine} onCommand={onCommand} />
+          {doctrine && <DoctrineProposalReviewPanel review={doctrine.proposalReview} onDoctrineAction={onDoctrineAction} lastActionResult={lastDoctrineActionResult} />}
           {diagnosis && <FailurePanel diagnosis={diagnosis} onOpenArtifact={onOpenArtifact} onCommand={onCommand} />}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 14 }}>
             <AgentLanes lanes={state.agentLanes} />
@@ -131,6 +135,7 @@ export function DashboardShell({ state, model, onCommand, onSettingUpdate, onOpe
         <>
           <FirstRunReadiness checklist={checklist} />
           <DoctrineCard doctrine={doctrine} onCommand={onCommand} />
+          {doctrine && <DoctrineProposalReviewPanel review={doctrine.proposalReview} onDoctrineAction={onDoctrineAction} lastActionResult={lastDoctrineActionResult} />}
           {diagnosis && <FailurePanel diagnosis={diagnosis} onOpenArtifact={onOpenArtifact} onCommand={onCommand} />}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 14 }}>
             <DiagnosticsPanel diagnostics={state.diagnostics} />
