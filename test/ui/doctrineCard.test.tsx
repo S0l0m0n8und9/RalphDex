@@ -29,7 +29,7 @@ function doctrine(overrides: Partial<DashboardDoctrineSection> = {}): DashboardD
   };
 }
 
-test('DoctrineCard renders healthy state, protected files, and budget usage', () => {
+test('DoctrineCard renders healthy state, protected files, budget usage, and clean success copy', () => {
   const html = renderToStaticMarkup(<DoctrineCard doctrine={doctrine()} onCommand={() => undefined} />);
 
   assert.ok(html.includes('healthy'));
@@ -37,6 +37,8 @@ test('DoctrineCard renders healthy state, protected files, and budget usage', ()
   assert.ok(html.includes('boundaries.md · protected'));
   assert.ok(html.includes('agents.md · protected'));
   assert.ok(html.includes('4000/8000 chars (50%)'));
+  assert.ok(html.includes('Doctrine inspection found all required files, headings, and evidence-index shape.'));
+  assert.ok(!html.includes('Other diagnostics'));
 });
 
 test('DoctrineCard renders missing and incomplete diagnostics visibly', () => {
@@ -78,6 +80,21 @@ test('DoctrineCard renders truncation and pending proposal counts', () => {
   assert.ok(html.includes('>3<'));
 });
 
+test('DoctrineCard renders other warning diagnostics visibly', () => {
+  const html = renderToStaticMarkup(<DoctrineCard doctrine={doctrine({
+    diagnostics: {
+      missingFiles: [],
+      missingHeadings: [],
+      invalidEvidenceIndex: [],
+      other: [{ severity: 'warning', code: 'doctrine_custom_warning', file: null, message: 'Custom warning remains visible.' }]
+    }
+  })} onCommand={() => undefined} />);
+
+  assert.ok(html.includes('Other diagnostics'));
+  assert.ok(html.includes('Custom warning remains visible.'));
+  assert.ok(!html.includes('Doctrine inspection found all required files, headings, and evidence-index shape.'));
+});
+
 test('DoctrineCard exposes command ids without remote assets', () => {
   const html = renderToStaticMarkup(<DoctrineCard doctrine={doctrine({
     actionTargets: {
@@ -89,7 +106,7 @@ test('DoctrineCard exposes command ids without remote assets', () => {
 
   assert.ok(html.includes('Initialize / Repair Doctrine Pack'));
   assert.ok(html.includes('Open Doctrine Folder'));
-  assert.ok(html.includes('Review Doctrine Proposals'));
+  assert.ok(html.includes('Review Latest Doctrine Proposal'));
   assert.ok(html.includes('ralphCodex.initializeDoctrinePack'));
   assert.ok(html.includes('ralphCodex.openDoctrineFolder'));
   assert.ok(html.includes('ralphCodex.openDoctrineInvariants'));
@@ -98,4 +115,32 @@ test('DoctrineCard exposes command ids without remote assets', () => {
   assert.ok(html.includes('ralphCodex.openLatestDoctrineProposal'));
   assert.doesNotMatch(html, /https?:\/\//);
   assert.doesNotMatch(html, /cdn\./i);
+});
+
+test('DoctrineCard disables latest proposal review when no pending proposals exist', () => {
+  const html = renderToStaticMarkup(<DoctrineCard doctrine={doctrine({
+    actionTargets: {
+      ...doctrine().actionTargets,
+      reviewProposalsCommand: 'ralphCodex.openLatestDoctrineProposal'
+    },
+    pendingProposalCountsByRisk: { low: 0, medium: 0, high: 0, total: 0 }
+  })} onCommand={() => undefined} />);
+
+  assert.ok(html.includes('Review Latest Doctrine Proposal'));
+  assert.ok(html.includes('disabled=""'));
+  assert.ok(!html.includes('data-command="ralphCodex.openLatestDoctrineProposal"'));
+});
+
+test('DoctrineCard disables latest proposal review when no latest proposal command exists', () => {
+  const html = renderToStaticMarkup(<DoctrineCard doctrine={doctrine({
+    pendingProposalCountsByRisk: { low: 1, medium: 0, high: 0, total: 1 },
+    actionTargets: {
+      ...doctrine().actionTargets,
+      reviewProposalsCommand: null
+    }
+  })} onCommand={() => undefined} />);
+
+  assert.ok(html.includes('Review Latest Doctrine Proposal'));
+  assert.ok(html.includes('disabled=""'));
+  assert.ok(!html.includes('data-command="ralphCodex.openLatestDoctrineProposal"'));
 });

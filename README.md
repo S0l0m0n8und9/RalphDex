@@ -3,7 +3,7 @@
 [![Installs](https://img.shields.io/visual-studio-marketplace/i/s0l0m0n8und9.ralphdex?label=installs)](https://marketplace.visualstudio.com/items?itemName=s0l0m0n8und9.ralphdex)
 [![Rating](https://img.shields.io/visual-studio-marketplace/r/s0l0m0n8und9.ralphdex?label=rating)](https://marketplace.visualstudio.com/items?itemName=s0l0m0n8und9.ralphdex) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/S0l0m0n8und9/RalphDex)
+[Ask DeepWiki](https://deepwiki.com/S0l0m0n8und9/RalphDex)
 
 A VS Code extension for durable, file-backed agentic coding loops. Ralph keeps your objective, task graph, prompts, run artifacts, and provenance evidence on disk under `.ralph/` so any new provider-backed session can resume from inspectable state instead of chat history.
 

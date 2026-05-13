@@ -45,6 +45,7 @@ export function DoctrineCard({ doctrine, onCommand }: DoctrineCardProps) {
     + diagnostics.other.length;
   const reviewCommand = doctrine.actionTargets.reviewProposalsCommand;
   const hasPendingProposals = doctrine.pendingProposalCountsByRisk.total > 0;
+  const effectiveReviewCommand = hasPendingProposals ? reviewCommand : null;
 
   return (
     <Card title="Doctrine" subtitle="Durable workspace rules, protected doctrine files, and prompt-context budget." accent>
@@ -110,9 +111,9 @@ export function DoctrineCard({ doctrine, onCommand }: DoctrineCardProps) {
           <span data-command={doctrine.actionTargets.openFolderCommand}>
             <Btn size="sm" variant="secondary" onClick={() => onCommand(doctrine.actionTargets.openFolderCommand)}>Open Doctrine Folder</Btn>
           </span>
-          <span data-command={reviewCommand ?? ''}>
-            <Btn size="sm" variant="secondary" onClick={() => reviewCommand && onCommand(reviewCommand)} disabled={!reviewCommand || !hasPendingProposals}>
-              Review Doctrine Proposals
+          <span data-command={effectiveReviewCommand ?? ''}>
+            <Btn size="sm" variant="secondary" onClick={() => effectiveReviewCommand && onCommand(effectiveReviewCommand)} disabled={!effectiveReviewCommand}>
+              Review Latest Doctrine Proposal
             </Btn>
           </span>
         </div>

@@ -775,6 +775,38 @@ test('buildDashboardSnapshot: invalid evidence index and truncation state are vi
   assert.equal(result.doctrine?.diagnostics.invalidEvidenceIndex.length, 1);
 });
 
+
+test('buildDashboardSnapshot: healthy doctrine info diagnostic is not bucketed as other diagnostics', () => {
+  const result = buildDashboardSnapshot(minimalSnapshot({
+    doctrineInspection: {
+      doctrineDir: '/repo/.ralph/doctrine',
+      health: 'healthy',
+      protectedFiles: ['invariants.md', 'boundaries.md', 'agents.md'],
+      diagnostics: [{ severity: 'info', code: 'doctrine_pack_healthy', message: 'Doctrine health: healthy.' }]
+    }
+  }));
+
+  assert.equal(result.doctrine?.health, 'healthy');
+  assert.equal(result.doctrine?.diagnostics.other.length, 0);
+  assert.equal(result.doctrine?.diagnostics.missingFiles.length, 0);
+  assert.equal(result.doctrine?.diagnostics.missingHeadings.length, 0);
+  assert.equal(result.doctrine?.diagnostics.invalidEvidenceIndex.length, 0);
+});
+
+test('buildDashboardSnapshot: unknown warning doctrine diagnostics remain visible as other diagnostics', () => {
+  const result = buildDashboardSnapshot(minimalSnapshot({
+    doctrineInspection: {
+      doctrineDir: '/repo/.ralph/doctrine',
+      health: 'healthy',
+      protectedFiles: ['invariants.md', 'boundaries.md', 'agents.md'],
+      diagnostics: [{ severity: 'warning', code: 'doctrine_custom_warning', message: 'Doctrine warning.' }]
+    }
+  }));
+
+  assert.equal(result.doctrine?.diagnostics.other.length, 1);
+  assert.equal(result.doctrine?.diagnostics.other[0]?.code, 'doctrine_custom_warning');
+});
+
 test('buildDashboardSnapshot: pending doctrine proposal counts render from fixture data', () => {
   const result = buildDashboardSnapshot(minimalSnapshot({
     pendingDoctrineProposalCountsByRisk: { low: 2, medium: 1, high: 3 },

@@ -330,7 +330,13 @@ function buildDoctrineSection(snapshot: RalphStatusSnapshot): DashboardDoctrineS
       missingFiles: diagnostics.filter((diagnostic) => diagnostic.code === 'doctrine_directory_missing' || diagnostic.code === 'doctrine_required_file_missing'),
       missingHeadings: diagnostics.filter((diagnostic) => diagnostic.code === 'doctrine_required_heading_missing'),
       invalidEvidenceIndex: diagnostics.filter((diagnostic) => diagnostic.code === 'doctrine_evidence_index_invalid'),
-      other: diagnostics.filter((diagnostic) => !new Set(['doctrine_directory_missing', 'doctrine_required_file_missing', 'doctrine_required_heading_missing', 'doctrine_evidence_index_invalid']).has(diagnostic.code))
+      other: diagnostics.filter((diagnostic) => !new Set([
+        'doctrine_directory_missing',
+        'doctrine_required_file_missing',
+        'doctrine_required_heading_missing',
+        'doctrine_evidence_index_invalid',
+        'doctrine_pack_healthy'
+      ]).has(diagnostic.code))
     },
     pendingProposalCountsByRisk: {
       low: pending.low,
