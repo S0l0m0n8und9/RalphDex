@@ -11,6 +11,7 @@ interface SidebarShellProps {
 
 export function SidebarShell({ state, model, onCommand }: SidebarShellProps) {
   const running = state.loopState === 'running';
+  const loopIteration = state.loopIteration ?? state.nextIteration;
   const loopKind = running ? 'running' : state.loopState === 'stopped' ? 'stopped' : 'idle';
   const loopLabel = running ? 'Loop running' : state.loopState === 'stopped' ? 'Loop stopped' : 'Loop idle';
 
@@ -36,9 +37,9 @@ export function SidebarShell({ state, model, onCommand }: SidebarShellProps) {
       {/* Loop status */}
       <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
         <StatusPill kind={loopKind} small>{loopLabel}</StatusPill>
-        {running && state.nextIteration > 0 && (
+        {running && loopIteration > 0 && (
           <div style={{ fontSize: 11, color: 'var(--dim)', fontFamily: 'var(--font-mono)' }}>
-            iter <b style={{ color: 'var(--fg)' }}>{state.nextIteration}</b> / {state.iterationCap}
+            iter <b style={{ color: 'var(--fg)' }}>{loopIteration}</b> / {state.iterationCap}
           </div>
         )}
         {model.currentTask && (
