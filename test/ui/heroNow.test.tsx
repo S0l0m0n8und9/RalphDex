@@ -8,7 +8,7 @@ import type { WebviewUiModel } from '../../src/webview-ui/viewModel';
 function makeState(overrides: Partial<RalphDashboardState> = {}): RalphDashboardState {
   return {
     workspaceName: 'test-ws', loopState: 'idle', agentRole: 'build',
-    nextIteration: 3, iterationCap: 12,
+    nextIteration: 3, loopIteration: 3, iterationCap: 12,
     taskCounts: { todo: 5, in_progress: 1, blocked: 0, done: 4 },
     tasks: [], recentIterations: [], preflightReady: true, preflightSummary: 'ok',
     diagnostics: [], agentLanes: [], settingsSurface: null, dashboardSnapshot: null,
@@ -78,4 +78,19 @@ test('HeroNow renders health strip', () => {
   assert.ok(html.includes('PROGRESS'));
   assert.ok(html.includes('ITERATION'));
   assert.ok(html.includes('ATTENTION'));
+});
+
+test('HeroNow iteration counter uses loop-local iteration instead of global nextIteration', () => {
+  const html = renderToStaticMarkup(
+    <HeroNow
+      state={makeState({ loopState: 'running', nextIteration: 22, loopIteration: 2, iterationCap: 5 })}
+      model={makeModel()}
+      onStartLoop={() => {}}
+      onStopLoop={() => {}}
+      onRunIteration={() => {}}
+    />
+  );
+
+  assert.ok(html.includes('2/5'));
+  assert.ok(!html.includes('22/5'));
 });

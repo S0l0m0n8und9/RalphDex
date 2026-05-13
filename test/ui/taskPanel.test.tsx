@@ -54,6 +54,12 @@ test('TaskPanel renders seed card in empty state', () => {
   assert.ok(html.includes('Seed from Epic'));
 });
 
+test('TaskPanel renders seed button icon without stringifying React nodes', () => {
+  const html = renderToStaticMarkup(<TaskPanel tasks={[]} taskSeeding={idleSeeding} onSeedTasks={noop} />);
+  assert.ok(html.includes('Generate tasks'));
+  assert.ok(!html.includes('[object Object]'));
+});
+
 test('TaskPanel renders seed card when tasks exist', () => {
   const html = renderToStaticMarkup(
     <TaskPanel tasks={[task('T-1', 'todo')]} taskSeeding={idleSeeding} onSeedTasks={noop} />

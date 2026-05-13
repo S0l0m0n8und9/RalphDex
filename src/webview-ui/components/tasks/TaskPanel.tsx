@@ -133,7 +133,7 @@ function SeedCard({ seeding, onSeedTasks }: { seeding: RalphDashboardTaskSeeding
       />
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10 }}>
         <Btn variant="primary" size="sm" onClick={submit} disabled={submitting || !text.trim()}>
-          {submitting ? 'Generating…' : `${Icon.bolt} Generate tasks`}
+          {submitting ? 'Generating…' : <>{Icon.bolt}<span>Generate tasks</span></>}
         </Btn>
         <span style={{ fontSize: 11, color: 'var(--dim)' }}>⌘↵ to submit</span>
         {seeding.phase !== 'idle' && seeding.message && (

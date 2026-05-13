@@ -55,6 +55,8 @@ class DashboardHost {
     loadSnapshot;
     actions;
     latestState;
+    loopIterationCounter = 1;
+    hasActiveLoopIteration = false;
     agentLanesMap = new Map();
     lastRenderTime = 0;
     configSync = new webviewConfigSync_1.WebviewConfigSync();
@@ -145,6 +147,7 @@ class DashboardHost {
             loopState: this.latestState.loopState === 'running' ? 'running' : (ws?.lastIteration?.stopReason ? 'stopped' : 'idle'),
             agentRole: config?.agentRole ?? 'build',
             nextIteration: ws?.nextIteration ?? 1,
+            loopIteration: this.latestState.loopState === 'running' ? this.loopIterationCounter : 1,
             iterationCap: config?.ralphIterationCap ?? 5,
             taskCounts,
             tasks,
@@ -341,15 +344,30 @@ class DashboardHost {
                 break;
             }
             case 'loop-start':
-                this.latestState = { ...this.latestState, loopState: 'running', iterationCap: event.iterationCap };
+                this.loopIterationCounter = 1;
+                this.hasActiveLoopIteration = false;
+                this.latestState = {
+                    ...this.latestState,
+                    loopState: 'running',
+                    iterationCap: event.iterationCap,
+                    loopIteration: this.loopIterationCounter
+                };
                 this.fullRender();
                 break;
             case 'iteration-start': {
+                if (!this.hasActiveLoopIteration) {
+                    this.loopIterationCounter = 1;
+                    this.hasActiveLoopIteration = true;
+                }
+                else {
+                    this.loopIterationCounter += 1;
+                }
                 const laneKey = event.agentId ?? 'default';
                 this.agentLanesMap.set(laneKey, { phase: 'inspect', iteration: event.iteration });
                 this.latestState = {
                     ...this.latestState,
                     loopState: 'running',
+                    loopIteration: this.loopIterationCounter,
                     agentLanes: this.getLanes()
                 };
                 this.fullRender();
@@ -366,10 +384,13 @@ class DashboardHost {
                 break;
             }
             case 'loop-end':
+                this.loopIterationCounter = 1;
+                this.hasActiveLoopIteration = false;
                 this.agentLanesMap.clear();
                 this.latestState = {
                     ...this.latestState,
                     loopState: event.stopReason ? 'stopped' : 'idle',
+                    loopIteration: this.loopIterationCounter,
                     agentLanes: []
                 };
                 this.fullRender();

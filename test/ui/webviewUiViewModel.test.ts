@@ -9,6 +9,7 @@ function defaultState(overrides: Partial<RalphDashboardState> = {}): RalphDashbo
     loopState: 'idle',
     agentRole: 'build',
     nextIteration: 1,
+    loopIteration: 1,
     iterationCap: 5,
     taskCounts: null,
     tasks: [],
@@ -92,4 +93,16 @@ test('webview UI model exposes expected run controls when ready', () => {
   assert.ok(model.exposedCommandIds.has('ralphCodex.runRalphLoop'));
   assert.ok(model.exposedCommandIds.has('ralphCodex.runPipeline'));
   assert.ok(model.exposedCommandIds.has('ralphCodex.runRalphIteration'));
+});
+
+test('webview UI model running detail uses loop-local iteration', () => {
+  const model = getWebviewUiModel(defaultState({
+    loopState: 'running',
+    nextIteration: 17,
+    loopIteration: 2,
+    iterationCap: 8
+  }));
+
+  assert.equal(model.readiness.kind, 'running');
+  assert.equal(model.readiness.detail, 'Iteration 2 of 8');
 });

@@ -12,6 +12,7 @@ function defaultState(overrides: Partial<RalphDashboardState> = {}): RalphDashbo
     loopState: 'idle',
     agentRole: 'build',
     nextIteration: 1,
+    loopIteration: 1,
     iterationCap: 5,
     taskCounts: null,
     tasks: [],
@@ -503,6 +504,7 @@ test('buildPanelDashboardHtml renders a live hero summary from durable state', (
     loopState: 'running',
     agentRole: 'implementer',
     nextIteration: 7,
+    loopIteration: 3,
     iterationCap: 20,
     tasks: [{
       id: 'T156',
@@ -527,6 +529,18 @@ test('buildPanelDashboardHtml renders a live hero summary from durable state', (
   assert.ok(html.includes('Recovery Queue contains parked work that may need requeue.'));
   assert.ok(!html.includes('Dead-letter contains parked work that may need requeue.'));
   assert.ok(html.includes('Cost'));
+});
+
+test('buildPanelDashboardHtml hero iteration counter uses loop-local iteration', () => {
+  const html = buildPanelDashboardHtml(defaultState({
+    loopState: 'running',
+    nextIteration: 19,
+    loopIteration: 2,
+    iterationCap: 6
+  }), 'hero-loop-counter');
+
+  assert.ok(html.includes('>2/6<'));
+  assert.ok(!html.includes('>19/6<'));
 });
 
 

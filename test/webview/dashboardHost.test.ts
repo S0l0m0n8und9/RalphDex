@@ -552,6 +552,56 @@ test('DashboardHost: broadcast iteration-start sets loopState running', () => {
   broadcaster.dispose();
 });
 
+test('DashboardHost: loop-local iteration counter resets per loop and does not use global iteration id', () => {
+  const wv = makeMockWebview();
+  const broadcaster = new IterationBroadcaster();
+
+  new DashboardHost(
+    wv as unknown as import('vscode').Webview,
+    broadcaster,
+    (state, _nonce) => `<html>loopIter:${state.loopIteration ?? 'none'} next:${state.nextIteration}</html>` as never
+  );
+
+  const deadline = Date.now() + 110;
+  while (Date.now() < deadline) { /* spin */ }
+
+  broadcaster.emitLoopStart(5);
+  broadcaster.emitIterationStart({
+    iteration: 41,
+    iterationCap: 5,
+    selectedTaskId: 'T1',
+    selectedTaskTitle: 'Task one'
+  });
+  assert.ok(wv.html.includes('loopIter:1'));
+
+  const deadlineAfterFirstStart = Date.now() + 110;
+  while (Date.now() < deadlineAfterFirstStart) { /* spin */ }
+  broadcaster.emitIterationStart({
+    iteration: 42,
+    iterationCap: 5,
+    selectedTaskId: 'T1',
+    selectedTaskTitle: 'Task one'
+  });
+  assert.ok(wv.html.includes('loopIter:2'));
+
+  broadcaster.emitLoopEnd(2, 'iteration_cap_reached');
+  const deadlineAfterLoopEnd = Date.now() + 110;
+  while (Date.now() < deadlineAfterLoopEnd) { /* spin */ }
+  broadcaster.emitLoopStart(5);
+  const deadlineAfterSecondLoopStart = Date.now() + 110;
+  while (Date.now() < deadlineAfterSecondLoopStart) { /* spin */ }
+  broadcaster.emitIterationStart({
+    iteration: 99,
+    iterationCap: 5,
+    selectedTaskId: 'T2',
+    selectedTaskTitle: 'Task two'
+  });
+  assert.ok(wv.html.includes('loopIter:1'));
+  assert.ok(!wv.html.includes('loopIter:99'));
+
+  broadcaster.dispose();
+});
+
 test('DashboardHost: broadcast loop-end updates loopState', () => {
   const wv = makeMockWebview();
   const broadcaster = new IterationBroadcaster();

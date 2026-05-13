@@ -145,6 +145,11 @@ export interface RalphDashboardState {
   loopState: RalphUiLoopState;
   agentRole: string;
   nextIteration: number;
+  /**
+   * Loop-local iteration index for the active loop progress display.
+   * Resets to 1 at loop start and must not use global accumulated iteration count.
+   */
+  loopIteration?: number;
   iterationCap: number;
   taskCounts: RalphTaskCounts | null;
   tasks: RalphDashboardTask[];

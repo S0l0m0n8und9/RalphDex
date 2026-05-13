@@ -38,6 +38,7 @@ function currentTask(state: RalphDashboardState): RalphDashboardTask | null {
 
 
 export function getWebviewUiModel(state: RalphDashboardState): WebviewUiModel {
+  const loopIteration = state.loopIteration ?? state.nextIteration;
   const total = taskTotal(state);
   const doneCount = state.taskCounts?.done ?? state.tasks.filter((task) => task.status === 'done').length;
   let readiness: WebviewReadinessModel;
@@ -47,7 +48,7 @@ export function getWebviewUiModel(state: RalphDashboardState): WebviewUiModel {
     readiness = {
       kind: 'running',
       title: 'Loop running',
-      detail: `Iteration ${state.nextIteration} of ${state.iterationCap}`
+      detail: `Iteration ${loopIteration} of ${state.iterationCap}`
     };
     primaryCommands = [{ command: 'ralphCodex.stopLoop', label: 'Stop Loop', variant: 'danger' }];
   } else if (!state.prdExists) {

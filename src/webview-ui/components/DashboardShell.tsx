@@ -98,7 +98,7 @@ export function DashboardShell({ state, model, onCommand, onSettingUpdate, onOpe
 
   const onStartLoop    = () => onCommand('ralphCodex.runRalphLoop');
   const onStopLoop     = () => onCommand('ralphCodex.stopLoop');
-  const onRunIteration = () => onCommand('ralphCodex.runIteration');
+  const onRunIteration = () => onCommand('ralphCodex.runRalphIteration');
 
   const content = (() => {
     if (activeTab === 'overview') {
@@ -213,7 +213,7 @@ export function DashboardShell({ state, model, onCommand, onSettingUpdate, onOpe
             Quick actions
           </div>
           <div style={{ display: 'grid', gap: 4 }}>
-            <QuickAction label="Run one iteration" shortcut="⌘⇧R" onClick={() => onCommand('ralphCodex.runIteration')} />
+            <QuickAction label="Run one iteration" shortcut="⌘⇧R" onClick={() => onCommand('ralphCodex.runRalphIteration')} />
             <QuickAction label="Start loop"        shortcut="⌘⇧L" onClick={() => onCommand('ralphCodex.runRalphLoop')} />
             <QuickAction label="Stop loop"         shortcut="⌘⇧S" onClick={() => onCommand('ralphCodex.stopLoop')} />
             <QuickAction label="Seed from epic"    shortcut=""     onClick={() => setActiveTab('tasks')} />

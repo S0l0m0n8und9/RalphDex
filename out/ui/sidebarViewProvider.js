@@ -102,6 +102,7 @@ function defaultDashboardState() {
         loopState: 'idle',
         agentRole: 'build',
         nextIteration: 1,
+        loopIteration: 1,
         iterationCap: 5,
         taskCounts: null,
         tasks: [],

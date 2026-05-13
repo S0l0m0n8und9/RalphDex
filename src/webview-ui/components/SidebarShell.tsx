@@ -71,7 +71,7 @@ export function SidebarShell({ state, model, onCommand }: SidebarShellProps) {
           </Btn>
         )}
         <Btn variant="ghost" size="sm" style={{ width: '100%', justifyContent: 'center' }}
-          onClick={() => onCommand('ralphCodex.runIteration')}>
+          onClick={() => onCommand('ralphCodex.runRalphIteration')}>
           {Icon.bolt} Run one iteration
         </Btn>
       </div>

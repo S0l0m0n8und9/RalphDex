@@ -1685,9 +1685,10 @@ function buildHeroCard(state: RalphDashboardState): string {
   const blockedCount = counts?.blocked ?? 0;
   const deadLetterCount = taskBoard?.deadLetterCount ?? snapshot?.deadLetter.entries.length ?? 0;
   const attentionCount = blockedCount + deadLetterCount;
-  const iterationValue = `${taskBoard?.nextIteration ?? state.nextIteration}/${state.iterationCap}`;
+  const loopIteration = state.loopIteration ?? 1;
+  const iterationValue = `${loopIteration}/${state.iterationCap}`;
   const iterationPercent = state.iterationCap > 0
-    ? Math.round(((taskBoard?.nextIteration ?? state.nextIteration) / state.iterationCap) * 100)
+    ? Math.round((loopIteration / state.iterationCap) * 100)
     : 0;
   const stateClass = state.loopState;
   const stateLabel = state.loopState === 'running'

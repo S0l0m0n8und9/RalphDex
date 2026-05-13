@@ -44,6 +44,8 @@ export type DashboardRenderFn = (state: RalphDashboardState, nonce: string, webv
  */
 export class DashboardHost implements vscode.Disposable {
   private latestState: RalphDashboardState;
+  private loopIterationCounter = 1;
+  private hasActiveLoopIteration = false;
   private agentLanesMap = new Map<string, { phase: RalphIterationPhase; iteration: number; message?: string }>();
   private lastRenderTime = 0;
   private readonly configSync = new WebviewConfigSync();
@@ -146,6 +148,7 @@ export class DashboardHost implements vscode.Disposable {
       loopState: this.latestState.loopState === 'running' ? 'running' : (ws?.lastIteration?.stopReason ? 'stopped' : 'idle'),
       agentRole: config?.agentRole ?? 'build',
       nextIteration: ws?.nextIteration ?? 1,
+      loopIteration: this.latestState.loopState === 'running' ? this.loopIterationCounter : 1,
       iterationCap: config?.ralphIterationCap ?? 5,
       taskCounts,
       tasks,
@@ -355,15 +358,29 @@ export class DashboardHost implements vscode.Disposable {
         break;
       }
       case 'loop-start':
-        this.latestState = { ...this.latestState, loopState: 'running', iterationCap: event.iterationCap };
+        this.loopIterationCounter = 1;
+        this.hasActiveLoopIteration = false;
+        this.latestState = {
+          ...this.latestState,
+          loopState: 'running',
+          iterationCap: event.iterationCap,
+          loopIteration: this.loopIterationCounter
+        };
         this.fullRender();
         break;
       case 'iteration-start': {
+        if (!this.hasActiveLoopIteration) {
+          this.loopIterationCounter = 1;
+          this.hasActiveLoopIteration = true;
+        } else {
+          this.loopIterationCounter += 1;
+        }
         const laneKey = event.agentId ?? 'default';
         this.agentLanesMap.set(laneKey, { phase: 'inspect', iteration: event.iteration });
         this.latestState = {
           ...this.latestState,
           loopState: 'running',
+          loopIteration: this.loopIterationCounter,
           agentLanes: this.getLanes()
         };
         this.fullRender();
@@ -380,10 +397,13 @@ export class DashboardHost implements vscode.Disposable {
         break;
       }
       case 'loop-end':
+        this.loopIterationCounter = 1;
+        this.hasActiveLoopIteration = false;
         this.agentLanesMap.clear();
         this.latestState = {
           ...this.latestState,
           loopState: event.stopReason ? 'stopped' : 'idle',
+          loopIteration: this.loopIterationCounter,
           agentLanes: []
         };
         this.fullRender();

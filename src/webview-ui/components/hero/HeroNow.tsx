@@ -15,10 +15,11 @@ interface HeroNowProps {
 
 export function HeroNow({ state, model, onStartLoop, onStopLoop, onRunIteration }: HeroNowProps) {
   const running  = state.loopState === 'running';
+  const loopIteration = state.loopIteration ?? state.nextIteration;
   const total    = model.taskTotal;
   const done     = model.doneCount;
   const donePct  = total > 0 ? Math.round((done / total) * 100) : 0;
-  const iterPct  = state.iterationCap > 0 ? Math.round((state.nextIteration / state.iterationCap) * 100) : 0;
+  const iterPct  = state.iterationCap > 0 ? Math.round((loopIteration / state.iterationCap) * 100) : 0;
   const attention = state.taskCounts?.blocked ?? 0;
   const deadLetterCount = state.dashboardSnapshot?.deadLetter.entries.length ?? 0;
   const snapshot  = state.dashboardSnapshot;
@@ -28,7 +29,7 @@ export function HeroNow({ state, model, onStartLoop, onStopLoop, onRunIteration 
   const loopPillKind = running ? 'running' : state.loopState === 'stopped' ? 'stopped' : 'idle';
 
   const primaryExplain = running
-    ? `Ralph is working on iteration ${state.nextIteration} of ${state.iterationCap}.`
+    ? `Ralph is working on iteration ${loopIteration} of ${state.iterationCap}.`
     : `Ralph is idle. ${done} of ${total} tasks done.`;
 
   return (
@@ -45,7 +46,7 @@ export function HeroNow({ state, model, onStartLoop, onStopLoop, onRunIteration 
             </StatusPill>
             {running && (
               <span style={{ fontSize: 11, color: 'var(--dim)' }}>
-                iteration <b style={{ color: 'var(--fg)', fontFamily: 'var(--font-mono)' }}>{state.nextIteration}</b> / {state.iterationCap}
+                iteration <b style={{ color: 'var(--fg)', fontFamily: 'var(--font-mono)' }}>{loopIteration}</b> / {state.iterationCap}
               </span>
             )}
           </div>
@@ -104,7 +105,7 @@ export function HeroNow({ state, model, onStartLoop, onStopLoop, onRunIteration 
         />
         <HealthCell
           label="Iteration"
-          value={`${state.nextIteration}/${state.iterationCap}`}
+          value={`${loopIteration}/${state.iterationCap}`}
           sub={`${iterPct}% of cap`}
           bar={iterPct}
         />
