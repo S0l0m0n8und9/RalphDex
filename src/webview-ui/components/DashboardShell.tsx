@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { RalphDashboardState, RalphDoctrineProposalActionPayload, RalphWebviewMessage } from '../../ui/uiTypes';
 import type { WebviewUiModel } from '../viewModel';
-import type { DiagnosisSection } from '../../webview/dashboardSnapshot';
-import { HealthPulse, Icon, Btn } from './primitives/Card';
+import type { DashboardDoctrineSection, DiagnosisSection } from '../../webview/dashboardSnapshot';
+import { HealthPulse, Icon, Btn, Card, StatusPill } from './primitives/Card';
 import { HeroNow } from './hero/HeroNow';
 import { AgentLanes } from './panels/AgentLanes';
 import { Timeline } from './panels/Timeline';
@@ -30,7 +30,7 @@ interface DashboardShellProps {
   lastDoctrineActionResult: Extract<RalphWebviewMessage, { type: 'doctrine-proposal-action-result' }> | null;
 }
 
-type TabId = 'overview' | 'tasks' | 'diagnostics' | 'settings';
+type TabId = 'overview' | 'tasks' | 'diagnostics' | 'doctrine' | 'settings';
 
 interface TabDef { id: TabId; label: string; icon: React.ReactNode }
 
@@ -38,6 +38,7 @@ const TABS: TabDef[] = [
   { id: 'overview',     label: 'Overview',     icon: Icon.bolt  },
   { id: 'tasks',        label: 'Tasks',        icon: Icon.graph },
   { id: 'diagnostics',  label: 'Diagnostics',  icon: Icon.warn  },
+  { id: 'doctrine',     label: 'Doctrine',     icon: Icon.ask   },
   { id: 'settings',     label: 'Settings',     icon: Icon.cog   },
 ];
 
@@ -93,13 +94,98 @@ function SnapshotBanner({ state }: { state: RalphDashboardState }) {
   );
 }
 
+function mapIntentTabToTabId(activeTab: string | null | undefined): TabId | null {
+  if (activeTab === 'work') return 'tasks';
+  if (activeTab === 'overview' || activeTab === 'tasks' || activeTab === 'diagnostics' || activeTab === 'doctrine' || activeTab === 'settings') {
+    return activeTab;
+  }
+  return null;
+}
+
+function doctrineHighestPendingRisk(doctrine: DashboardDoctrineSection): 'high' | 'medium' | 'low' | 'none' {
+  if (doctrine.pendingProposalCountsByRisk.high > 0) return 'high';
+  if (doctrine.pendingProposalCountsByRisk.medium > 0) return 'medium';
+  if (doctrine.pendingProposalCountsByRisk.low > 0) return 'low';
+  return 'none';
+}
+
+function doctrineNeedsAttention(doctrine: DashboardDoctrineSection): boolean {
+  return doctrine.health !== 'healthy'
+    || doctrine.contextTruncated
+    || doctrine.pendingProposalCountsByRisk.total > 0
+    || doctrine.pendingProposalCountsByRisk.high > 0;
+}
+
+function doctrineNeedsDiagnosticsAttention(
+  doctrine: DashboardDoctrineSection | null,
+  lastDoctrineActionResult: Extract<RalphWebviewMessage, { type: 'doctrine-proposal-action-result' }> | null
+): boolean {
+  if (!doctrine) return false;
+  const malformedProposalArtifact = doctrine.diagnostics.other.some((diagnostic) => diagnostic.code === 'doctrine_proposal_artifact_invalid');
+  const proposalAttention = doctrine.pendingProposalCountsByRisk.high > 0 || doctrine.proposalReview.proposals.some((proposal) => proposal.protectedTarget);
+  const actionFailed = lastDoctrineActionResult?.status === 'error';
+  return doctrine.health !== 'healthy' || malformedProposalArtifact || proposalAttention || actionFailed;
+}
+
+function DoctrineOverviewStatusCard({ doctrine, onOpenDoctrineTab }: { doctrine: DashboardDoctrineSection | null; onOpenDoctrineTab: () => void }) {
+  if (!doctrine) return null;
+  const pending = doctrine.pendingProposalCountsByRisk.total;
+  const highestRisk = doctrineHighestPendingRisk(doctrine);
+  const needsAttention = doctrineNeedsAttention(doctrine);
+
+  return (
+    <Card
+      title="Doctrine Status"
+      subtitle={needsAttention
+        ? 'Doctrine needs operator attention. Review full details in the Doctrine tab.'
+        : 'Doctrine is healthy. Full governance and proposal review is available in the Doctrine tab.'}
+      style={needsAttention
+        ? {
+          borderColor: 'color-mix(in srgb, var(--warn) 45%, var(--border))',
+          borderTop: '2px solid var(--warn)',
+          background: 'color-mix(in srgb, var(--warn) 6%, var(--surface))'
+        }
+        : undefined}
+    >
+      <div style={{ display: 'grid', gap: 10 }} data-testid="doctrine-overview-status">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          <StatusPill kind={doctrine.health === 'healthy' ? 'ok' : 'warn'}>health: {doctrine.health.replace(/_/g, ' ')}</StatusPill>
+          <StatusPill kind={doctrine.contextTruncated ? 'warn' : 'neutral'}>
+            context: {doctrine.contextBudget.usedChars}/{doctrine.contextBudget.budgetChars} chars ({doctrine.contextBudget.usagePercent}%)
+          </StatusPill>
+          <StatusPill kind={pending > 0 ? 'warn' : 'ok'}>pending: {pending}</StatusPill>
+          <StatusPill kind={highestRisk === 'high' ? 'bad' : highestRisk === 'medium' ? 'warn' : 'neutral'}>
+            highest risk: {highestRisk}
+          </StatusPill>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 11, color: 'var(--dim)' }}>
+            {needsAttention ? 'Attention required. Full proposal details are in Doctrine.' : 'No doctrine attention required right now.'}
+          </span>
+          <Btn size="sm" variant={needsAttention ? 'primary' : 'secondary'} onClick={onOpenDoctrineTab}>
+            Open Doctrine Tab
+          </Btn>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 export function DashboardShell({ state, model, onCommand, onSettingUpdate, onOpenArtifact, onSeedTasks, onDoctrineAction, lastDoctrineActionResult }: DashboardShellProps) {
-  const [activeTab, setActiveTab] = useState<TabId>('overview');
+  const [activeTab, setActiveTab] = useState<TabId>(() => mapIntentTabToTabId(state.viewIntent?.activeTab ?? null) ?? 'overview');
   const snapshot = state.dashboardSnapshot;
   const diagnosis: DiagnosisSection | null = snapshot?.diagnosis ?? null;
   const deadLetter = snapshot?.deadLetter ?? { entries: [] };
   const pipeline = snapshot?.pipeline ?? null;
   const doctrine = snapshot?.doctrine ?? null;
+  const showDoctrineDiagnostics = doctrineNeedsDiagnosticsAttention(doctrine, lastDoctrineActionResult);
+
+  useEffect(() => {
+    const intentTab = mapIntentTabToTabId(state.viewIntent?.activeTab ?? null);
+    if (intentTab && intentTab !== activeTab) {
+      setActiveTab(intentTab);
+    }
+  }, [activeTab, state.viewIntent?.activeTab]);
 
   const onStartLoop    = () => onCommand('ralphCodex.runRalphLoop');
   const onStopLoop     = () => onCommand('ralphCodex.stopLoop');
@@ -112,8 +198,7 @@ export function DashboardShell({ state, model, onCommand, onSettingUpdate, onOpe
           <HeroNow state={state} model={model}
             onStartLoop={onStartLoop} onStopLoop={onStopLoop} onRunIteration={onRunIteration} />
           {pipeline && <PipelineRunStrip pipeline={pipeline} onCommand={onCommand} />}
-          <DoctrineCard doctrine={doctrine} onCommand={onCommand} />
-          {doctrine && <DoctrineProposalReviewPanel review={doctrine.proposalReview} onDoctrineAction={onDoctrineAction} lastActionResult={lastDoctrineActionResult} />}
+          <DoctrineOverviewStatusCard doctrine={doctrine} onOpenDoctrineTab={() => setActiveTab('doctrine')} />
           {diagnosis && <FailurePanel diagnosis={diagnosis} onOpenArtifact={onOpenArtifact} onCommand={onCommand} />}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 14 }}>
             <AgentLanes lanes={state.agentLanes} />
@@ -134,8 +219,12 @@ export function DashboardShell({ state, model, onCommand, onSettingUpdate, onOpe
       return (
         <>
           <FirstRunReadiness checklist={checklist} />
-          <DoctrineCard doctrine={doctrine} onCommand={onCommand} />
-          {doctrine && <DoctrineProposalReviewPanel review={doctrine.proposalReview} onDoctrineAction={onDoctrineAction} lastActionResult={lastDoctrineActionResult} />}
+          {showDoctrineDiagnostics && (
+            <>
+              <DoctrineOverviewStatusCard doctrine={doctrine} onOpenDoctrineTab={() => setActiveTab('doctrine')} />
+              <DoctrineCard doctrine={doctrine} onCommand={onCommand} />
+            </>
+          )}
           {diagnosis && <FailurePanel diagnosis={diagnosis} onOpenArtifact={onOpenArtifact} onCommand={onCommand} />}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 14 }}>
             <DiagnosticsPanel diagnostics={state.diagnostics} />
@@ -163,6 +252,14 @@ export function DashboardShell({ state, model, onCommand, onSettingUpdate, onOpe
             <DeadLetter deadLetter={deadLetter} onCommand={onCommand} />
             <Timeline iterations={state.recentIterations} onOpenArtifact={onOpenArtifact} />
           </div>
+        </>
+      );
+    }
+    if (activeTab === 'doctrine') {
+      return (
+        <>
+          <DoctrineCard doctrine={doctrine} onCommand={onCommand} />
+          {doctrine && <DoctrineProposalReviewPanel review={doctrine.proposalReview} onDoctrineAction={onDoctrineAction} lastActionResult={lastDoctrineActionResult} />}
         </>
       );
     }

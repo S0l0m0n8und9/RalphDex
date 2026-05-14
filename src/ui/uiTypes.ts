@@ -118,7 +118,7 @@ export interface RalphDashboardIteration {
 }
 
 export interface RalphDashboardViewIntent {
-  activeTab?: 'overview' | 'work' | 'diagnostics' | 'settings';
+  activeTab?: 'overview' | 'work' | 'tasks' | 'diagnostics' | 'doctrine' | 'settings';
   focusSettingKey?: string;
   newSettingKeys?: string[];
 }
