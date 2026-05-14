@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { DashboardShell, resolveInitialDashboardTab } from '../../src/webview-ui/components/DashboardShell';
+import { DashboardShell, reconcileDashboardTabIntent, resolveInitialDashboardTab } from '../../src/webview-ui/components/DashboardShell';
 import type { RalphDashboardState, RalphWebviewMessage } from '../../src/ui/uiTypes';
 import type { WebviewUiModel } from '../../src/webview-ui/viewModel';
 import type { DashboardDoctrineSection } from '../../src/webview/dashboardSnapshot';
@@ -183,6 +183,22 @@ test('initial dashboard tab prefers explicit view intent over persisted tab', ()
 
 test('initial dashboard tab falls back to persisted tab when no explicit view intent exists', () => {
   assert.equal(resolveInitialDashboardTab(null, () => 'settings'), 'settings');
+});
+
+test('dashboard tab reconciliation ignores unchanged stale host intent after a local tab change', () => {
+  const update = reconcileDashboardTabIntent('tasks', { activeTab: 'settings' }, 'settings');
+
+  assert.equal(update.nextTab, 'tasks');
+  assert.equal(update.appliedIntent, 'settings');
+  assert.equal(update.shouldPersist, false);
+});
+
+test('dashboard tab reconciliation applies a newly observed host intent', () => {
+  const update = reconcileDashboardTabIntent('overview', { activeTab: 'settings' }, null);
+
+  assert.equal(update.nextTab, 'settings');
+  assert.equal(update.appliedIntent, 'settings');
+  assert.equal(update.shouldPersist, true);
 });
 
 test('Diagnostics omits doctrine surfaces when doctrine is healthy with no proposals and no action errors', () => {

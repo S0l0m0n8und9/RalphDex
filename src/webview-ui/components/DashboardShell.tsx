@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { RalphDashboardState, RalphDoctrineProposalActionPayload, RalphWebviewMessage } from '../../ui/uiTypes';
 import type { WebviewUiModel } from '../viewModel';
 import type { DashboardDoctrineSection, DiagnosisSection } from '../../webview/dashboardSnapshot';
@@ -131,6 +131,28 @@ export function resolveInitialDashboardTab(
   return mapIntentTabToTabId(viewIntent?.activeTab ?? null) ?? readPersisted() ?? 'overview';
 }
 
+export function reconcileDashboardTabIntent(
+  currentTab: TabId,
+  viewIntent: RalphDashboardState['viewIntent'],
+  previousAppliedIntent: string | null
+): { nextTab: TabId; appliedIntent: string | null; shouldPersist: boolean } {
+  const rawIntent = viewIntent?.activeTab ?? null;
+  if (rawIntent === previousAppliedIntent) {
+    return { nextTab: currentTab, appliedIntent: previousAppliedIntent, shouldPersist: false };
+  }
+
+  const intentTab = mapIntentTabToTabId(rawIntent);
+  if (!intentTab) {
+    return { nextTab: currentTab, appliedIntent: rawIntent, shouldPersist: false };
+  }
+
+  return {
+    nextTab: intentTab,
+    appliedIntent: rawIntent,
+    shouldPersist: intentTab !== currentTab
+  };
+}
+
 function doctrineHighestPendingRisk(doctrine: DashboardDoctrineSection): 'high' | 'medium' | 'low' | 'none' {
   if (doctrine.pendingProposalCountsByRisk.high > 0) return 'high';
   if (doctrine.pendingProposalCountsByRisk.medium > 0) return 'medium';
@@ -202,6 +224,7 @@ function DoctrineOverviewStatusCard({ doctrine, onOpenDoctrineTab }: { doctrine:
 
 export function DashboardShell({ state, model, onCommand, onSettingUpdate, onActiveTabChange, onOpenArtifact, onSeedTasks, onDoctrineAction, lastDoctrineActionResult }: DashboardShellProps) {
   const [activeTab, setActiveTab] = useState<TabId>(() => resolveInitialDashboardTab(state.viewIntent));
+  const appliedIntentRef = useRef<string | null>(state.viewIntent?.activeTab ?? null);
   const snapshot = state.dashboardSnapshot;
   const diagnosis: DiagnosisSection | null = snapshot?.diagnosis ?? null;
   const deadLetter = snapshot?.deadLetter ?? { entries: [] };
@@ -210,10 +233,13 @@ export function DashboardShell({ state, model, onCommand, onSettingUpdate, onAct
   const showDoctrineDiagnostics = doctrineNeedsDiagnosticsAttention(doctrine, lastDoctrineActionResult);
 
   useEffect(() => {
-    const intentTab = mapIntentTabToTabId(state.viewIntent?.activeTab ?? null);
-    if (intentTab && intentTab !== activeTab) {
-      setActiveTab(intentTab);
-      persistDashboardTab(intentTab);
+    const update = reconcileDashboardTabIntent(activeTab, state.viewIntent, appliedIntentRef.current);
+    appliedIntentRef.current = update.appliedIntent;
+    if (update.shouldPersist) {
+      persistDashboardTab(update.nextTab);
+    }
+    if (update.nextTab !== activeTab) {
+      setActiveTab(update.nextTab);
     }
   }, [activeTab, state.viewIntent?.activeTab]);
 
