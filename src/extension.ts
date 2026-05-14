@@ -25,6 +25,7 @@ import {
   applySelectedDoctrineProposalReview,
   rejectSelectedDoctrineProposalReview
 } from './ralph/doctrineProposalReview';
+import { selectDoctrineProposalTargetFiles } from './ralph/doctrineProposalTargets';
 import { resolveDoctrineProposalCanonicalPaths } from './ralph/artifactStore';
 import type { DoctrineProposalArtifact } from './ralph/doctrineProposals';
 import type { RalphDoctrineProposalActionPayload } from './ui/uiTypes';
@@ -86,13 +87,18 @@ export function activate(context: vscode.ExtensionContext): void {
       if (action.action === 'openTarget') {
         const proposalPath = resolveDoctrineProposalCanonicalPaths(inspection.paths.artifactDir, action.proposalId).jsonPath;
         const proposal = JSON.parse(await fs.readFile(proposalPath, 'utf8')) as DoctrineProposalArtifact;
-        const targetFile = proposal.updates[0]?.targetFile;
-        if (!targetFile) {
+        const targetFiles = selectDoctrineProposalTargetFiles(proposal, action.selectedUpdateIndexes);
+        if (targetFiles.length === 0) {
           throw new Error(`Doctrine proposal "${action.proposalId}" has no target file to open.`);
         }
-        const document = await vscode.workspace.openTextDocument(vscode.Uri.file(path.join(workspaceFolder.uri.fsPath, targetFile)));
-        await vscode.window.showTextDocument(document, { preview: false });
-        return { status: 'done' as const, message: `Opened ${targetFile}.` };
+        for (const [index, targetFile] of targetFiles.entries()) {
+          const document = await vscode.workspace.openTextDocument(vscode.Uri.file(path.join(workspaceFolder.uri.fsPath, targetFile)));
+          await vscode.window.showTextDocument(document, { preview: index !== targetFiles.length - 1 });
+        }
+        return {
+          status: 'done' as const,
+          message: `Opened ${targetFiles.length} target file(s): ${targetFiles.join(', ')}.`
+        };
       }
 
       if (action.action === 'reject') {

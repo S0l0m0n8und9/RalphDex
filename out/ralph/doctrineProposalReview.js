@@ -38,6 +38,7 @@ exports.rejectSelectedDoctrineProposalReview = rejectSelectedDoctrineProposalRev
 const fs = __importStar(require("fs/promises"));
 const artifactStore_1 = require("./artifactStore");
 const doctrineProposalApply_1 = require("./doctrineProposalApply");
+const doctrineProposals_1 = require("./doctrineProposals");
 function assertProposed(proposal) {
     if (proposal.status !== 'proposed') {
         throw new Error(`Doctrine proposal "${proposal.proposalId}" has already been ${proposal.status}.`);
@@ -59,11 +60,51 @@ function readIndexes(proposal, selectedUpdateIndexes) {
 function requireProtectedApproval(proposal, selectedIndexes, explicitProtectedApproval) {
     const selectedProtectedTargets = selectedIndexes
         .map((index) => proposal.updates[index])
-        .filter((update) => update?.protectedTarget || update?.requiresApproval)
-        .map((update) => update.targetFile);
+        .flatMap((update) => {
+        if (!update || typeof update.targetFile !== 'string') {
+            return [];
+        }
+        const normalizedTarget = (0, doctrineProposals_1.normalizeDoctrineTargetFile)(update.targetFile);
+        if (!normalizedTarget || !(0, doctrineProposals_1.isProtectedDoctrineTargetFile)(normalizedTarget)) {
+            return [];
+        }
+        return [normalizedTarget];
+    });
     if (selectedProtectedTargets.length > 0 && !explicitProtectedApproval) {
         throw new Error(`Doctrine proposal "${proposal.proposalId}" requires explicit protected approval before mutating ${Array.from(new Set(selectedProtectedTargets)).join(', ')}.`);
     }
+}
+function assertProposalArtifactShape(proposal) {
+    if (!Array.isArray(proposal.updates) || proposal.updates.length === 0) {
+        throw new Error(`Doctrine proposal artifact "${proposal.proposalId}" is malformed: updates must be a non-empty array.`);
+    }
+    proposal.updates.forEach((update, index) => {
+        if (typeof update !== 'object' || update === null || Array.isArray(update)) {
+            throw new Error(`Doctrine proposal artifact "${proposal.proposalId}" is malformed: updates[${index}] must be an object.`);
+        }
+        const normalizedTarget = typeof update.targetFile === 'string'
+            ? (0, doctrineProposals_1.normalizeDoctrineTargetFile)(update.targetFile)
+            : null;
+        if (!normalizedTarget) {
+            throw new Error(`Doctrine proposal artifact "${proposal.proposalId}" is malformed: updates[${index}].targetFile is invalid.`);
+        }
+        if (!['append', 'replaceSection', 'addSectionItem'].includes(update.operation)) {
+            throw new Error(`Doctrine proposal artifact "${proposal.proposalId}" is malformed: updates[${index}].operation is invalid.`);
+        }
+        if (typeof update.proposedText !== 'string' || update.proposedText.trim().length === 0) {
+            throw new Error(`Doctrine proposal artifact "${proposal.proposalId}" is malformed: updates[${index}].proposedText is required.`);
+        }
+        if (typeof update.rationale !== 'string' || update.rationale.trim().length === 0) {
+            throw new Error(`Doctrine proposal artifact "${proposal.proposalId}" is malformed: updates[${index}].rationale is required.`);
+        }
+        if (!Array.isArray(update.evidence) || update.evidence.length === 0 || update.evidence.some((item) => typeof item !== 'string' || item.trim().length === 0)) {
+            throw new Error(`Doctrine proposal artifact "${proposal.proposalId}" is malformed: updates[${index}].evidence is invalid.`);
+        }
+        if ((update.operation === 'replaceSection' || update.operation === 'addSectionItem')
+            && (typeof update.section !== 'string' || update.section.trim().length === 0)) {
+            throw new Error(`Doctrine proposal artifact "${proposal.proposalId}" is malformed: updates[${index}].section is required for ${update.operation}.`);
+        }
+    });
 }
 async function readProposal(artifactRootDir, proposalId) {
     const paths = (0, artifactStore_1.resolveDoctrineProposalCanonicalPaths)(artifactRootDir, proposalId);
@@ -71,6 +112,7 @@ async function readProposal(artifactRootDir, proposalId) {
     if (raw.kind !== 'doctrineUpdateProposal' || raw.proposalId !== proposalId || !Array.isArray(raw.updates)) {
         throw new Error(`Doctrine proposal artifact "${proposalId}" is malformed.`);
     }
+    assertProposalArtifactShape(raw);
     return raw;
 }
 function deriveAction(input) {

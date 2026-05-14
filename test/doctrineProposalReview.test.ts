@@ -11,7 +11,11 @@ import {
   createDoctrineProposalArtifact,
   parseDoctrineUpdatesFromCompletionReport
 } from '../src/ralph/doctrineProposals';
-import { writeDoctrineProposalArtifact, resolveIterationArtifactPaths } from '../src/ralph/artifactStore';
+import {
+  resolveDoctrineProposalCanonicalPaths,
+  resolveIterationArtifactPaths,
+  writeDoctrineProposalArtifact
+} from '../src/ralph/artifactStore';
 
 async function makeWorkspace(): Promise<{ rootPath: string; artifactDir: string; doctrineDir: string }> {
   const rootPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-review-test-'));
@@ -144,4 +148,90 @@ test('rejectSelectedDoctrineProposalReview persists rejection without mutating d
   const workflow = await fs.readFile(path.join(doctrineDir, 'workflows.md'), 'utf8');
   assert.ok(!workflow.includes('- Run npm run validate.'));
   assert.ok(rootPath, 'root path fixture is intentionally unused by reject persistence');
+});
+
+test('applySelectedDoctrineProposalReview enforces canonical protection even when proposal flags are false', async () => {
+  const { rootPath, artifactDir, doctrineDir } = await makeWorkspace();
+  const proposal = makeProposal('proposal-review-stale-flags');
+  proposal.updates[1].protectedTarget = false;
+  proposal.updates[1].requiresApproval = false;
+  await writeDoctrineProposalArtifact({
+    paths: resolveIterationArtifactPaths(artifactDir, 1),
+    artifactRootDir: artifactDir,
+    proposal
+  });
+
+  await assert.rejects(
+    () => applySelectedDoctrineProposalReview({
+      artifactRootDir: artifactDir,
+      rootPath,
+      proposalId: proposal.proposalId,
+      selectedUpdateIndexes: [1],
+      explicitProtectedApproval: false
+    }),
+    /explicit protected approval/i
+  );
+
+  const invariants = await fs.readFile(path.join(doctrineDir, 'invariants.md'), 'utf8');
+  assert.ok(invariants.includes('- Existing invariant.'));
+});
+
+test('applySelectedDoctrineProposalReview rejects malformed proposal artifacts before mutation', async () => {
+  const { rootPath, artifactDir, doctrineDir } = await makeWorkspace();
+  const proposal = makeProposal('proposal-review-malformed-apply');
+  await writeDoctrineProposalArtifact({
+    paths: resolveIterationArtifactPaths(artifactDir, 1),
+    artifactRootDir: artifactDir,
+    proposal
+  });
+  const proposalPath = resolveDoctrineProposalCanonicalPaths(artifactDir, proposal.proposalId).jsonPath;
+  const malformed = JSON.parse(await fs.readFile(proposalPath, 'utf8')) as Record<string, unknown>;
+  const updates = malformed.updates as Array<Record<string, unknown>>;
+  updates[0] = { ...updates[0], targetFile: '.ralph/doctrine/not-a-real-file.md' };
+  malformed.updates = updates;
+  await fs.writeFile(proposalPath, JSON.stringify(malformed, null, 2), 'utf8');
+
+  await assert.rejects(
+    () => applySelectedDoctrineProposalReview({
+      artifactRootDir: artifactDir,
+      rootPath,
+      proposalId: proposal.proposalId,
+      explicitProtectedApproval: false
+    }),
+    /malformed/i
+  );
+
+  const workflow = await fs.readFile(path.join(doctrineDir, 'workflows.md'), 'utf8');
+  assert.ok(!workflow.includes('- Run npm run validate.'));
+});
+
+test('rejectSelectedDoctrineProposalReview rejects malformed proposal artifacts before review persistence', async () => {
+  const { artifactDir } = await makeWorkspace();
+  const proposal = makeProposal('proposal-review-malformed-reject');
+  await writeDoctrineProposalArtifact({
+    paths: resolveIterationArtifactPaths(artifactDir, 1),
+    artifactRootDir: artifactDir,
+    proposal
+  });
+  const proposalPath = resolveDoctrineProposalCanonicalPaths(artifactDir, proposal.proposalId).jsonPath;
+  const malformed = JSON.parse(await fs.readFile(proposalPath, 'utf8')) as Record<string, unknown>;
+  malformed.updates = [];
+  await fs.writeFile(proposalPath, JSON.stringify(malformed, null, 2), 'utf8');
+
+  await assert.rejects(
+    () => rejectSelectedDoctrineProposalReview({
+      artifactRootDir: artifactDir,
+      proposalId: proposal.proposalId
+    }),
+    /malformed/i
+  );
+
+  const reviewDir = path.join(artifactDir, 'doctrine-proposals');
+  let files: string[] = [];
+  try {
+    files = await fs.readdir(reviewDir);
+  } catch {
+    files = [];
+  }
+  assert.equal(files.filter((name) => name.startsWith(`${proposal.proposalId}.review.`)).length, 0);
 });

@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { DoctrineProposalReviewPanel } from '../../src/webview-ui/components/panels/DoctrineProposalReviewPanel';
+import {
+  buildDoctrineProposalAction,
+  DoctrineProposalReviewPanel
+} from '../../src/webview-ui/components/panels/DoctrineProposalReviewPanel';
 import type { DashboardDoctrineProposalReviewSection } from '../../src/webview/dashboardSnapshot';
 
 function review(overrides: Partial<DashboardDoctrineProposalReviewSection> = {}): DashboardDoctrineProposalReviewSection {
@@ -152,4 +155,53 @@ test('DoctrineProposalReviewPanel renders action failure feedback', () => {
 
   assert.ok(html.includes('Doctrine proposal action error'));
   assert.ok(html.includes('Apply failed: malformed artifact.'));
+});
+
+test('DoctrineProposalReviewPanel action payload builder emits apply with proposal id', () => {
+  assert.deepEqual(
+    buildDoctrineProposalAction({ action: 'apply', proposalId: 'prop-append', explicitProtectedApproval: false }),
+    { action: 'apply', proposalId: 'prop-append', explicitProtectedApproval: false }
+  );
+});
+
+test('DoctrineProposalReviewPanel action payload builder emits partial apply indexes', () => {
+  assert.deepEqual(
+    buildDoctrineProposalAction({
+      action: 'partialApply',
+      proposalId: 'prop-protected',
+      selectedUpdateIndexes: [0, 1],
+      explicitProtectedApproval: true
+    }),
+    {
+      action: 'partialApply',
+      proposalId: 'prop-protected',
+      selectedUpdateIndexes: [0, 1],
+      explicitProtectedApproval: true
+    }
+  );
+});
+
+test('DoctrineProposalReviewPanel action payload builder carries explicit protected approval only when supplied', () => {
+  assert.deepEqual(
+    buildDoctrineProposalAction({
+      action: 'apply',
+      proposalId: 'prop-protected',
+      explicitProtectedApproval: true
+    }),
+    {
+      action: 'apply',
+      proposalId: 'prop-protected',
+      explicitProtectedApproval: true
+    }
+  );
+  assert.deepEqual(
+    buildDoctrineProposalAction({
+      action: 'apply',
+      proposalId: 'prop-append'
+    }),
+    {
+      action: 'apply',
+      proposalId: 'prop-append'
+    }
+  );
 });

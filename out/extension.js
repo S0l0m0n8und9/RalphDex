@@ -54,6 +54,7 @@ const stateManager_1 = require("./ralph/stateManager");
 const taskSeeding_1 = require("./commands/taskSeeding");
 const prdReadinessGate_1 = require("./commands/prdReadinessGate");
 const doctrineProposalReview_1 = require("./ralph/doctrineProposalReview");
+const doctrineProposalTargets_1 = require("./ralph/doctrineProposalTargets");
 const artifactStore_1 = require("./ralph/artifactStore");
 function activate(context) {
     const logger = new logger_1.Logger(vscode.window.createOutputChannel('Ralphdex'));
@@ -105,13 +106,18 @@ function activate(context) {
             if (action.action === 'openTarget') {
                 const proposalPath = (0, artifactStore_1.resolveDoctrineProposalCanonicalPaths)(inspection.paths.artifactDir, action.proposalId).jsonPath;
                 const proposal = JSON.parse(await fs.readFile(proposalPath, 'utf8'));
-                const targetFile = proposal.updates[0]?.targetFile;
-                if (!targetFile) {
+                const targetFiles = (0, doctrineProposalTargets_1.selectDoctrineProposalTargetFiles)(proposal, action.selectedUpdateIndexes);
+                if (targetFiles.length === 0) {
                     throw new Error(`Doctrine proposal "${action.proposalId}" has no target file to open.`);
                 }
-                const document = await vscode.workspace.openTextDocument(vscode.Uri.file(path.join(workspaceFolder.uri.fsPath, targetFile)));
-                await vscode.window.showTextDocument(document, { preview: false });
-                return { status: 'done', message: `Opened ${targetFile}.` };
+                for (const [index, targetFile] of targetFiles.entries()) {
+                    const document = await vscode.workspace.openTextDocument(vscode.Uri.file(path.join(workspaceFolder.uri.fsPath, targetFile)));
+                    await vscode.window.showTextDocument(document, { preview: index !== targetFiles.length - 1 });
+                }
+                return {
+                    status: 'done',
+                    message: `Opened ${targetFiles.length} target file(s): ${targetFiles.join(', ')}.`
+                };
             }
             if (action.action === 'reject') {
                 const result = await (0, doctrineProposalReview_1.rejectSelectedDoctrineProposalReview)({

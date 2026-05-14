@@ -26,6 +26,25 @@ function selectedIndexes(detail: DashboardDoctrineProposalDetail | null, selecti
     .map((update) => update.updateIndex);
 }
 
+export function buildDoctrineProposalAction(input: {
+  action: RalphDoctrineProposalActionPayload['action'];
+  proposalId: string;
+  selectedUpdateIndexes?: number[];
+  explicitProtectedApproval?: boolean;
+}): RalphDoctrineProposalActionPayload {
+  const payload: RalphDoctrineProposalActionPayload = {
+    action: input.action,
+    proposalId: input.proposalId
+  };
+  if (input.selectedUpdateIndexes !== undefined) {
+    payload.selectedUpdateIndexes = input.selectedUpdateIndexes;
+  }
+  if (input.explicitProtectedApproval !== undefined) {
+    payload.explicitProtectedApproval = input.explicitProtectedApproval;
+  }
+  return payload;
+}
+
 export function DoctrineProposalReviewPanel({ review, onDoctrineAction, lastActionResult = null }: DoctrineProposalReviewPanelProps) {
   const [selectedProposalId, setSelectedProposalId] = useState(review.proposals[0]?.proposalId ?? null);
   const [selectedUpdates, setSelectedUpdates] = useState<Record<number, boolean>>({});
@@ -175,23 +194,27 @@ export function DoctrineProposalReviewPanel({ review, onDoctrineAction, lastActi
             ))}
 
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              <Btn size="sm" variant={proposalHasProtectedTarget ? 'danger' : 'primary'} onClick={() => dispatch({
+              <Btn size="sm" variant={proposalHasProtectedTarget ? 'danger' : 'primary'} onClick={() => dispatch(buildDoctrineProposalAction({
                 action: 'apply',
                 proposalId: selectedDetail.proposalId,
                 explicitProtectedApproval: proposalHasProtectedTarget
-              })}>
+              }))}>
                 {proposalHasProtectedTarget ? 'Approve protected target and apply' : 'Apply'}
               </Btn>
-              <Btn size="sm" variant="secondary" disabled={checkedIndexes.length === 0} onClick={() => dispatch({
+              <Btn size="sm" variant="secondary" disabled={checkedIndexes.length === 0} onClick={() => dispatch(buildDoctrineProposalAction({
                 action: 'partialApply',
                 proposalId: selectedDetail.proposalId,
                 selectedUpdateIndexes: checkedIndexes,
                 explicitProtectedApproval: hasProtectedSelection
-              })}>
+              }))}>
                 {hasProtectedSelection ? 'Approve protected selection and partial apply' : 'Partial apply selected'}
               </Btn>
-              <Btn size="sm" variant="danger" onClick={() => dispatch({ action: 'reject', proposalId: selectedDetail.proposalId })}>Reject</Btn>
-              <Btn size="sm" variant="secondary" onClick={() => dispatch({ action: 'openTarget', proposalId: selectedDetail.proposalId })}>Open target file</Btn>
+              <Btn size="sm" variant="danger" onClick={() => dispatch(buildDoctrineProposalAction({ action: 'reject', proposalId: selectedDetail.proposalId }))}>Reject</Btn>
+              <Btn size="sm" variant="secondary" onClick={() => dispatch(buildDoctrineProposalAction({
+                action: 'openTarget',
+                proposalId: selectedDetail.proposalId,
+                selectedUpdateIndexes: checkedIndexes.length > 0 ? checkedIndexes : undefined
+              }))}>Open target file</Btn>
             </div>
           </div>
         )}

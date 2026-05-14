@@ -10,6 +10,10 @@ import type {
   DoctrineProposalReviewArtifact,
   DoctrineReviewAction
 } from './doctrineProposals';
+import {
+  isProtectedDoctrineTargetFile,
+  normalizeDoctrineTargetFile
+} from './doctrineProposals';
 
 export interface DoctrineProposalReviewResult {
   review: DoctrineProposalReviewArtifact;
@@ -45,8 +49,16 @@ function requireProtectedApproval(
 ): void {
   const selectedProtectedTargets = selectedIndexes
     .map((index) => proposal.updates[index])
-    .filter((update) => update?.protectedTarget || update?.requiresApproval)
-    .map((update) => update.targetFile);
+    .flatMap((update) => {
+      if (!update || typeof update.targetFile !== 'string') {
+        return [];
+      }
+      const normalizedTarget = normalizeDoctrineTargetFile(update.targetFile);
+      if (!normalizedTarget || !isProtectedDoctrineTargetFile(normalizedTarget)) {
+        return [];
+      }
+      return [normalizedTarget];
+    });
 
   if (selectedProtectedTargets.length > 0 && !explicitProtectedApproval) {
     throw new Error(
@@ -55,12 +67,53 @@ function requireProtectedApproval(
   }
 }
 
+function assertProposalArtifactShape(proposal: DoctrineProposalArtifact): void {
+  if (!Array.isArray(proposal.updates) || proposal.updates.length === 0) {
+    throw new Error(`Doctrine proposal artifact "${proposal.proposalId}" is malformed: updates must be a non-empty array.`);
+  }
+
+  proposal.updates.forEach((update, index) => {
+    if (typeof update !== 'object' || update === null || Array.isArray(update)) {
+      throw new Error(`Doctrine proposal artifact "${proposal.proposalId}" is malformed: updates[${index}] must be an object.`);
+    }
+
+    const normalizedTarget = typeof update.targetFile === 'string'
+      ? normalizeDoctrineTargetFile(update.targetFile)
+      : null;
+    if (!normalizedTarget) {
+      throw new Error(`Doctrine proposal artifact "${proposal.proposalId}" is malformed: updates[${index}].targetFile is invalid.`);
+    }
+
+    if (!['append', 'replaceSection', 'addSectionItem'].includes(update.operation)) {
+      throw new Error(`Doctrine proposal artifact "${proposal.proposalId}" is malformed: updates[${index}].operation is invalid.`);
+    }
+
+    if (typeof update.proposedText !== 'string' || update.proposedText.trim().length === 0) {
+      throw new Error(`Doctrine proposal artifact "${proposal.proposalId}" is malformed: updates[${index}].proposedText is required.`);
+    }
+
+    if (typeof update.rationale !== 'string' || update.rationale.trim().length === 0) {
+      throw new Error(`Doctrine proposal artifact "${proposal.proposalId}" is malformed: updates[${index}].rationale is required.`);
+    }
+
+    if (!Array.isArray(update.evidence) || update.evidence.length === 0 || update.evidence.some((item) => typeof item !== 'string' || item.trim().length === 0)) {
+      throw new Error(`Doctrine proposal artifact "${proposal.proposalId}" is malformed: updates[${index}].evidence is invalid.`);
+    }
+
+    if ((update.operation === 'replaceSection' || update.operation === 'addSectionItem')
+      && (typeof update.section !== 'string' || update.section.trim().length === 0)) {
+      throw new Error(`Doctrine proposal artifact "${proposal.proposalId}" is malformed: updates[${index}].section is required for ${update.operation}.`);
+    }
+  });
+}
+
 async function readProposal(artifactRootDir: string, proposalId: string): Promise<DoctrineProposalArtifact> {
   const paths = resolveDoctrineProposalCanonicalPaths(artifactRootDir, proposalId);
   const raw = JSON.parse(await fs.readFile(paths.jsonPath, 'utf8')) as DoctrineProposalArtifact;
   if (raw.kind !== 'doctrineUpdateProposal' || raw.proposalId !== proposalId || !Array.isArray(raw.updates)) {
     throw new Error(`Doctrine proposal artifact "${proposalId}" is malformed.`);
   }
+  assertProposalArtifactShape(raw);
   return raw;
 }
 

@@ -280,6 +280,46 @@ test('DashboardHost: inbound doctrine-proposal-action delegates selected proposa
   broadcaster.dispose();
 });
 
+test('DashboardHost: inbound doctrine openTarget action forwards selected indexes', async () => {
+  const wv = makeMockWebview();
+  const broadcaster = new IterationBroadcaster();
+  const actions: unknown[] = [];
+
+  new DashboardHost(
+    wv as unknown as import('vscode').Webview,
+    broadcaster,
+    makeSimpleRenderFn('p') as never,
+    async () => ({ workspaceName: 'snapshot-1' } as never),
+    null,
+    {
+      doctrineProposalAction: async (action) => {
+        actions.push(action);
+        return { status: 'done', message: 'Opened targets.' };
+      }
+    }
+  );
+
+  await new Promise((resolve) => setImmediate(resolve));
+  wv.posted.length = 0;
+
+  webviewSends(wv, {
+    type: 'doctrine-proposal-action',
+    action: 'openTarget',
+    proposalId: 'prop-open',
+    selectedUpdateIndexes: [1]
+  });
+
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.deepEqual(actions, [{
+    action: 'openTarget',
+    proposalId: 'prop-open',
+    selectedUpdateIndexes: [1]
+  }]);
+
+  broadcaster.dispose();
+});
+
 test('DashboardHost: inbound sidebar seed-tasks failure returns typed source error and skips snapshot refresh', async () => {
   const wv = makeMockWebview();
   const broadcaster = new IterationBroadcaster();

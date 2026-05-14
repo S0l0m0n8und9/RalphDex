@@ -33,6 +33,8 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.normalizeDoctrineTargetFile = normalizeDoctrineTargetFile;
+exports.isProtectedDoctrineTargetFile = isProtectedDoctrineTargetFile;
 exports.parseDoctrineUpdatesFromCompletionReport = parseDoctrineUpdatesFromCompletionReport;
 exports.renderDoctrineProposalMarkdown = renderDoctrineProposalMarkdown;
 exports.createDoctrineProposalArtifact = createDoctrineProposalArtifact;
@@ -60,6 +62,13 @@ function normalizeTargetFile(value) {
         return null;
     }
     return KNOWN_DOCTRINE_TARGETS.has(normalized) ? normalized : null;
+}
+function normalizeDoctrineTargetFile(value) {
+    return normalizeTargetFile(value);
+}
+function isProtectedDoctrineTargetFile(targetFile) {
+    const normalized = normalizeTargetFile(targetFile);
+    return normalized ? PROTECTED_DOCTRINE_TARGETS.has(normalized) : false;
 }
 function normalizeOptionalSection(value) {
     if (value === null || value === undefined) {

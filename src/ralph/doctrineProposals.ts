@@ -101,6 +101,15 @@ function normalizeTargetFile(value: string): string | null {
   return KNOWN_DOCTRINE_TARGETS.has(normalized) ? normalized : null;
 }
 
+export function normalizeDoctrineTargetFile(value: string): string | null {
+  return normalizeTargetFile(value);
+}
+
+export function isProtectedDoctrineTargetFile(targetFile: string): boolean {
+  const normalized = normalizeTargetFile(targetFile);
+  return normalized ? PROTECTED_DOCTRINE_TARGETS.has(normalized) : false;
+}
+
 function normalizeOptionalSection(value: unknown): string | null {
   if (value === null || value === undefined) {
     return null;
