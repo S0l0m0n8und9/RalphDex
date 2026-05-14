@@ -176,6 +176,70 @@ test('DashboardHost: inbound command triggers command-ack started then done', as
   broadcaster.dispose();
 });
 
+test('DashboardHost: inbound update-setting posts refreshed state without replacing html', async () => {
+  const wv = makeMockWebview();
+  const broadcaster = new IterationBroadcaster();
+  const harness = vscodeTestHarness();
+  harness.reset();
+  harness.setWorkspaceFolders([{ name: 'workspace-one', uri: { fsPath: 'C:/workspace-one' } }]);
+  harness.setConfiguration({ cliProvider: 'codex' });
+
+  new DashboardHost(
+    wv as unknown as import('vscode').Webview,
+    broadcaster,
+    ((_state: import('../../src/ui/uiTypes').RalphDashboardState, _nonce: string) => '<html>stable-dashboard-html</html>') as never
+  );
+
+  const htmlBeforeUpdate = wv.html;
+  wv.posted.length = 0;
+
+  webviewSends(wv, { type: 'update-setting', key: 'cliProvider', value: 'claude' });
+
+  await new Promise((resolve) => setImmediate(resolve));
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.equal(harness.state.updatedSettings.cliProvider, 'claude');
+  assert.equal(wv.html, htmlBeforeUpdate, 'setting update should not replace the full webview html');
+
+  const stateMessages = wv.posted.filter((msg): msg is { type: string; state: import('../../src/ui/uiTypes').RalphDashboardState } =>
+    typeof msg === 'object' && msg !== null && (msg as { type?: string }).type === 'state'
+  );
+  assert.ok(stateMessages.length >= 1, 'setting update should post a refreshed state message to React');
+  const providerEntry = stateMessages.at(-1)?.state.settingsSurface?.sections
+    .flatMap((section) => section.entries)
+    .find((entry) => entry.key === 'cliProvider');
+  assert.equal(providerEntry?.value, 'claude', 'React state should reflect the persisted setting immediately');
+
+  broadcaster.dispose();
+});
+
+test('DashboardHost: inbound active-tab-changed preserves selected tab across forced renders', async () => {
+  const wv = makeMockWebview();
+  const broadcaster = new IterationBroadcaster();
+  const renderedTabs: Array<string | null | undefined> = [];
+
+  const host = new DashboardHost(
+    wv as unknown as import('vscode').Webview,
+    broadcaster,
+    ((state: import('../../src/ui/uiTypes').RalphDashboardState) => {
+      renderedTabs.push(state.viewIntent?.activeTab);
+      return `<html>${state.viewIntent?.activeTab ?? 'overview'}</html>`;
+    }) as never,
+    async () => ({ workspaceName: 'snapshot-one' }) as never
+  );
+
+  await new Promise((resolve) => setImmediate(resolve));
+  wv.posted.length = 0;
+
+  webviewSends(wv, { type: 'active-tab-changed', activeTab: 'settings' });
+  await host.refreshDashboardSnapshot();
+
+  assert.equal(renderedTabs.at(-1), 'settings', 'forced renders should preserve the operator-selected settings tab');
+  assert.ok(wv.html.includes('settings'), 'remounted HTML should bootstrap the selected settings tab');
+
+  broadcaster.dispose();
+});
+
 test('DashboardHost: inbound seed-tasks triggers typed result updates and snapshot refresh', async () => {
   const wv = makeMockWebview();
   const broadcaster = new IterationBroadcaster();

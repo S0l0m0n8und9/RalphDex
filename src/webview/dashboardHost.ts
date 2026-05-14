@@ -97,6 +97,15 @@ export class DashboardHost implements vscode.Disposable {
       if (msg.type === 'open-iteration-artifact') {
         await this.openIterationArtifact(msg.artifactDir);
       }
+      if (msg.type === 'active-tab-changed') {
+        this.latestState = {
+          ...this.latestState,
+          viewIntent: {
+            ...(this.latestState.viewIntent ?? {}),
+            activeTab: msg.activeTab
+          }
+        };
+      }
       if (msg.type === 'update-setting') {
         const wsFolder = vscode.workspace.workspaceFolders?.[0];
         await this.configSync.enqueueSettingUpdate(msg.key, msg.value);
@@ -106,9 +115,10 @@ export class DashboardHost implements vscode.Disposable {
             ...this.latestState,
             settingsSurface: snapshotConfig(freshConfig, { newSettingKeys: this.newSettingKeys })
           };
-          // Do NOT fullRender() here — the user's input already shows the new
-          // value; a full HTML replace would destroy focus and cursor position.
-          // The updated latestState will be picked up by the next natural render.
+          // Do NOT fullRender() here: replacing the whole document would destroy
+          // focus/cursor position. React still needs the refreshed controlled
+          // props immediately, so push a state-only update through the bridge.
+          this.bridge.send({ type: 'state', state: this.latestState });
         }
       }
       if (msg.type === 'seed-tasks') {

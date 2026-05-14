@@ -24,6 +24,7 @@ interface DashboardShellProps {
   model: WebviewUiModel;
   onCommand: (command: string) => void;
   onSettingUpdate: (key: string, value: unknown) => void;
+  onActiveTabChange?: (activeTab: TabId) => void;
   onOpenArtifact: (artifactDir: string) => void;
   onSeedTasks: (requestText: string) => void;
   onDoctrineAction: (action: RalphDoctrineProposalActionPayload) => void;
@@ -102,6 +103,34 @@ function mapIntentTabToTabId(activeTab: string | null | undefined): TabId | null
   return null;
 }
 
+const ACTIVE_TAB_STORAGE_KEY = 'ralphdex.dashboard.activeTab';
+
+function readPersistedDashboardTab(): TabId | null {
+  try {
+    const storage = typeof window === 'undefined' ? null : window.sessionStorage;
+    return mapIntentTabToTabId(storage?.getItem(ACTIVE_TAB_STORAGE_KEY) ?? null);
+  } catch {
+    return null;
+  }
+}
+
+function persistDashboardTab(activeTab: TabId): void {
+  try {
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.setItem(ACTIVE_TAB_STORAGE_KEY, activeTab);
+    }
+  } catch {
+    // Storage can be unavailable in restricted webview/test contexts.
+  }
+}
+
+export function resolveInitialDashboardTab(
+  viewIntent: RalphDashboardState['viewIntent'],
+  readPersisted: () => TabId | null = readPersistedDashboardTab
+): TabId {
+  return mapIntentTabToTabId(viewIntent?.activeTab ?? null) ?? readPersisted() ?? 'overview';
+}
+
 function doctrineHighestPendingRisk(doctrine: DashboardDoctrineSection): 'high' | 'medium' | 'low' | 'none' {
   if (doctrine.pendingProposalCountsByRisk.high > 0) return 'high';
   if (doctrine.pendingProposalCountsByRisk.medium > 0) return 'medium';
@@ -171,8 +200,8 @@ function DoctrineOverviewStatusCard({ doctrine, onOpenDoctrineTab }: { doctrine:
   );
 }
 
-export function DashboardShell({ state, model, onCommand, onSettingUpdate, onOpenArtifact, onSeedTasks, onDoctrineAction, lastDoctrineActionResult }: DashboardShellProps) {
-  const [activeTab, setActiveTab] = useState<TabId>(() => mapIntentTabToTabId(state.viewIntent?.activeTab ?? null) ?? 'overview');
+export function DashboardShell({ state, model, onCommand, onSettingUpdate, onActiveTabChange, onOpenArtifact, onSeedTasks, onDoctrineAction, lastDoctrineActionResult }: DashboardShellProps) {
+  const [activeTab, setActiveTab] = useState<TabId>(() => resolveInitialDashboardTab(state.viewIntent));
   const snapshot = state.dashboardSnapshot;
   const diagnosis: DiagnosisSection | null = snapshot?.diagnosis ?? null;
   const deadLetter = snapshot?.deadLetter ?? { entries: [] };
@@ -184,8 +213,15 @@ export function DashboardShell({ state, model, onCommand, onSettingUpdate, onOpe
     const intentTab = mapIntentTabToTabId(state.viewIntent?.activeTab ?? null);
     if (intentTab && intentTab !== activeTab) {
       setActiveTab(intentTab);
+      persistDashboardTab(intentTab);
     }
   }, [activeTab, state.viewIntent?.activeTab]);
+
+  const selectTab = (tab: TabId) => {
+    setActiveTab(tab);
+    persistDashboardTab(tab);
+    onActiveTabChange?.(tab);
+  };
 
   const onStartLoop    = () => onCommand('ralphCodex.runRalphLoop');
   const onStopLoop     = () => onCommand('ralphCodex.stopLoop');
@@ -198,7 +234,7 @@ export function DashboardShell({ state, model, onCommand, onSettingUpdate, onOpe
           <HeroNow state={state} model={model}
             onStartLoop={onStartLoop} onStopLoop={onStopLoop} onRunIteration={onRunIteration} />
           {pipeline && <PipelineRunStrip pipeline={pipeline} onCommand={onCommand} />}
-          <DoctrineOverviewStatusCard doctrine={doctrine} onOpenDoctrineTab={() => setActiveTab('doctrine')} />
+          <DoctrineOverviewStatusCard doctrine={doctrine} onOpenDoctrineTab={() => selectTab('doctrine')} />
           {diagnosis && <FailurePanel diagnosis={diagnosis} onOpenArtifact={onOpenArtifact} onCommand={onCommand} />}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 14 }}>
             <AgentLanes lanes={state.agentLanes} />
@@ -221,7 +257,7 @@ export function DashboardShell({ state, model, onCommand, onSettingUpdate, onOpe
           <FirstRunReadiness checklist={checklist} />
           {showDoctrineDiagnostics && (
             <>
-              <DoctrineOverviewStatusCard doctrine={doctrine} onOpenDoctrineTab={() => setActiveTab('doctrine')} />
+              <DoctrineOverviewStatusCard doctrine={doctrine} onOpenDoctrineTab={() => selectTab('doctrine')} />
               <DoctrineCard doctrine={doctrine} onCommand={onCommand} />
             </>
           )}
@@ -297,7 +333,7 @@ export function DashboardShell({ state, model, onCommand, onSettingUpdate, onOpe
           {TABS.map(t => {
             const active = activeTab === t.id;
             return (
-              <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
+              <button key={t.id} onClick={() => selectTab(t.id)} style={{
                 display: 'flex', alignItems: 'center', gap: 10,
                 padding: '8px 12px', borderRadius: 5, fontFamily: 'inherit', fontSize: 12,
                 background: active ? 'color-mix(in srgb, var(--accent) 14%, transparent)' : 'transparent',
@@ -322,7 +358,7 @@ export function DashboardShell({ state, model, onCommand, onSettingUpdate, onOpe
             <QuickAction label="Run one iteration" shortcut="⌘⇧R" onClick={() => onCommand('ralphCodex.runRalphIteration')} />
             <QuickAction label="Start loop"        shortcut="⌘⇧L" onClick={() => onCommand('ralphCodex.runRalphLoop')} />
             <QuickAction label="Stop loop"         shortcut="⌘⇧S" onClick={() => onCommand('ralphCodex.stopLoop')} />
-            <QuickAction label="Seed from epic"    shortcut=""     onClick={() => setActiveTab('tasks')} />
+            <QuickAction label="Seed from epic"    shortcut=""     onClick={() => selectTab('tasks')} />
             <QuickAction label="Prepare IDE Prompt" shortcut=""   onClick={() => onCommand('ralphCodex.generatePrompt')} />
             <QuickAction label="Show Status"        shortcut=""   onClick={() => onCommand('ralphCodex.showRalphStatus')} />
             <QuickAction label="Open Tasks"         shortcut=""   onClick={() => onCommand('ralphCodex.showTasks')} />

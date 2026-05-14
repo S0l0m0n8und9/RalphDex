@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { DashboardShell } from '../../src/webview-ui/components/DashboardShell';
+import { DashboardShell, resolveInitialDashboardTab } from '../../src/webview-ui/components/DashboardShell';
 import type { RalphDashboardState, RalphWebviewMessage } from '../../src/ui/uiTypes';
 import type { WebviewUiModel } from '../../src/webview-ui/viewModel';
 import type { DashboardDoctrineSection } from '../../src/webview/dashboardSnapshot';
@@ -175,6 +175,14 @@ test('Doctrine tab renders full doctrine card and doctrine proposal review panel
   const html = renderDashboard(state);
   assert.ok(html.includes('data-testid="doctrine-card"'));
   assert.ok(html.includes('data-testid="doctrine-proposal-review"'));
+});
+
+test('initial dashboard tab prefers explicit view intent over persisted tab', () => {
+  assert.equal(resolveInitialDashboardTab({ activeTab: 'settings' }, () => 'tasks'), 'settings');
+});
+
+test('initial dashboard tab falls back to persisted tab when no explicit view intent exists', () => {
+  assert.equal(resolveInitialDashboardTab(null, () => 'settings'), 'settings');
 });
 
 test('Diagnostics omits doctrine surfaces when doctrine is healthy with no proposals and no action errors', () => {

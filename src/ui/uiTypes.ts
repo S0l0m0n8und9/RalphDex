@@ -200,6 +200,7 @@ export type RalphWebviewMessage =
 export type RalphWebviewCommand =
   | { type: 'command'; command: string }
   | { type: 'expand-task'; taskId: string }
+  | { type: 'active-tab-changed'; activeTab: NonNullable<RalphDashboardViewIntent['activeTab']> }
   | { type: 'update-setting'; key: string; value: unknown }
   | { type: 'open-iteration-artifact'; artifactDir: string }
   | { type: 'seed-tasks'; requestText: string; source: 'panel' | 'sidebar' }

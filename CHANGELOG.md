@@ -2,6 +2,12 @@
 
 All notable changes to Ralphdex are documented here.
 
+## [1.1.6] — 2026-05-14
+
+### Fixed
+
+- Fixed the settings update bug so dashboard-driven settings changes persist and refresh correctly in the UI.
+
 ## [1.1.5] — 2026-05-14
 
 ### Changed

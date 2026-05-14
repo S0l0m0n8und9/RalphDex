@@ -12,6 +12,37 @@ interface AppProps {
   initialState: RalphDashboardState;
 }
 
+export function applyOptimisticSettingUpdate(
+  state: RalphDashboardState,
+  key: string,
+  value: unknown
+): RalphDashboardState {
+  if (!state.settingsSurface) {
+    return state;
+  }
+
+  let changed = false;
+  const sections = state.settingsSurface.sections.map((section) => ({
+    ...section,
+    entries: section.entries.map((entry) => {
+      if (entry.key !== key) {
+        return entry;
+      }
+      changed = true;
+      return { ...entry, value };
+    })
+  }));
+
+  if (!changed) {
+    return state;
+  }
+
+  return {
+    ...state,
+    settingsSurface: { sections }
+  };
+}
+
 export function App({ mode, initialState }: AppProps) {
   const [state, setState] = useState(initialState);
   const [lastDoctrineActionResult, setLastDoctrineActionResult] = useState<Extract<RalphWebviewMessage, { type: 'doctrine-proposal-action-result' }> | null>(null);
@@ -35,7 +66,11 @@ export function App({ mode, initialState }: AppProps) {
     vscodeApi().postMessage({ type: 'command', command });
   };
   const sendSettingUpdate = (key: string, value: unknown) => {
+    setState((current) => applyOptimisticSettingUpdate(current, key, value));
     vscodeApi().postMessage({ type: 'update-setting', key, value });
+  };
+  const sendActiveTabChange = (activeTab: 'overview' | 'tasks' | 'diagnostics' | 'doctrine' | 'settings') => {
+    vscodeApi().postMessage({ type: 'active-tab-changed', activeTab });
   };
   const sendOpenArtifact = (artifactDir: string) => {
     vscodeApi().postMessage({ type: 'open-iteration-artifact', artifactDir });
@@ -60,6 +95,7 @@ export function App({ mode, initialState }: AppProps) {
     <DashboardShell
       state={state} model={model}
       onCommand={sendCommand} onSettingUpdate={sendSettingUpdate}
+      onActiveTabChange={sendActiveTabChange}
       onOpenArtifact={sendOpenArtifact} onSeedTasks={sendSeedTasks}
       onDoctrineAction={sendDoctrineAction}
       lastDoctrineActionResult={lastDoctrineActionResult}
