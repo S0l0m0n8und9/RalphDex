@@ -2,6 +2,12 @@
 
 All notable changes to Ralphdex are documented here.
 
+## [1.1.5] — 2026-05-14
+
+### Changed
+
+- Upgraded the Ralphdex UI with the latest React webview dashboard/sidebar improvements, including refined information architecture and diagnostics/doctrine visibility behavior.
+
 ## [1.1.2] — 2026-04-27
 
 ### Changed

@@ -2,7 +2,7 @@
   "name": "ralphdex",
   "displayName": "Ralphdex",
   "description": "VS Code extension for file-backed Ralphdex prompts, IDE handoff, and CLI exec loops.",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "publisher": "s0l0m0n8und9",
   "icon": "media/ralph-icon.png",
   "homepage": "https://github.com/S0l0m0n8und9/RalphDex#readme",
@@ -400,7 +400,7 @@
             "approvalMode": "allow-tools-only",
             "maxAutopilotContinues": 200
           },
-          "description": "Copilot CLI + BYOK provider settings (used by both copilot-byok and copilot-foundry). Auth credentials are inherited from the operator process environment \u2014 RalphDex never reads or stores API key values.",
+          "description": "Copilot CLI + BYOK provider settings (used by both copilot-byok and copilot-foundry). Auth credentials are inherited from the operator process environment — RalphDex never reads or stores API key values.",
           "properties": {
             "commandPath": {
               "type": "string",
