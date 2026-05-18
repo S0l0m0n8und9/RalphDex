@@ -386,3 +386,49 @@ test('generatePrdDraft failure falls back to PRD-only fallback draft', async () 
   assert.equal(state.draft.tasks.length, 0);
   host.dispose();
 });
+
+test('generatePrdDraft provider failure yields a readiness-shaped fallback draft without failed operation state', async () => {
+  const webview = makeMockWebview();
+
+  const host = new PrdCreationWizardHost({
+    webview: webview as unknown as import('vscode').Webview,
+    initialMode: 'new',
+    initialPaths: {
+      prdPath: path.join('workspace', '.ralph', 'prd.md'),
+      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
+    },
+    generatePrdDraft: async () => {
+      throw new ProjectGenerationError('Provider rate limit: resets later.');
+    },
+    generateTasks: async (input) => makeTaskGenerationResult(input.prdText),
+    writeDraft: async () => ({ filesWritten: [] })
+  });
+
+  webviewSends(webview, { type: 'update-field', field: 'objective', value: 'Build a file-backed markdown notes app for local use.' });
+  webviewSends(webview, { type: 'update-field', field: 'techStack', value: 'TypeScript and local filesystem storage.' });
+  webviewSends(webview, { type: 'update-field', field: 'outOfScope', value: 'Cloud sync and team collaboration.' });
+  webviewSends(webview, { type: 'generate-prd-draft' });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  const state = lastStateMessage(webview).state as {
+    generationState?: string;
+    operationStatus?: string;
+    operationMessage?: string;
+    draft: PrdWizardDraftBundle;
+    prdReviewFindings?: Array<{ kind: string; message: string }>;
+  };
+  assert.equal(state.generationState, 'fallback');
+  assert.equal(state.operationStatus, 'succeeded');
+  assert.match(state.operationMessage ?? '', /Fallback draft generated/i);
+  assert.match(state.draft.prdText, /^# Product \/ project brief/m);
+  assert.match(state.draft.prdText, /## Goals/);
+  assert.match(state.draft.prdText, /## Scope/);
+  assert.match(state.draft.prdText, /## Non-Goals/);
+  assert.match(state.draft.prdText, /## Success Criteria/);
+  assert.match(state.draft.prdText, /## Initial Work Area/);
+  assert.equal(
+    state.prdReviewFindings?.some((finding) => finding.kind === 'blocker'),
+    false
+  );
+  host.dispose();
+});

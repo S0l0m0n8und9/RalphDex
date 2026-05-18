@@ -2,6 +2,14 @@
 
 All notable changes to Ralphdex are documented here.
 
+## [1.1.7] — 2026-05-15
+
+### Changed
+
+- Added `reconcileDashboardTabIntent` to centralize dashboard tab-intent reconciliation and improve active-tab state transitions.
+- Updated the dashboard shell flow to apply intent reconciliation with previous-intent tracking for more stable tab persistence behavior.
+- Expanded coverage for tab-intent reconciliation behavior across the updated dashboard state transitions.
+
 ## [1.1.6] — 2026-05-14
 
 ### Fixed

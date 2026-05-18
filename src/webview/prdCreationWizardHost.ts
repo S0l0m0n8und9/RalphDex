@@ -355,24 +355,42 @@ function createFallbackDraft(
   }
 
   const constraintSummary = buildConstraintSummary(techStack, existingConventions);
+  const objectiveText = objective.trim() || 'Create a bounded, locally verifiable software project from the captured operator objective.';
+  const nonGoalText = outOfScope.trim() || 'Do not expand beyond the smallest useful first slice until the initial workflow is validated.';
   const lines = [
     '# Product / project brief',
     '',
-    `## Project Type`,
+    '## Overview',
     '',
-    getProjectTypeMeta(projectType).title,
+    `${objectiveText} This fallback draft was generated locally because the configured provider could not return a draft.`,
     '',
-    '## Objective',
+    '## Goals',
     '',
-    objective.trim() || 'Describe the project objective here.',
+    '- Define the smallest useful first slice.',
+    '- Preserve the captured project type, constraints, and repository conventions.',
+    '- Keep implementation tasks independently verifiable.',
     '',
-    '## Constraints',
+    '## Scope',
     '',
-    constraintSummary || 'None recorded yet.',
+    `Project type: ${getProjectTypeMeta(projectType).title}. ${constraintSummary || 'Use the current repository conventions and keep the initial implementation local and testable.'}`,
     '',
     '## Non-Goals',
     '',
-    outOfScope.trim() || 'None recorded yet.'
+    nonGoalText,
+    '',
+    '## Success Criteria',
+    '',
+    '- A reviewer can understand the intended first slice from this PRD without chat context.',
+    '- Generated tasks can be validated with focused local commands or explicit manual checks.',
+    '- Acceptance criteria identify observable behavior rather than broad implementation themes.',
+    '',
+    '## Initial Work Area',
+    '',
+    'Turn the captured objective into one small runnable or inspectable workflow. Start with the minimum files and behavior needed to demonstrate the core outcome, then validate that workflow before adding adjacent capabilities.',
+    '',
+    '## Validation',
+    '',
+    'Validate the first slice with the repository standard test, build, or review command before marking generated tasks complete.'
   ];
 
   return {
@@ -1040,8 +1058,8 @@ export class PrdCreationWizardHost implements vscode.Disposable {
         taskGenerationMessage: 'Fallback PRD generated. Review and generate tasks after readiness passes.',
         generationState: 'fallback',
         generationMessage: `Generation fell back to a bootstrap draft. ${reason}`,
-        operationStatus: 'failed',
-        operationMessage: `Draft generation failed. Falling back to a bootstrap draft. ${reason}`,
+        operationStatus: 'succeeded',
+        operationMessage: `Fallback draft generated after provider failure. ${reason}`,
         warning: null,
         error: null,
         writeSummary: null
