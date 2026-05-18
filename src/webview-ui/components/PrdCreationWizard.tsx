@@ -1,4 +1,5 @@
 import type { PrdWizardStep, WizardInboundMessage, WizardState } from '../../webview/prdCreationWizardTypes';
+import { StatusPill } from './primitives/Card';
 
 const projectTypeOptions = [
   { value: 'web-app', title: 'Web App', description: 'Browser-based product with routed screens and UI flows.' },
@@ -104,19 +105,21 @@ export function PrdCreationWizard({ state, busy, onMessage }: PrdCreationWizardP
   const taskCount = state.draft?.tasks.length ?? 0;
   const prdBlockers = hasPrdBlockers(state);
   const confirmEnabled = canConfirmWrite(state, busy);
-  const activeProjectType = projectTypeOptions.find((option) => option.value === state.projectType) ?? projectTypeOptions[0];
 
   const setStep = (step: PrdWizardStep) => onMessage({ type: 'set-step', step });
 
   return (
     <div className="prd-wizard">
       <header className="prd-header">
-        <h1>PRD Creation Wizard</h1>
-        <p>
-          {state.mode === 'regenerate'
-            ? 'Resume from the generate step with the current PRD preloaded, refine the draft, then write the updated files.'
-            : 'Capture project intent, preview the PRD, review the task backlog, and confirm the files Ralph will persist.'}
-        </p>
+        <div>
+          <h1>PRD Creation Wizard</h1>
+          <p>{state.mode === 'regenerate' ? 'Regenerate .ralph/prd.md and tasks.json' : 'Create .ralph/prd.md and tasks.json'}</p>
+        </div>
+        <div className="prd-status-strip" aria-label="Wizard status">
+          <StatusPill kind={state.mode === 'regenerate' ? 'accent' : 'neutral'}>{state.mode}</StatusPill>
+          <StatusPill kind={state.generationState === 'fallback' ? 'warn' : state.generationState === 'generated' ? 'ok' : 'neutral'}>draft: {state.generationState}</StatusPill>
+          <StatusPill kind={state.tasksStale ? 'warn' : taskCount > 0 ? 'ok' : 'neutral'}>tasks: {taskCount}{state.tasksStale ? ' stale' : ''}</StatusPill>
+        </div>
         {state.warning ? <div className="prd-warning">{state.warning}</div> : null}
         {state.error ? <div className="prd-error">{state.error}</div> : null}
       </header>
@@ -276,14 +279,6 @@ export function PrdCreationWizard({ state, busy, onMessage }: PrdCreationWizardP
           ) : null}
         </main>
 
-        <aside className="prd-side">
-          <StepSummary step={1} title="Project Shape" body={state.objective.trim() || 'Objective not captured yet.'} meta={activeProjectType.title} onClick={setStep} />
-          <StepSummary step={2} title="Draft Generation" body={state.generationMessage || 'Generate a provider-backed draft or fallback bootstrap.'} meta={state.generationState} onClick={setStep} />
-          <StepSummary step={3} title="PRD Review" body={editableDraft ? 'Draft text is available for editing.' : 'Waiting for draft text.'} meta={state.comparisonSummary || 'No comparison yet'} onClick={setStep} />
-          <StepSummary step={4} title="Generate Tasks" body={prdBlockers ? 'PRD blockers must be resolved before task generation.' : (state.taskGenerationMessage || 'Generate tasks from approved PRD.')} meta={state.taskGenerationStatus} onClick={setStep} />
-          <StepSummary step={5} title="Task Review" body={taskCount > 0 ? `Review ${taskCount} task card(s).` : 'Waiting for generated tasks.'} meta={state.tasksStale ? 'Tasks are stale until regenerated.' : 'Task draft current.'} onClick={setStep} />
-          <StepSummary step={6} title="Confirm Write" body={state.draft ? 'Ready to persist prd.md and tasks.json.' : 'Generate a draft before writing files.'} meta={state.writeSummary ? 'Files written.' : 'No write yet'} onClick={setStep} />
-        </aside>
       </div>
     </div>
   );
@@ -360,15 +355,5 @@ function TaskList({ state, onMessage }: { state: WizardState; onMessage: (messag
         </article>
       ))}
     </div>
-  );
-}
-
-function StepSummary({ step, title, body, meta, onClick }: { step: PrdWizardStep; title: string; body: string; meta: string; onClick: (step: PrdWizardStep) => void }) {
-  return (
-    <button className="prd-summary" data-action="set-step" data-step={step} onClick={() => onClick(step)} type="button">
-      <span>{step}. {title}</span>
-      <p>{body}</p>
-      <small>{meta}</small>
-    </button>
   );
 }
