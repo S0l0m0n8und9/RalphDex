@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 import test from 'node:test';
 import {
   PROCESS_RUN_STDERR_MAX_BYTES,
@@ -72,6 +74,43 @@ test('runProcess completes without timeout when process finishes before deadline
     assert.equal(result.code, 0);
     assert.match(result.stdout, /fast/);
   } finally {
+    setProcessRunnerOverride(null);
+  }
+});
+
+test('runProcess preserves spaced Windows shell arguments as single argv values', async () => {
+  if (process.platform !== 'win32') {
+    return;
+  }
+
+  setProcessRunnerOverride(null);
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-run-process-shell-'));
+  const scriptPath = path.join(root, 'argv.js');
+  const commandPath = path.join(root, 'argdump.cmd');
+  const spacedPath = 'C:\\Users\\ben.jones\\OneDrive - FUSION5\\3.Knowledge\\Dual-write\\plugins_recovered\\decompiled';
+  await fs.writeFile(scriptPath, 'process.stdout.write(JSON.stringify(process.argv.slice(2)));', 'utf8');
+  await fs.writeFile(commandPath, '@ECHO off\r\nnode "%~dp0\\argv.js" %*\r\n', 'utf8');
+
+  try {
+    const result = await runProcess(commandPath, [
+      'exec',
+      '--config', 'approval_policy="never"',
+      '--cd', spacedPath,
+      '--output-last-message', path.join(spacedPath, '.ralph', 'runs', 'last message.txt'),
+      '-'
+    ], {
+      cwd: root,
+      shell: true,
+      stdinText: 'prompt'
+    });
+
+    assert.equal(result.code, 0);
+    const argv = JSON.parse(result.stdout) as string[];
+    assert.equal(argv[argv.indexOf('--cd') + 1], spacedPath);
+    assert.equal(argv[argv.indexOf('--config') + 1], 'approval_policy="never"');
+    assert.equal(argv.at(-1), '-');
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
     setProcessRunnerOverride(null);
   }
 });

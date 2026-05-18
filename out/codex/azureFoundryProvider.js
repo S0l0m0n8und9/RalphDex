@@ -106,6 +106,22 @@ class AzureFoundryProvider {
         const stdinHash = (0, integrity_1.hashText)(request.prompt);
         // Collect warnings before making the request so they appear on all return paths.
         const warnings = [];
+        if (!this.options.endpointUrl.trim()) {
+            return {
+                strategy: 'cliExec',
+                success: false,
+                message: 'cliProvider is set to azure-foundry but ralphCodex.azureFoundry.endpointUrl is not configured.',
+                warnings,
+                exitCode: 1,
+                stdout: '',
+                stderr: 'ralphCodex.azureFoundry.endpointUrl is not configured.',
+                args: [],
+                stdinHash,
+                transcriptPath: request.transcriptPath,
+                lastMessagePath: request.lastMessagePath,
+                lastMessage: ''
+            };
+        }
         // Split the prompt at STATIC_PREFIX_BOUNDARY so the stable prefix can be
         // sent with a cache_control marker, enabling prompt caching on Anthropic-
         // compatible Azure deployments. When promptCaching is 'off', the marker is

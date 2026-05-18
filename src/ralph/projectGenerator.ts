@@ -4,7 +4,7 @@ import { getCliCommandPath } from '../config/providers';
 import { RalphCodexConfig } from '../config/types';
 import { createCliProvider } from '../codex/providerFactory';
 import type { CodexExecRequest } from '../codex/types';
-import { runProcess } from '../services/processRunner';
+import { ProcessLaunchError, runProcess } from '../services/processRunner';
 import {
   analyzePrdReadiness,
   persistTaskGenerationPlanArtifact,
@@ -264,23 +264,61 @@ export async function runPromptThroughConfiguredProvider(
 ): Promise<ProviderPromptExecution> {
   const { provider, commandPath, request } = buildProviderPromptRequest(prompt, config, cwd, lastMessagePrefix);
 
+  if (provider.executeDirectly) {
+    const directResult = await provider.executeDirectly(request);
+    const directMessage = directResult.lastMessage ||
+      (directResult.stdout
+        ? await provider.extractResponseText(directResult.stdout, directResult.stderr, request.lastMessagePath)
+        : '');
+
+    if (!directResult.success || directResult.exitCode !== 0) {
+      throw new ProjectGenerationError(directResult.message || provider.summarizeResult({
+        exitCode: directResult.exitCode,
+        stderr: directResult.stderr,
+        lastMessage: directMessage
+      }));
+    }
+
+    return {
+      responseText: directMessage,
+      providerId: provider.id,
+      commandPath,
+      launchArgs: directResult.args,
+      launchCwd: request.executionRoot,
+      launchShell: false
+    };
+  }
+
   const launchSpec = provider.prepareLaunchSpec
     ? await provider.prepareLaunchSpec(request, true)
     : provider.buildLaunchSpec(request, true);
 
-  const result = await runProcess(commandPath, launchSpec.args, {
-    cwd: launchSpec.cwd,
-    stdinText: launchSpec.stdinText,
-    shell: launchSpec.shell,
-    env: launchSpec.env,
-    timeoutMs: request.timeoutMs
-  });
+  let result;
+  try {
+    result = await runProcess(commandPath, launchSpec.args, {
+      cwd: launchSpec.cwd,
+      stdinText: launchSpec.stdinText,
+      shell: launchSpec.shell,
+      env: launchSpec.env,
+      timeoutMs: request.timeoutMs
+    });
+  } catch (error) {
+    if (error instanceof ProcessLaunchError) {
+      throw new ProjectGenerationError(provider.describeLaunchError(commandPath, error));
+    }
 
-  if (result.code !== 0) {
-    throw new ProjectGenerationError(`CLI exited with code ${result.code}.`);
+    throw error;
   }
 
   const responseText = await provider.extractResponseText(result.stdout, result.stderr, request.lastMessagePath);
+
+  if (result.code !== 0) {
+    throw new ProjectGenerationError(provider.summarizeResult({
+      exitCode: result.code,
+      stderr: result.stderr,
+      lastMessage: responseText
+    }));
+  }
 
   return {
     responseText,

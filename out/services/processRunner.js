@@ -176,9 +176,10 @@ async function runProcess(command, args, options) {
     return new Promise((resolve, reject) => {
         maybeWarnSensitiveEnvPassThrough(command, options.env);
         const env = buildProcessEnv(options.env);
-        const child = (0, child_process_1.spawn)(command, args, {
+        const launch = buildProcessLaunch(command, args, options);
+        const child = (0, child_process_1.spawn)(launch.command, launch.args, {
             cwd: options.cwd,
-            shell: options.shell ?? false,
+            shell: launch.shell,
             env
         });
         const stdoutBuffer = new RollingUtf8Buffer(exports.PROCESS_RUN_STDOUT_MAX_BYTES);
@@ -260,5 +261,24 @@ async function runProcess(command, args, options) {
             child.stdin.end();
         }
     });
+}
+function buildProcessLaunch(command, args, options) {
+    const shell = options.shell ?? false;
+    if (process.platform !== 'win32' || !shell) {
+        return { command, args, shell };
+    }
+    return {
+        command: buildWindowsShellCommand(command, args),
+        args: [],
+        shell: true
+    };
+}
+function buildWindowsShellCommand(command, args) {
+    return [quoteWindowsShellArg(command), ...args.map(quoteWindowsShellArg)].join(' ');
+}
+function quoteWindowsShellArg(value) {
+    return `"${value
+        .replace(/"/g, '\\"')
+        .replace(/%/g, '%%')}"`;
 }
 //# sourceMappingURL=processRunner.js.map

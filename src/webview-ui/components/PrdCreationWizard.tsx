@@ -18,6 +18,8 @@ const stepLabels: Record<PrdWizardStep, string> = {
   6: 'Confirm Write'
 };
 
+export const PRD_WIZARD_STEPS: PrdWizardStep[] = [1, 2, 3, 4, 5, 6];
+
 interface PrdCreationWizardProps {
   state: WizardState;
   busy: boolean;
@@ -126,7 +128,7 @@ export function PrdCreationWizard({ state, busy, onMessage }: PrdCreationWizardP
 
       <div className="prd-frame">
         <nav className="prd-step-nav" aria-label="PRD wizard steps">
-          {(Object.keys(stepLabels) as unknown as PrdWizardStep[]).map((step) => (
+          {PRD_WIZARD_STEPS.map((step) => (
             <button
               key={step}
               className={`prd-step-button ${state.step === step ? 'active' : ''}`}

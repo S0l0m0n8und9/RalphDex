@@ -227,9 +227,10 @@ export async function runProcess(command: string, args: string[], options: Proce
   return new Promise((resolve, reject) => {
     maybeWarnSensitiveEnvPassThrough(command, options.env);
     const env = buildProcessEnv(options.env);
-    const child = spawn(command, args, {
+    const launch = buildProcessLaunch(command, args, options);
+    const child = spawn(launch.command, launch.args, {
       cwd: options.cwd,
-      shell: options.shell ?? false,
+      shell: launch.shell,
       env
     });
 
@@ -323,4 +324,31 @@ export async function runProcess(command: string, args: string[], options: Proce
       child.stdin.end();
     }
   });
+}
+
+function buildProcessLaunch(
+  command: string,
+  args: string[],
+  options: ProcessRunOptions
+): { command: string; args: string[]; shell: boolean } {
+  const shell = options.shell ?? false;
+  if (process.platform !== 'win32' || !shell) {
+    return { command, args, shell };
+  }
+
+  return {
+    command: buildWindowsShellCommand(command, args),
+    args: [],
+    shell: true
+  };
+}
+
+function buildWindowsShellCommand(command: string, args: string[]): string {
+  return [quoteWindowsShellArg(command), ...args.map(quoteWindowsShellArg)].join(' ');
+}
+
+function quoteWindowsShellArg(value: string): string {
+  return `"${value
+    .replace(/"/g, '\\"')
+    .replace(/%/g, '%%')}"`;
 }

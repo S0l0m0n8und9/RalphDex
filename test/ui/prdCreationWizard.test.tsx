@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { PrdCreationWizard } from '../../src/webview-ui/components/PrdCreationWizard';
+import { applyOptimisticWizardMessage } from '../../src/webview-ui/App';
+import { PrdCreationWizard, PRD_WIZARD_STEPS } from '../../src/webview-ui/components/PrdCreationWizard';
 import type { WizardState } from '../../src/webview/prdCreationWizardTypes';
 
 function makeState(overrides: Partial<WizardState> = {}): WizardState {
@@ -170,4 +171,15 @@ test('PRD wizard React view disables confirm write for empty or invalid task dra
   assert.match(noTasks, /data-action="confirm-write"[^>]*disabled/);
   assert.match(invalidTask, /data-action="confirm-write"[^>]*disabled/);
   assert.ok(invalidTask.includes('T1 needs a title.'));
+});
+
+test('PRD wizard applies step navigation optimistically before host state returns', () => {
+  const next = applyOptimisticWizardMessage(makeState({ step: 1 }), { type: 'set-step', step: 4 });
+
+  assert.equal(next.step, 4);
+});
+
+test('PRD wizard internal navigation uses numeric step values', () => {
+  assert.deepEqual(PRD_WIZARD_STEPS, [1, 2, 3, 4, 5, 6]);
+  assert.ok(PRD_WIZARD_STEPS.every((step) => typeof step === 'number'));
 });

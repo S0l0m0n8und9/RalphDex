@@ -44,6 +44,16 @@ export function applyOptimisticSettingUpdate(
   };
 }
 
+export function applyOptimisticWizardMessage(
+  state: WizardState,
+  message: WizardInboundMessage
+): WizardState {
+  if (message.type === 'set-step') {
+    return { ...state, step: message.step, warning: null, error: null };
+  }
+  return state;
+}
+
 export function App({ mode, initialState }: AppProps) {
   const [state, setState] = useState<RalphDashboardState | undefined>(mode === 'prd-wizard' ? undefined : initialState);
   const [wizardState, setWizardState] = useState<WizardState | undefined>(mode === 'prd-wizard' ? initialState : undefined);
@@ -98,6 +108,7 @@ export function App({ mode, initialState }: AppProps) {
 
   if (mode === 'prd-wizard') {
     const sendWizardMessage = (message: WizardInboundMessage) => {
+      setWizardState((current) => current ? applyOptimisticWizardMessage(current, message) : current);
       (vscodeApi() as { postMessage(message: unknown): void }).postMessage(message);
     };
     return wizardState ? (

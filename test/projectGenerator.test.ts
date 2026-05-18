@@ -7,9 +7,11 @@ import {
   generatePrdDraft,
   generateTasksFromPrd,
   parseTaskGenerationResponse,
-  ProjectGenerationError
+  ProjectGenerationError,
+  runPromptThroughConfiguredProvider
 } from '../src/ralph/projectGenerator';
 import { setProcessRunnerOverride } from '../src/services/processRunner';
+import { setHttpsClientOverride } from '../src/services/httpsClient';
 import { DEFAULT_CONFIG } from '../src/config/defaults';
 import { hashText } from '../src/ralph/integrity';
 
@@ -93,6 +95,121 @@ test('generatePrdDraft uses documentation guardrails for documentation project t
     assert.match(capturedStdin, /Do not propose code changes/i);
   } finally {
     setProcessRunnerOverride(null);
+  }
+});
+
+test('runPromptThroughConfiguredProvider uses direct execution when the configured provider supports it', async () => {
+  process.env.RALPH_TEST_AZURE_KEY = 'test-key';
+  let spawned = false;
+  let requestedUrl = '';
+  let requestedBody = '';
+
+  setProcessRunnerOverride(() => {
+    spawned = true;
+    throw new Error('direct-capable provider should not spawn a CLI process');
+  });
+  setHttpsClientOverride(async (opts) => {
+    requestedUrl = opts.url;
+    requestedBody = opts.body;
+    return {
+      statusCode: 200,
+      responseBody: JSON.stringify({ choices: [{ message: { content: '# Draft PRD\n\n## Overview\nDirect response.' } }] })
+    };
+  });
+
+  try {
+    const result = await runPromptThroughConfiguredProvider(
+      'Write a PRD.',
+      {
+        ...DEFAULT_CONFIG,
+        cliProvider: 'azure-foundry',
+        model: 'gpt-5.4',
+        azureFoundry: {
+          ...DEFAULT_CONFIG.azureFoundry,
+          endpointUrl: 'https://example.openai.azure.com/openai/deployments/gpt-5.4/chat/completions',
+          modelDeployment: 'gpt-5.4',
+          auth: {
+            ...DEFAULT_CONFIG.azureFoundry.auth,
+            mode: 'env-api-key',
+            apiKeyEnvVar: 'RALPH_TEST_AZURE_KEY'
+          }
+        }
+      },
+      os.tmpdir(),
+      'ralph-prd-test'
+    );
+
+    assert.equal(spawned, false);
+    assert.equal(result.providerId, 'azure-foundry');
+    assert.equal(result.responseText, '# Draft PRD\n\n## Overview\nDirect response.');
+    assert.equal(result.launchShell, false);
+    assert.deepEqual(result.launchArgs, []);
+    assert.match(requestedUrl, /gpt-5\.4/);
+    assert.match(requestedBody, /Write a PRD/);
+  } finally {
+    delete process.env.RALPH_TEST_AZURE_KEY;
+    setProcessRunnerOverride(null);
+    setHttpsClientOverride(null);
+  }
+});
+
+test('generatePrdDraft surfaces provider failure details instead of a generic exit code', async () => {
+  setProcessRunnerOverride(() => ({
+    code: 2,
+    stdout: '',
+    stderr: 'warning: startup detail\nerror: unknown option --broken'
+  }));
+
+  try {
+    await assert.rejects(
+      () => generatePrdDraft(
+        { objective: 'Build a deterministic workflow.', projectType: 'service' },
+        { ...DEFAULT_CONFIG, cliProvider: 'claude' },
+        os.tmpdir()
+      ),
+      (err: unknown) => {
+        assert.ok(err instanceof ProjectGenerationError);
+        assert.match(err.message, /claude exited with code 2: unknown option --broken/);
+        assert.doesNotMatch(err.message, /^CLI exited with code 2\.$/);
+        return true;
+      }
+    );
+  } finally {
+    setProcessRunnerOverride(null);
+  }
+});
+
+test('generatePrdDraft surfaces azure-foundry endpoint configuration errors before execution', async () => {
+  setProcessRunnerOverride(() => {
+    throw new Error('misconfigured azure-foundry provider should not spawn a CLI process');
+  });
+  setHttpsClientOverride(() => {
+    throw new Error('misconfigured azure-foundry provider should not make an HTTPS request');
+  });
+
+  try {
+    await assert.rejects(
+      () => generatePrdDraft(
+        { objective: 'Build a deterministic workflow.', projectType: 'service' },
+        {
+          ...DEFAULT_CONFIG,
+          cliProvider: 'azure-foundry',
+          azureFoundry: {
+            ...DEFAULT_CONFIG.azureFoundry,
+            endpointUrl: ''
+          }
+        },
+        os.tmpdir()
+      ),
+      (err: unknown) => {
+        assert.ok(err instanceof ProjectGenerationError);
+        assert.match(err.message, /ralphCodex\.azureFoundry\.endpointUrl is not configured/);
+        return true;
+      }
+    );
+  } finally {
+    setProcessRunnerOverride(null);
+    setHttpsClientOverride(null);
   }
 });
 
