@@ -1,11 +1,12 @@
 import { createRoot } from 'react-dom/client';
 import { App, type WebviewUiMode } from './App';
 import type { RalphDashboardState } from '../ui/uiTypes';
+import type { WizardState } from '../webview/prdCreationWizardTypes';
 import './styles/main.css';
 
 interface BootstrapPayload {
   mode: WebviewUiMode;
-  state: RalphDashboardState;
+  state?: RalphDashboardState | WizardState;
 }
 
 function readBootstrap(): BootstrapPayload {
@@ -23,4 +24,8 @@ if (!root) {
 }
 
 const bootstrap = readBootstrap();
-createRoot(root).render(<App mode={bootstrap.mode} initialState={bootstrap.state} />);
+if (bootstrap.mode === 'prd-wizard') {
+  createRoot(root).render(<App mode="prd-wizard" initialState={bootstrap.state as WizardState | undefined} />);
+} else {
+  createRoot(root).render(<App mode={bootstrap.mode} initialState={bootstrap.state as RalphDashboardState} />);
+}

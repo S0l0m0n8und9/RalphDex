@@ -17,6 +17,8 @@ interface MockWebview {
   html: string;
   posted: unknown[];
   handlers: MessageHandler[];
+  cspSource: string;
+  asWebviewUri(uri: { toString(): string }): { toString(): string };
   postMessage(msg: unknown): Promise<boolean>;
   onDidReceiveMessage(handler: MessageHandler): { dispose(): void };
 }
@@ -26,6 +28,14 @@ function makeMockWebview(): MockWebview {
     html: '',
     posted: [],
     handlers: [],
+    cspSource: 'vscode-webview://test',
+    asWebviewUri(uri: { fsPath?: string; path?: string; toString(): string }) {
+      return {
+        toString() {
+          return uri.fsPath ?? uri.path ?? uri.toString();
+        }
+      };
+    },
     postMessage(msg) {
       webview.posted.push(msg);
       return Promise.resolve(true);
@@ -132,7 +142,7 @@ function makeTaskGenerationResult(prdText: string, overrides: Partial<PrdWizardT
   };
 }
 
-test('PrdCreationWizardHost renders the six-step PRD-first flow', () => {
+test('PrdCreationWizardHost bootstraps the React PRD wizard and emits the six-step state model', () => {
   const webview = makeMockWebview();
 
   const host = new PrdCreationWizardHost({
@@ -147,12 +157,11 @@ test('PrdCreationWizardHost renders the six-step PRD-first flow', () => {
     writeDraft: async () => ({ filesWritten: [] })
   });
 
-  assert.match(webview.html, /Project Shape/);
-  assert.match(webview.html, /Draft Generation/);
-  assert.match(webview.html, /PRD Review/);
-  assert.match(webview.html, /Task Generation/);
-  assert.match(webview.html, /Task Review/);
-  assert.match(webview.html, /Confirm Write/);
+  assert.match(webview.html, /data-ralph-mode="prd-wizard"/);
+  assert.match(webview.html, /webview-ui[\\/]main\.js/);
+  const state = lastStateMessage(webview).state as { step: number; mode: string };
+  assert.equal(state.mode, 'new');
+  assert.equal(state.step, 1);
   host.dispose();
 });
 

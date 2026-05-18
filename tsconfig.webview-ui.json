@@ -17,6 +17,8 @@
     "src/ui/uiTypes.ts",
     "src/config/settingsSurface.ts",
     "src/webview/dashboardSnapshot.ts",
+    "src/webview/prdCreationWizardTypes.ts",
+    "src/ralph/taskNormalization.ts",
     "src/ralph/types.ts"
   ]
 }
