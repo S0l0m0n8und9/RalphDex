@@ -27,7 +27,7 @@ Focus first on the concrete failure or no-progress signal carried forward from t
 4. Do not edit `.ralph/tasks.json` or `.ralph/progress.md` for normal task execution; Ralph will reconcile selected-task state from your completion report.
 5. Run the selected validation command when available and report the concrete result.
 6. Do not rewrite `.ralph/doctrine/*`; when the run discovered durable doctrine facts, emit them as optional `doctrineUpdates` proposals instead.
-7. End with a fenced `json` completion report block for the selected task using `selectedTaskId`, `requestedStatus`, optional `progressNote`, optional `blocker`, optional `validationRan`, optional `needsHumanReview`, and optional `doctrineUpdates`.
+7. End with a fenced `json` completion report block for the selected task using `selectedTaskId`, `requestedStatus` (exactly one of `"done"`, `"blocked"`, or `"in_progress"` — do not invent other values such as `"completed"`), optional `progressNote`, optional `blocker`, optional `validationRan`, optional `needsHumanReview`, and optional `doctrineUpdates`.
 
 ## Final Response Contract
 - Changed files.

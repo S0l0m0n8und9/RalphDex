@@ -942,7 +942,7 @@ function buildExecutionContract(target, kind, agentRole, taskMode) {
         if (target === 'cliExec') {
             docContract.push('5. Verify the documentation is accurate by cross-referencing the code it describes.');
             docContract.push('6. Do not rewrite `.ralph/doctrine/*`; when the run discovered durable doctrine facts, emit them as optional `doctrineUpdates` proposals instead.');
-            docContract.push('7. End with a fenced `json` completion report block for the selected task using `selectedTaskId`, `requestedStatus`, optional `progressNote`, optional `blocker`, optional `validationRan`, optional `needsHumanReview`, and optional `doctrineUpdates`.');
+            docContract.push('7. End with a fenced `json` completion report block for the selected task using `selectedTaskId`, `requestedStatus` (exactly one of `"done"`, `"blocked"`, or `"in_progress"` — do not invent other values such as `"completed"`), optional `progressNote`, optional `blocker`, optional `validationRan`, optional `needsHumanReview`, and optional `doctrineUpdates`.');
         }
         else {
             docContract.push('5. If a blocker needs human judgment, surface it plainly instead of burying it.');
@@ -959,7 +959,7 @@ function buildExecutionContract(target, kind, agentRole, taskMode) {
     if (target === 'cliExec') {
         contract.push('5. Run the selected validation command when available and report the concrete result.');
         contract.push('6. Do not rewrite `.ralph/doctrine/*`; when the run discovered durable doctrine facts, emit them as optional `doctrineUpdates` proposals instead.');
-        contract.push('7. End with a fenced `json` completion report block for the selected task using `selectedTaskId`, `requestedStatus`, optional `progressNote`, optional `blocker`, optional `validationRan`, optional `needsHumanReview`, and optional `doctrineUpdates`.');
+        contract.push('7. End with a fenced `json` completion report block for the selected task using `selectedTaskId`, `requestedStatus` (exactly one of `"done"`, `"blocked"`, or `"in_progress"` — do not invent other values such as `"completed"`), optional `progressNote`, optional `blocker`, optional `validationRan`, optional `needsHumanReview`, and optional `doctrineUpdates`.');
     }
     else {
         contract.push('5. If a blocker needs human judgment, surface it plainly instead of burying it.');

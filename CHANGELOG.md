@@ -2,6 +2,17 @@
 
 All notable changes to Ralphdex are documented here.
 
+## [1.1.8] — 2026-05-18
+
+### Changed
+
+- Enhanced Azure Foundry provider execution with endpoint configuration validation before run attempts.
+- Improved project-generation error handling to surface provider-specific failures instead of generic exit codes.
+- Added direct execution support for providers that do not require spawning a CLI process.
+- Hardened Windows process execution for spaced command arguments.
+- Improved PRD wizard UX with optimistic step-navigation state updates.
+- Added regression coverage for the new provider/runtime behaviors.
+
 ## [1.1.7] — 2026-05-15
 
 ### Changed
