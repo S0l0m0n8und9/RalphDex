@@ -214,9 +214,10 @@ test('PRD generation is PRD-only and does not populate tasks until task generati
   host.dispose();
 });
 
-test('task generation is blocked when PRD readiness has blockers', async () => {
+test('task generation proceeds when PRD readiness has advisory blockers', async () => {
   const webview = makeMockWebview();
   let taskGenerationCalls = 0;
+  const weakPrd = '# Placeholder\n\n## Overview\nTODO\n';
 
   const host = new PrdCreationWizardHost({
     webview: webview as unknown as import('vscode').Webview,
@@ -226,11 +227,11 @@ test('task generation is blocked when PRD readiness has blockers', async () => {
       tasksPath: path.join('workspace', '.ralph', 'tasks.json')
     },
     generatePrdDraft: async () => ({
-      prdText: '# Placeholder\n\n## Overview\nTODO\n'
+      prdText: weakPrd
     }),
     generateTasks: async (_input) => {
       taskGenerationCalls += 1;
-      return makeTaskGenerationResult('# Placeholder\n\n## Overview\nTODO\n');
+      return makeTaskGenerationResult(weakPrd);
     },
     writeDraft: async () => ({ filesWritten: [] })
   });
@@ -241,9 +242,57 @@ test('task generation is blocked when PRD readiness has blockers', async () => {
   webviewSends(webview, { type: 'generate-tasks' });
   await new Promise((resolve) => setImmediate(resolve));
 
-  const state = lastStateMessage(webview).state as { warning?: string };
-  assert.equal(taskGenerationCalls, 0);
-  assert.match(state.warning ?? '', /readiness has blockers/i);
+  const state = lastStateMessage(webview).state as {
+    draft: PrdWizardDraftBundle;
+    step: number;
+    warning?: string;
+  };
+  assert.equal(taskGenerationCalls, 1);
+  assert.equal(state.step, 5);
+  assert.equal(state.draft.tasks.length, 2);
+  assert.equal(state.warning, null);
+  host.dispose();
+});
+
+test('confirm-write proceeds when only PRD readiness has advisory blockers', async () => {
+  const webview = makeMockWebview();
+  const weakPrd = '# Placeholder\n\n## Overview\nTODO\n';
+  let writeCount = 0;
+
+  const host = new PrdCreationWizardHost({
+    webview: webview as unknown as import('vscode').Webview,
+    initialMode: 'new',
+    initialPaths: {
+      prdPath: path.join('workspace', '.ralph', 'prd.md'),
+      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
+    },
+    generatePrdDraft: async () => ({
+      prdText: weakPrd
+    }),
+    generateTasks: async (_input) => makeTaskGenerationResult(weakPrd),
+    writeDraft: async () => {
+      writeCount += 1;
+      return { filesWritten: ['workspace/.ralph/prd.md', 'workspace/.ralph/tasks.json'] };
+    }
+  });
+
+  webviewSends(webview, { type: 'update-field', field: 'objective', value: 'Adopt existing PRD.' });
+  webviewSends(webview, { type: 'generate-prd-draft' });
+  await new Promise((resolve) => setImmediate(resolve));
+  webviewSends(webview, { type: 'generate-tasks' });
+  await new Promise((resolve) => setImmediate(resolve));
+  webviewSends(webview, { type: 'confirm-write' });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  const state = lastStateMessage(webview).state as {
+    operationStatus?: string;
+    warning?: string;
+    writeSummary?: { filesWritten: string[] };
+  };
+  assert.equal(writeCount, 1);
+  assert.equal(state.operationStatus, 'succeeded');
+  assert.equal(state.warning, null);
+  assert.deepEqual(state.writeSummary?.filesWritten, ['workspace/.ralph/prd.md', 'workspace/.ralph/tasks.json']);
   host.dispose();
 });
 

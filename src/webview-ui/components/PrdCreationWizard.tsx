@@ -44,10 +44,6 @@ function dependencyValue(value: unknown): string {
     .join('\n');
 }
 
-function hasPrdBlockers(state: WizardState): boolean {
-  return (state.prdReviewFindings ?? []).some((finding) => finding.kind === 'blocker');
-}
-
 function hasTaskBlockers(state: WizardState): boolean {
   return (state.taskReviewFindings ?? []).some((finding) => finding.kind === 'blocker');
 }
@@ -57,7 +53,6 @@ function canConfirmWrite(state: WizardState, busy: boolean): boolean {
     state.draft
     && state.draft.tasks.length > 0
     && !state.tasksStale
-    && !hasPrdBlockers(state)
     && !hasTaskBlockers(state)
     && !busy
   );
@@ -105,7 +100,6 @@ function Findings({ title, findings, empty }: { title: string; findings?: Wizard
 export function PrdCreationWizard({ state, busy, onMessage }: PrdCreationWizardProps) {
   const editableDraft = state.draft?.prdText ?? '';
   const taskCount = state.draft?.tasks.length ?? 0;
-  const prdBlockers = hasPrdBlockers(state);
   const confirmEnabled = canConfirmWrite(state, busy);
 
   const setStep = (step: PrdWizardStep) => onMessage({ type: 'set-step', step });
@@ -235,7 +229,7 @@ export function PrdCreationWizard({ state, busy, onMessage }: PrdCreationWizardP
               <div className="prd-note"><strong>Task Generation Status</strong><p>{state.taskGenerationMessage ?? 'No tasks generated yet.'}</p></div>
               <StatusBlocks state={state} operationOnly />
               <div className="prd-actions">
-                <button className="rdx-button primary" data-action="generate-tasks" disabled={busy || prdBlockers || !editableDraft} onClick={() => onMessage({ type: 'generate-tasks' })} type="button">Generate Tasks</button>
+                <button className="rdx-button primary" data-action="generate-tasks" disabled={busy || !editableDraft} onClick={() => onMessage({ type: 'generate-tasks' })} type="button">Generate Tasks</button>
                 <button className="rdx-button" data-action="set-step" data-step="5" disabled={taskCount === 0} onClick={() => setStep(5)} type="button">Review Tasks</button>
               </div>
             </section>

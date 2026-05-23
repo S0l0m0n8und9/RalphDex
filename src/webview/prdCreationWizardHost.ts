@@ -983,7 +983,7 @@ export class PrdCreationWizardHost implements vscode.Disposable {
         ),
         tasksStale: true,
         taskGenerationStatus: 'idle',
-        taskGenerationMessage: 'Fallback PRD generated. Review and generate tasks after readiness passes.',
+        taskGenerationMessage: 'Fallback PRD generated. Review findings, edit as needed, then generate tasks.',
         generationState: 'fallback',
         generationMessage: `Generation fell back to a bootstrap draft. ${reason}`,
         operationStatus: 'succeeded',
@@ -1006,22 +1006,11 @@ export class PrdCreationWizardHost implements vscode.Disposable {
       return;
     }
 
-    const readiness = analyzePrdReadiness(prdText);
-    if (readiness.blockers.length > 0) {
-      this.state = {
-        ...this.state,
-        warning: 'PRD readiness has blockers. Resolve blockers before generating tasks.',
-        error: null
-      };
-      this.emitState();
-      return;
-    }
-
     this.bridge.send({ type: 'busy', value: true });
     this.state = {
       ...this.state,
       operationStatus: 'running',
-      operationMessage: 'Task generation started from approved PRD.',
+      operationMessage: 'Task generation started from reviewed PRD.',
       warning: null,
       error: null
     };
@@ -1053,7 +1042,7 @@ export class PrdCreationWizardHost implements vscode.Disposable {
           },
         tasksStale: false,
         taskGenerationStatus: generated.taskCountWarning ? 'weak' : 'generated',
-        taskGenerationMessage: generated.taskCountWarning ?? 'Tasks generated from approved PRD.',
+        taskGenerationMessage: generated.taskCountWarning ?? 'Tasks generated from reviewed PRD.',
         operationStatus: 'succeeded',
         operationMessage: 'Task generation completed.',
         warning: null,
@@ -1084,17 +1073,6 @@ export class PrdCreationWizardHost implements vscode.Disposable {
     }
 
     const draft = this.state.draft;
-    const readiness = analyzePrdReadiness(draft.prdText);
-    if (readiness.blockers.length > 0) {
-      this.state = {
-        ...this.state,
-        warning: 'PRD readiness blockers remain. Resolve blockers before writing files.',
-        error: null
-      };
-      this.emitState();
-      return;
-    }
-
     if (this.state.tasksStale) {
       this.state = {
         ...this.state,

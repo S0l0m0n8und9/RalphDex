@@ -33,5 +33,9 @@
         "baseUrlOverride": "https://me-me3mef6a-eastus2.cognitiveservices.azure.com/openai/deployments/gpt-5.4",
         "model": "gpt-5.4"
     },
-    "ralphCodex.taskReadinessGate": "auto"
+    "ralphCodex.taskReadinessGate": "auto",
+    "ralphCodex.autoApplyRemediation": [
+        "decompose_task",
+        "mark_blockedj"
+    ]
 }

@@ -69,7 +69,7 @@ test('PRD wizard React view renders provider-failure fallback as a reviewable dr
   assert.ok(html.includes('Product / project brief'));
 });
 
-test('PRD wizard React view disables task generation when PRD blockers remain', () => {
+test('PRD wizard React view keeps PRD blockers advisory for task generation', () => {
   const html = renderWizard(makeState({
     step: 4,
     draft: {
@@ -84,7 +84,32 @@ test('PRD wizard React view disables task generation when PRD blockers remain', 
   }));
 
   assert.ok(html.includes('Add concrete goals and success criteria.'));
-  assert.match(html, /data-action="generate-tasks"[^>]*disabled/);
+  assert.doesNotMatch(html, /data-action="generate-tasks"[^>]*disabled/);
+});
+
+test('PRD wizard React view keeps PRD blockers advisory for confirm write', () => {
+  const html = renderWizard(makeState({
+    step: 6,
+    draft: {
+      prdText: '# Placeholder\n\n## Overview\nTODO',
+      prdHash: 'blocked-hash',
+      tasks: [{
+        id: 'T1',
+        title: 'Implement local note creation',
+        status: 'todo',
+        acceptance: ['A note can be created from the editor'],
+        validation: 'npm run validate'
+      }]
+    },
+    prdReviewFindings: [
+      { kind: 'blocker', message: 'Add concrete goals and success criteria.' }
+    ],
+    taskReviewFindings: [],
+    tasksStale: false
+  }));
+
+  assert.ok(html.includes('Add concrete goals and success criteria.'));
+  assert.doesNotMatch(html, /data-action="confirm-write"[^>]*disabled/);
 });
 
 test('PRD wizard React view marks tasks stale after PRD edits and blocks confirm write', () => {

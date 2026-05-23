@@ -79,9 +79,9 @@ If the core Ralph files are missing, the command stops and points the operator b
 
 1. Run `Ralphdex: Regenerate PRD`.
 2. Capture the project shape Ralph needs for generation: project type, objective, tech stack, non-goals, and existing conventions.
-3. Generate a draft PRD plus starter backlog tasks.
-4. Review and edit the PRD draft in place, using the inline findings and regenerate comparison summary to understand weak or changed sections before writing.
-5. Review the starter backlog, reorder or retitle tasks, adjust tiers, inspect validation and dependency detail, and treat duplicate or vague-task findings as review warnings rather than hard blockers.
+3. Generate a draft PRD.
+4. Review and edit the PRD draft in place, using the inline findings and regenerate comparison summary to understand weak or changed sections. PRD readiness findings are advisory inside the wizard, so an operator can continue when adopting an already-active PRD that does not match every recommendation.
+5. Generate and review the starter backlog, reorder or retitle tasks, adjust tiers, inspect validation and dependency detail, and resolve task-shape blockers before writing.
 6. Confirm the write after checking the explicit blast radius: `.ralph/prd.md` is written, `.ralph/tasks.json` is replaced, and no unrelated workspace settings are changed.
 
 This wizard is a narrow authoring surface. It owns PRD drafting, starter backlog drafting, review, and bounded file writes. It does not own provider selection, execution mode presets, skills management, or broader workspace control-plane settings.
