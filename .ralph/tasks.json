@@ -6424,7 +6424,7 @@
     {
       "id": "T224",
       "title": "Add docs-validator guardrail for the doctrine-adoption workflow section",
-      "status": "todo",
+      "status": "in_progress",
       "notes": "PRD `Next delivery horizon` item 3 acceptance requires `npm run check:docs` to fail when documented doctrine-adoption behavior drifts from the command surface. docsValidator.ts currently has no required-heading or required-link rule covering `docs/workflows.md` § \"Initialize Or Repair A Doctrine Pack For An Established Workspace\" or referencing the `Ralphdex: Initialize Doctrine Pack` command label.",
       "validation": "npm run validate",
       "priority": "normal",

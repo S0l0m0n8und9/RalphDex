@@ -206,6 +206,12 @@ Run the extension locally.
 
 Use this path to build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
 
+## Initialize Or Repair A Doctrine Pack For An Established Workspace
+
+1. Confirm the workspace already has the durable Ralph files.
+2. Run \`Ralphdex: Initialize Doctrine Pack\` (\`ralphCodex.initializeDoctrinePack\`).
+3. Review the notification summary.
+
 ## Prepare A Prompt For IDE Use
 
 Prepare the next prompt.
@@ -975,6 +981,93 @@ test('validateRepositoryDocs keeps AGENTS.md on a small line budget', async () =
   const issues = await validateRepositoryDocs(rootPath);
 
   assert.equal(issues.some((issue) => issue.code === 'line_budget_exceeded' && issue.filePath === 'AGENTS.md'), true);
+});
+
+test('validateRepositoryDocs reports missing doctrine-adoption heading and command reference in workflows', async () => {
+  const rootPath = await makeTempRoot();
+  await seedValidRepository(rootPath);
+  await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+
+See [Invariants](${path.join(rootPath, 'docs/invariants.md')}), [Provenance](${path.join(rootPath, 'docs/provenance.md')}), [Verifier](${path.join(rootPath, 'docs/verifier.md')}), and [Boundaries](${path.join(rootPath, 'docs/boundaries.md')}).
+
+## Develop The Extension
+
+Run the extension locally.
+
+## Package And Install A .vsix
+
+Use this path to build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
+
+## Prepare A Prompt For IDE Use
+
+Prepare the next prompt.
+
+## Run One CLI Iteration
+
+Run one iteration.
+
+## Run The Ralph Loop
+
+Run the loop.
+
+The autonomyMode setting controls loop defaults, but hard stops still require the operator.
+
+blocked preflight remains a hard stop even in autonomyMode.
+
+## Seed Flat Backlog Tasks
+
+Use this workflow to append flat version-2 backlog tasks for one feature request. Each run writes \`.ralph/artifacts/task-seeding/task-seeding-<timestamp>.json\` and leaves \`.ralph/tasks.json\` unchanged on failure.
+
+## Memory Strategy
+
+Memory strategy controls prior-iteration context.
+
+## Azure AI Foundry Provider
+
+Azure AI Foundry direct-HTTPS provider.
+
+## Inspect State
+
+Inspect persisted state.
+
+## Reset State
+
+Reset generated state.
+
+## Diagnostics
+
+Review runtime diagnostics.
+`);
+
+  const issues = await validateRepositoryDocs(rootPath);
+
+  assert.equal(
+    issues.some(
+      (issue) =>
+        issue.code === 'missing_heading'
+        && issue.filePath === 'docs/workflows.md'
+        && issue.message.includes('Initialize Or Repair A Doctrine Pack For An Established Workspace')
+    ),
+    true
+  );
+  assert.equal(
+    issues.some(
+      (issue) =>
+        issue.code === 'missing_fragment'
+        && issue.filePath === 'docs/workflows.md'
+        && issue.message.includes('ralphCodex.initializeDoctrinePack')
+    ),
+    true
+  );
+  assert.equal(
+    issues.some(
+      (issue) =>
+        issue.code === 'missing_fragment'
+        && issue.filePath === 'docs/workflows.md'
+        && issue.message.includes('Ralphdex: Initialize Doctrine Pack')
+    ),
+    true
+  );
 });
 
 test('validateRepositoryDocs rejects stale nested-repo path in release-workflow', async () => {

@@ -62,7 +62,7 @@ The safety guard is intentionally narrow: if `.ralph/prd.md` already exists, Ral
 ## Initialize Or Repair A Doctrine Pack For An Established Workspace
 
 1. Confirm the workspace already has the durable Ralph files: `.ralph/prd.md`, `.ralph/tasks.json`, and `.ralph/progress.md`.
-2. Run `Ralphdex: Initialize Doctrine Pack`.
+2. Run `Ralphdex: Initialize Doctrine Pack` (`ralphCodex.initializeDoctrinePack`).
 3. Review the notification summary to see which doctrine files were created, which were already present, and whether `.ralph/doctrine/evidence-index.json` was repaired.
 
 This command is the explicit adoption path for workspaces that predate doctrine support. It does not rerun workspace bootstrap, it does not rewrite `.ralph/prd.md`, `.ralph/tasks.json`, or `.ralph/progress.md`, and it is not part of runtime cleanup or reset.

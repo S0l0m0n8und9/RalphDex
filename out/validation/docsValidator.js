@@ -225,6 +225,7 @@ const DOC_RULES = {
         requiredHeadings: [
             'Develop The Extension',
             'Package And Install A .vsix',
+            'Initialize Or Repair A Doctrine Pack For An Established Workspace',
             'Prepare A Prompt For IDE Use',
             'Run One CLI Iteration',
             'Run The Ralph Loop',
@@ -244,7 +245,9 @@ const DOC_RULES = {
             'blocked preflight',
             '.ralph/artifacts/task-seeding/task-seeding-<timestamp>.json',
             '`.ralph/tasks.json` unchanged',
-            'flat version-2 backlog tasks'
+            'flat version-2 backlog tasks',
+            'Ralphdex: Initialize Doctrine Pack',
+            'ralphCodex.initializeDoctrinePack'
         ],
         forbiddenFragments: [
             'Azure-backed provider is not yet implemented',
