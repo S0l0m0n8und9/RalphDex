@@ -2,6 +2,14 @@
 
 All notable changes to Ralphdex are documented here.
 
+## [1.1.9] — 2026-05-19
+
+### Changed
+
+- Bumped release metadata to `1.1.9` in package manifests as part of the prior release alignment pass.
+- Updated completion-report documentation to require `requestedStatus` values of `done`, `blocked`, or `in_progress`.
+- Clarified prompt/completion guidance to avoid non-contract values such as `completed`.
+
 ## [1.1.8] — 2026-05-18
 
 ### Changed

@@ -129,6 +129,35 @@ test('writePrdWizardDraft preserves rich reviewed task fields when rewriting tas
   ]);
 });
 
+test('writePrdWizardDraft writes only PRD when the draft has zero tasks and leaves tasks.json untouched', async () => {
+  const harness = vscodeTestHarness();
+  harness.reset();
+  const rootPath = await makeTempRoot();
+  const ralphDir = path.join(rootPath, '.ralph');
+  await fs.mkdir(ralphDir, { recursive: true });
+  const existingTasks = JSON.stringify({
+    version: 2,
+    tasks: [{ id: 'T0', title: 'Existing', status: 'todo' }],
+    mutationCount: 7
+  }, null, 2);
+  const tasksPath = path.join(ralphDir, 'tasks.json');
+  await fs.writeFile(tasksPath, `${existingTasks}\n`, 'utf8');
+
+  const draft: PrdWizardDraftBundle = {
+    prdText: '# Product / project brief\n\nPRD only.\n',
+    tasks: []
+  };
+
+  const result = await writePrdWizardDraft(draft, {
+    prdPath: path.join(ralphDir, 'prd.md'),
+    tasksPath
+  });
+
+  assert.deepEqual(result.filesWritten, [path.join(ralphDir, 'prd.md')]);
+  const persistedTasks = await fs.readFile(tasksPath, 'utf8');
+  assert.equal(persistedTasks, `${existingTasks}\n`, 'existing tasks.json should be left untouched when no tasks are written');
+});
+
 test('writePrdWizardDraft persists task-generation plan as approved only after files are written', async () => {
   const harness = vscodeTestHarness();
   harness.reset();

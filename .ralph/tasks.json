@@ -6370,7 +6370,159 @@
         ".ralph/progress.md"
       ],
       "lastVerifierResult": "passed"
+    },
+    {
+      "id": "T222",
+      "title": "Fix internally-inconsistent CHANGELOG 1.1.9 entry referencing the wrong version",
+      "status": "done",
+      "notes": "Fixed CHANGELOG.md 1.1.9 entry: changed body text from '1.1.8' to '1.1.9' so the version reference is internally consistent with the section header.",
+      "validation": "npm run check:docs",
+      "priority": "high",
+      "mode": "documentation",
+      "tier": "simple",
+      "acceptance": [
+        "The CHANGELOG.md `## [1.1.9]` entry references version 1.1.9 (not 1.1.8) in its body text.",
+        "package.json version matches the highest CHANGELOG entry header.",
+        "npm run check:docs and npm run validate both pass."
+      ],
+      "constraints": [
+        "Do not publish to the Marketplace as part of this task.",
+        "Do not retroactively rewrite earlier shipped CHANGELOG entries beyond fixing the broken 1.1.9 wording."
+      ],
+      "context": [
+        "CHANGELOG.md",
+        "package.json",
+        "docs/release-workflow.md"
+      ],
+      "lastVerifierResult": "passed"
+    },
+    {
+      "id": "T223",
+      "title": "Reconcile or document the CHANGELOG version-numbering gap (missing 1.1.3 and 1.1.4)",
+      "status": "todo",
+      "notes": "CHANGELOG.md jumps from `## [1.1.5]` directly to `## [1.1.2]` with no entries for 1.1.3 or 1.1.4. Either backfill the missing entries from the corresponding commits or add an explicit note in CHANGELOG/release-workflow explaining that those numbers were intentionally skipped (e.g. abandoned Marketplace republish attempts).",
+      "validation": "npm run check:docs",
+      "priority": "normal",
+      "mode": "documentation",
+      "tier": "simple",
+      "acceptance": [
+        "Either CHANGELOG.md contains entries for 1.1.3 and 1.1.4, or it carries an explicit one-line note stating those versions were intentionally skipped and why.",
+        "docs/release-workflow.md (or equivalent) describes how skipped version numbers are recorded so future releases follow the same rule.",
+        "npm run check:docs passes."
+      ],
+      "constraints": [
+        "Do not invent feature claims for 1.1.3 / 1.1.4 — entries must be evidence-backed.",
+        "Do not republish or retag past versions."
+      ],
+      "context": [
+        "CHANGELOG.md",
+        "docs/release-workflow.md",
+        "package.json"
+      ]
+    },
+    {
+      "id": "T224",
+      "title": "Add docs-validator guardrail for the doctrine-adoption workflow section",
+      "status": "todo",
+      "notes": "PRD `Next delivery horizon` item 3 acceptance requires `npm run check:docs` to fail when documented doctrine-adoption behavior drifts from the command surface. docsValidator.ts currently has no required-heading or required-link rule covering `docs/workflows.md` § \"Initialize Or Repair A Doctrine Pack For An Established Workspace\" or referencing the `Ralphdex: Initialize Doctrine Pack` command label.",
+      "validation": "npm run validate",
+      "priority": "normal",
+      "mode": "default",
+      "tier": "medium",
+      "acceptance": [
+        "src/validation/docsValidator.ts validates the presence of the `Initialize Or Repair A Doctrine Pack For An Established Workspace` heading in docs/workflows.md.",
+        "docsValidator validates that the section references the `Ralphdex: Initialize Doctrine Pack` command label and the `ralphCodex.initializeDoctrinePack` command id.",
+        "test/docsValidator.test.ts gains a regression case proving the rule fails when the heading or the command reference is removed.",
+        "npm run check:docs and npm run validate both pass."
+      ],
+      "constraints": [
+        "Do not change runtime doctrine behavior in this task.",
+        "Do not introduce a new check that fails on the current repository state — guardrail must be green for the shipped docs and only fail on drift."
+      ],
+      "context": [
+        "src/validation/docsValidator.ts",
+        "test/docsValidator.test.ts",
+        "docs/workflows.md",
+        ".ralph/prd.md"
+      ]
+    },
+    {
+      "id": "T225",
+      "title": "Self-host adoption: scaffold .ralph/doctrine for the RalphDex workspace",
+      "status": "todo",
+      "notes": "`.ralph/doctrine/` is currently missing in this repository. The doctrine adoption command (Ralphdex: Initialize Doctrine Pack / createDoctrinePack) is shipped and tested. Running it once against this workspace satisfies the PRD self-hosting principle and exercises the shipped path end-to-end. The scaffolded files will be `Unknown / not yet captured.` placeholders — populating them with real content is out of scope for this task.",
+      "validation": "npm run validate",
+      "priority": "low",
+      "mode": "default",
+      "tier": "simple",
+      "acceptance": [
+        "`.ralph/doctrine/` exists with all eight DOCTRINE_MARKDOWN_FILES plus a valid `evidence-index.json` (schemaVersion: 1, doctrineRoot: \".ralph/doctrine\", evidence: []).",
+        "`inspectDoctrinePack` reports `incomplete` (warning) instead of `missing` for this workspace.",
+        "The scaffold is committed; no protected doctrine markdown is edited beyond the template content.",
+        "npm run validate passes."
+      ],
+      "constraints": [
+        "Do not invent project-specific doctrine content — leave templates intact.",
+        "Do not modify createDoctrinePack behavior; only invoke it."
+      ],
+      "context": [
+        "src/ralph/doctrine.ts",
+        "src/commands/registerCommands.ts",
+        "docs/workflows.md"
+      ]
+    },
+    {
+      "id": "T226",
+      "title": "Surface model-tiering flat-vs-nested enable-flag disagreement at config-read time",
+      "status": "todo",
+      "notes": "readConfig.ts silently lets explicit `ralphCodex.enableModelTiering` override `ralphCodex.modelTiering.enabled` when the two disagree. Today's workspace settings.json exhibits this exact conflict (`enableModelTiering: true` while `modelTiering.enabled: false`). Operators have no visible signal that one value won over the other, and the model-tiering posture is therefore non-obvious from settings inspection alone.",
+      "validation": "npm run validate",
+      "priority": "normal",
+      "mode": "default",
+      "tier": "simple",
+      "acceptance": [
+        "When `ralphCodex.enableModelTiering` and `ralphCodex.modelTiering.enabled` are both explicitly set and disagree, a deterministic info/warning diagnostic appears in preflight output and Show Status surfaces.",
+        "The diagnostic names both setting keys and the winning effective value so the operator can reconcile without reading the source.",
+        "Unit coverage proves the diagnostic fires only when both keys are explicitly set (not when one is implicit) and is silent when they agree.",
+        "npm run validate passes."
+      ],
+      "constraints": [
+        "Do not change which flag wins — preserve current precedence (flat overrides nested when explicit).",
+        "Do not raise the disagreement to an error or blocker — keep it informational/warning."
+      ],
+      "context": [
+        "src/config/readConfig.ts",
+        "src/ralph/preflight.ts",
+        "src/ralph/statusReport.ts",
+        "docs/model-tiering.md"
+      ]
+    },
+    {
+      "id": "T227",
+      "title": "Document taskReadinessGate modes (off | warn | auto | strict) in docs/workflows.md",
+      "status": "todo",
+      "notes": "`ralphCodex.taskReadinessGate` exposes four modes in package.json but docs/workflows.md does not describe how each mode affects the planning-pass → execution flow, which evidence classes each mode inspects, or which stop classifications each can produce. Operators selecting `strict` get no guidance from the docs surface.",
+      "validation": "npm run check:docs",
+      "priority": "normal",
+      "mode": "documentation",
+      "tier": "simple",
+      "acceptance": [
+        "docs/workflows.md gains a `Task Readiness Gate` section enumerating off / warn / auto / strict semantics and the stop/decompose classifications each can emit.",
+        "The section links back to the planning-pass workflow and to `src/ralph/preflight.ts` (or the responsible module) so the doc-to-code mapping is explicit.",
+        "AGENTS.md and/or docs/architecture.md reference the new section if appropriate.",
+        "npm run check:docs and npm run validate both pass."
+      ],
+      "constraints": [
+        "Do not change runtime taskReadinessGate behavior in this task.",
+        "Do not duplicate package.json description text verbatim — describe behavior, not just config wording."
+      ],
+      "context": [
+        "docs/workflows.md",
+        "package.json",
+        "src/ralph/preflight.ts",
+        "src/ralph/iteration/LoopDecisionService.ts"
+      ]
     }
   ],
-  "mutationCount": 268
+  "mutationCount": 270
 }

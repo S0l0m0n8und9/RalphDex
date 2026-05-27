@@ -44,18 +44,16 @@ function dependencyValue(value: unknown): string {
     .join('\n');
 }
 
+function hasPrdBlockers(state: WizardState): boolean {
+  return (state.prdReviewFindings ?? []).some((finding) => finding.kind === 'blocker');
+}
+
 function hasTaskBlockers(state: WizardState): boolean {
   return (state.taskReviewFindings ?? []).some((finding) => finding.kind === 'blocker');
 }
 
 function canConfirmWrite(state: WizardState, busy: boolean): boolean {
-  return Boolean(
-    state.draft
-    && state.draft.tasks.length > 0
-    && !state.tasksStale
-    && !hasTaskBlockers(state)
-    && !busy
-  );
+  return Boolean(state.draft && !busy);
 }
 
 function generationTitle(state: WizardState): string {
@@ -100,7 +98,16 @@ function Findings({ title, findings, empty }: { title: string; findings?: Wizard
 export function PrdCreationWizard({ state, busy, onMessage }: PrdCreationWizardProps) {
   const editableDraft = state.draft?.prdText ?? '';
   const taskCount = state.draft?.tasks.length ?? 0;
+  const prdBlockers = hasPrdBlockers(state);
+  const taskBlockers = hasTaskBlockers(state);
   const confirmEnabled = canConfirmWrite(state, busy);
+  const writeGuidance = (prdBlockers || taskBlockers || state.tasksStale)
+    ? [
+        prdBlockers ? 'PRD has review blockers (see PRD Findings).' : null,
+        taskBlockers ? 'Tasks have review blockers (see Task Findings).' : null,
+        state.tasksStale ? 'Tasks were generated against an earlier PRD draft.' : null
+      ].filter((entry): entry is string => entry !== null)
+    : [];
 
   const setStep = (step: PrdWizardStep) => onMessage({ type: 'set-step', step });
 
@@ -228,9 +235,15 @@ export function PrdCreationWizard({ state, busy, onMessage }: PrdCreationWizardP
               <Findings title="PRD Findings" findings={state.prdReviewFindings} empty="No PRD findings yet." />
               <div className="prd-note"><strong>Task Generation Status</strong><p>{state.taskGenerationMessage ?? 'No tasks generated yet.'}</p></div>
               <StatusBlocks state={state} operationOnly />
+              {prdBlockers ? (
+                <div className="prd-note">
+                  <strong>Heads up</strong>
+                  <p>PRD has readiness blockers. Task generation can still run, but generated tasks may need cleanup — review the PRD Findings above first.</p>
+                </div>
+              ) : null}
               <div className="prd-actions">
                 <button className="rdx-button primary" data-action="generate-tasks" disabled={busy || !editableDraft} onClick={() => onMessage({ type: 'generate-tasks' })} type="button">Generate Tasks</button>
-                <button className="rdx-button" data-action="set-step" data-step="5" disabled={taskCount === 0} onClick={() => setStep(5)} type="button">Review Tasks</button>
+                <button className="rdx-button" data-action="set-step" data-step="5" onClick={() => setStep(5)} type="button">Review Tasks</button>
               </div>
             </section>
           ) : null}
@@ -254,19 +267,30 @@ export function PrdCreationWizard({ state, busy, onMessage }: PrdCreationWizardP
                 <strong>Targets</strong>
                 <ul className="prd-list">
                   <li><code>{state.paths.prdPath}</code></li>
-                  <li><code>{state.paths.tasksPath}</code></li>
+                  <li><code>{state.paths.tasksPath}</code>{taskCount === 0 ? ' (skipped — no tasks)' : ''}</li>
                 </ul>
               </div>
               <Findings title="PRD Findings" findings={state.prdReviewFindings} empty="No PRD findings yet." />
               <Findings title="Task Findings" findings={state.taskReviewFindings} empty="No task findings yet." />
-              {state.tasksStale ? <div className="prd-warning">Tasks are stale because PRD text changed after generation. Regenerate tasks before writing.</div> : null}
+              {writeGuidance.length > 0 ? (
+                <div className="prd-note">
+                  <strong>Guidance — write will proceed</strong>
+                  <ul className="prd-list">
+                    {writeGuidance.map((entry) => <li key={entry}>{entry}</li>)}
+                  </ul>
+                </div>
+              ) : null}
               <StatusBlocks state={state} operationOnly />
               {state.writeSummary ? (
                 <div className="prd-note">
                   <strong>Files written</strong>
-                  <ul className="prd-list">{state.writeSummary.filesWritten.map((file) => <li key={file}><code>{file}</code></li>)}</ul>
+                  {state.writeSummary.filesWritten.length === 0 ? (
+                    <p>No files were written.</p>
+                  ) : (
+                    <ul className="prd-list">{state.writeSummary.filesWritten.map((file) => <li key={file}><code>{file}</code></li>)}</ul>
+                  )}
                 </div>
-              ) : <p className="prd-empty">Confirm the write to persist prd.md and tasks.json.</p>}
+              ) : <p className="prd-empty">Confirm the write to persist prd.md (and tasks.json if tasks are present).</p>}
               <div className="prd-actions">
                 <button className="rdx-button primary" data-action="confirm-write" disabled={!confirmEnabled} onClick={() => onMessage({ type: 'confirm-write' })} type="button">Write Files</button>
                 <button className="rdx-button" data-action="set-step" data-step="5" onClick={() => setStep(5)} type="button">Back To Task Review</button>

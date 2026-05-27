@@ -418,18 +418,33 @@ function registerCommands(context, logger, broadcaster, panelManager) {
             void vscode.window.showWarningMessage('PRD readiness must be completed first. The PRD wizard is open; finish a real PRD, then start the command again.');
             return { ...gate, wizardOpened: true };
         }
-        progress.report({ message: 'Opening PRD wizard for readiness blockers' });
-        if (gate.readinessArtifactPaths) {
-            await openTextFile(gate.readinessArtifactPaths.summaryPath);
-        }
-        await openPrdCreationWizard(panelManager, workspaceFolder, config, gate.paths, logger, {
-            mode: 'regenerate',
-            initialObjective: gate.prdText,
-            initialPrdPreview: gate.prdText,
-            initialStep: 3
+        // readiness_blocked: the operator has a PRD, it just doesn't match our
+        // structural expectations. Surface the analysis as a non-blocking warning
+        // and let the command proceed — the operator's PRD is the source of truth.
+        const blockerCount = gate.readiness.blockers.length;
+        const summaryPath = gate.readinessArtifactPaths?.summaryPath ?? null;
+        void vscode.window.showWarningMessage(`PRD has ${blockerCount} structural finding(s) flagged by readiness analysis. Continuing the command — open the wizard or the readiness report if you want to address them.`, 'Open Readiness Report', 'Open PRD Wizard').then((choice) => {
+            if (choice === 'Open Readiness Report' && summaryPath) {
+                void openTextFile(summaryPath);
+            }
+            else if (choice === 'Open PRD Wizard') {
+                void openPrdCreationWizard(panelManager, workspaceFolder, config, gate.paths, logger, {
+                    mode: 'regenerate',
+                    initialObjective: gate.prdText,
+                    initialPrdPreview: gate.prdText,
+                    initialStep: 3
+                });
+            }
         });
-        void vscode.window.showWarningMessage('PRD readiness must be completed first. Resolve the readiness blockers in the PRD wizard before generating tasks or running RalphDex.');
-        return { ...gate, wizardOpened: true };
+        progress.report({ message: `PRD readiness has ${blockerCount} finding(s) — proceeding with guidance.` });
+        return {
+            status: 'ready',
+            paths: gate.paths,
+            prdText: gate.prdText,
+            readiness: gate.readiness,
+            readinessArtifactPaths: null,
+            wizardOpened: false
+        };
     }
     async function loadFocusedDiagnosis(workspaceFolder) {
         const status = await (0, statusSnapshot_2.collectStatusSnapshot)(workspaceFolder, stateManager, logger);

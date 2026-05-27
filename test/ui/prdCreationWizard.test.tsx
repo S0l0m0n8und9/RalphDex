@@ -69,7 +69,7 @@ test('PRD wizard React view renders provider-failure fallback as a reviewable dr
   assert.ok(html.includes('Product / project brief'));
 });
 
-test('PRD wizard React view keeps PRD blockers advisory for task generation', () => {
+test('PRD wizard React view surfaces a heads-up note but keeps task generation enabled when PRD blockers remain', () => {
   const html = renderWizard(makeState({
     step: 4,
     draft: {
@@ -84,7 +84,8 @@ test('PRD wizard React view keeps PRD blockers advisory for task generation', ()
   }));
 
   assert.ok(html.includes('Add concrete goals and success criteria.'));
-  assert.doesNotMatch(html, /data-action="generate-tasks"[^>]*disabled/);
+  assert.ok(html.includes('PRD has readiness blockers'), 'guidance note should be present');
+  assert.doesNotMatch(html, /data-action="generate-tasks"[^>]*disabled/, 'task generation should remain enabled with guidance');
 });
 
 test('PRD wizard React view keeps PRD blockers advisory for confirm write', () => {
@@ -112,7 +113,7 @@ test('PRD wizard React view keeps PRD blockers advisory for confirm write', () =
   assert.doesNotMatch(html, /data-action="confirm-write"[^>]*disabled/);
 });
 
-test('PRD wizard React view marks tasks stale after PRD edits and blocks confirm write', () => {
+test('PRD wizard React view surfaces stale-task guidance but keeps confirm-write enabled', () => {
   const html = renderWizard(makeState({
     step: 6,
     draft: {
@@ -130,8 +131,9 @@ test('PRD wizard React view marks tasks stale after PRD edits and blocks confirm
     taskGenerationMessage: 'PRD changed after task generation. Regenerate tasks before writing.'
   }));
 
-  assert.ok(html.includes('Tasks are stale because PRD text changed after generation.'));
-  assert.match(html, /data-action="confirm-write"[^>]*disabled/);
+  assert.ok(html.includes('Tasks were generated against an earlier PRD draft'), 'guidance should mention stale state');
+  assert.ok(html.includes('Guidance — write will proceed'), 'guidance card should appear before write');
+  assert.doesNotMatch(html, /data-action="confirm-write"[^>]*disabled/, 'confirm-write should not be blocked by stale tasks');
 });
 
 test('PRD wizard React view exposes editable task review fields', () => {
@@ -163,7 +165,7 @@ test('PRD wizard React view exposes editable task review fields', () => {
   assert.ok(html.includes('value="medium" selected'));
 });
 
-test('PRD wizard React view disables confirm write for empty or invalid task drafts', () => {
+test('PRD wizard React view allows confirm write for empty or invalid task drafts and surfaces guidance', () => {
   const noTasks = renderWizard(makeState({
     step: 6,
     draft: {
@@ -193,9 +195,11 @@ test('PRD wizard React view disables confirm write for empty or invalid task dra
     tasksStale: false
   }));
 
-  assert.match(noTasks, /data-action="confirm-write"[^>]*disabled/);
-  assert.match(invalidTask, /data-action="confirm-write"[^>]*disabled/);
+  assert.doesNotMatch(noTasks, /data-action="confirm-write"[^>]*disabled/, 'empty task list should not block confirm-write');
+  assert.ok(noTasks.includes('skipped — no tasks'), 'targets should note tasks.json will be skipped');
+  assert.doesNotMatch(invalidTask, /data-action="confirm-write"[^>]*disabled/, 'invalid tasks should not block confirm-write');
   assert.ok(invalidTask.includes('T1 needs a title.'));
+  assert.ok(invalidTask.includes('Tasks have review blockers'), 'guidance should mention task-readiness blockers');
 });
 
 test('PRD wizard applies step navigation optimistically before host state returns', () => {

@@ -214,7 +214,7 @@ test('PRD generation is PRD-only and does not populate tasks until task generati
   host.dispose();
 });
 
-test('task generation proceeds when PRD readiness has advisory blockers', async () => {
+test('task generation proceeds with guidance when PRD readiness has blockers', async () => {
   const webview = makeMockWebview();
   let taskGenerationCalls = 0;
   const weakPrd = '# Placeholder\n\n## Overview\nTODO\n';
@@ -246,11 +246,12 @@ test('task generation proceeds when PRD readiness has advisory blockers', async 
     draft: PrdWizardDraftBundle;
     step: number;
     warning?: string;
+    operationMessage?: string;
   };
-  assert.equal(taskGenerationCalls, 1);
+  assert.equal(taskGenerationCalls, 1, 'task generation should proceed despite readiness blockers');
   assert.equal(state.step, 5);
   assert.equal(state.draft.tasks.length, 2);
-  assert.equal(state.warning, null);
+  assert.match(state.warning ?? '', /readiness has blockers/i, 'warning should surface readiness guidance');
   host.dispose();
 });
 
@@ -289,14 +290,14 @@ test('confirm-write proceeds when only PRD readiness has advisory blockers', asy
     warning?: string;
     writeSummary?: { filesWritten: string[] };
   };
-  assert.equal(writeCount, 1);
+  assert.equal(writeCount, 1, 'confirm-write should proceed even with advisory PRD blockers');
   assert.equal(state.operationStatus, 'succeeded');
-  assert.equal(state.warning, null);
+  assert.match(state.warning ?? '', /PRD readiness/i, 'warning should keep the PRD readiness findings visible');
   assert.deepEqual(state.writeSummary?.filesWritten, ['workspace/.ralph/prd.md', 'workspace/.ralph/tasks.json']);
   host.dispose();
 });
 
-test('wizard marks generated tasks stale when PRD text changes after task generation', async () => {
+test('wizard proceeds with stale-tasks guidance when PRD text changes after task generation', async () => {
   const webview = makeMockWebview();
   const prdDraft = makePrdDraft();
   let writeCount = 0;
@@ -312,7 +313,7 @@ test('wizard marks generated tasks stale when PRD text changes after task genera
     generateTasks: async (input) => makeTaskGenerationResult(input.prdText),
     writeDraft: async () => {
       writeCount += 1;
-      return { filesWritten: [] };
+      return { filesWritten: ['prd.md', 'tasks.json'] };
     }
   });
 
@@ -330,15 +331,16 @@ test('wizard marks generated tasks stale when PRD text changes after task genera
     tasksStale: boolean;
     warning?: string;
     taskGenerationMessage?: string;
+    operationStatus?: string;
   };
-  assert.equal(state.tasksStale, true);
-  assert.equal(writeCount, 0);
-  assert.match(state.warning ?? '', /stale/i);
-  assert.match(state.taskGenerationMessage ?? '', /regenerate tasks/i);
+  assert.equal(state.tasksStale, true, 'stale state should still be tracked');
+  assert.equal(writeCount, 1, 'confirm-write should proceed once with guidance');
+  assert.equal(state.operationStatus, 'succeeded');
+  assert.match(state.warning ?? '', /stale/i, 'warning should mention stale tasks');
   host.dispose();
 });
 
-test('epic-level starter tasks block confirm-write', async () => {
+test('epic-level starter tasks surface task-readiness guidance but proceed', async () => {
   const webview = makeMockWebview();
   let writeCount = 0;
   const prdDraft = makePrdDraft();
@@ -365,7 +367,7 @@ test('epic-level starter tasks block confirm-write', async () => {
     }),
     writeDraft: async () => {
       writeCount += 1;
-      return { filesWritten: [] };
+      return { filesWritten: ['prd.md', 'tasks.json'] };
     }
   });
 
@@ -377,9 +379,98 @@ test('epic-level starter tasks block confirm-write', async () => {
   webviewSends(webview, { type: 'confirm-write' });
   await new Promise((resolve) => setImmediate(resolve));
 
-  const state = lastStateMessage(webview).state as { warning?: string };
-  assert.equal(writeCount, 0);
-  assert.match(state.warning ?? '', /task readiness blockers/i);
+  const state = lastStateMessage(webview).state as { warning?: string; operationStatus?: string };
+  assert.equal(writeCount, 1, 'confirm-write should proceed once despite epic-task blockers');
+  assert.equal(state.operationStatus, 'succeeded');
+  assert.match(state.warning ?? '', /task readiness/i, 'warning should still flag the task-readiness guidance');
+  host.dispose();
+});
+
+test('confirm-write with zero tasks writes only the PRD and skips tasks.json', async () => {
+  const webview = makeMockWebview();
+  let writeCount = 0;
+  let capturedTaskCount = -1;
+  const prdDraft = makePrdDraft();
+
+  const host = new PrdCreationWizardHost({
+    webview: webview as unknown as import('vscode').Webview,
+    initialMode: 'new',
+    initialPaths: {
+      prdPath: path.join('workspace', '.ralph', 'prd.md'),
+      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
+    },
+    generatePrdDraft: async () => prdDraft,
+    generateTasks: async (input) => makeTaskGenerationResult(input.prdText),
+    writeDraft: async (draft) => {
+      writeCount += 1;
+      capturedTaskCount = draft.tasks.length;
+      return { filesWritten: ['prd.md'] };
+    }
+  });
+
+  webviewSends(webview, { type: 'update-field', field: 'objective', value: 'PRD only.' });
+  webviewSends(webview, { type: 'generate-prd-draft' });
+  await new Promise((resolve) => setImmediate(resolve));
+  // Skip task generation entirely
+  webviewSends(webview, { type: 'confirm-write' });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  const state = lastStateMessage(webview).state as {
+    operationStatus?: string;
+    warning?: string;
+    writeSummary?: { filesWritten: string[] } | null;
+  };
+  assert.equal(writeCount, 1);
+  assert.equal(capturedTaskCount, 0, 'host should pass an empty tasks list when none were generated');
+  assert.equal(state.operationStatus, 'succeeded');
+  assert.deepEqual(state.writeSummary?.filesWritten, ['prd.md']);
+  assert.match(state.warning ?? '', /no tasks/i, 'guidance should mention that tasks.json was untouched');
+  host.dispose();
+});
+
+test('confirm-write drops tasks with empty id or title and lists them in guidance', async () => {
+  const webview = makeMockWebview();
+  let capturedTaskCount = -1;
+  const prdDraft = makePrdDraft();
+
+  const host = new PrdCreationWizardHost({
+    webview: webview as unknown as import('vscode').Webview,
+    initialMode: 'new',
+    initialPaths: {
+      prdPath: path.join('workspace', '.ralph', 'prd.md'),
+      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
+    },
+    generatePrdDraft: async () => prdDraft,
+    generateTasks: async (_input) => ({
+      tasks: [
+        { id: 'T1', title: 'Persist PRD readiness', status: 'todo', acceptance: ['latest-prd-readiness.json is written'], validation: 'npm run validate' },
+        { id: '', title: 'Anonymous task', status: 'todo' },
+        { id: 'T3', title: '', status: 'todo' }
+      ],
+      planArtifact: makePlan(prdDraft.prdText, ['T1', '', 'T3'])
+    }),
+    writeDraft: async (draft) => {
+      capturedTaskCount = draft.tasks.length;
+      return { filesWritten: ['prd.md', 'tasks.json'] };
+    }
+  });
+
+  webviewSends(webview, { type: 'update-field', field: 'objective', value: 'Drop invalid tasks.' });
+  webviewSends(webview, { type: 'generate-prd-draft' });
+  await new Promise((resolve) => setImmediate(resolve));
+  webviewSends(webview, { type: 'generate-tasks' });
+  await new Promise((resolve) => setImmediate(resolve));
+  webviewSends(webview, { type: 'confirm-write' });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  const state = lastStateMessage(webview).state as {
+    operationStatus?: string;
+    warning?: string;
+  };
+  assert.equal(capturedTaskCount, 1, 'only the well-formed task should be written');
+  assert.equal(state.operationStatus, 'succeeded');
+  assert.match(state.warning ?? '', /missing id/i);
+  assert.match(state.warning ?? '', /missing title/i);
   host.dispose();
 });
 

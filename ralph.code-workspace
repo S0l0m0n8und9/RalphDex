@@ -6,22 +6,25 @@
 	],
 	"settings": {
 		"ralphCodex.claudeMaxTurns": 125,
-		"ralphCodex.cliProvider": "codex",
-		"ralphCodex.model": "gpt-5.4",
+		"ralphCodex.cliProvider": "claude",
+		"ralphCodex.model": "claude-opus-4-7",
 		"ralphCodex.promptBudgetProfile": "codex",
 		"ralphCodex.modelTiering": {
-			"enabled": false,
+			"enabled": true,
 			"simple": {
-				"model": "claude-haiku-4-5",
-				"provider": "claude"
+				"model": "claude-sonnet-4-6",
+				"provider": "claude",
+				"reasoningEffort": "medium"
 			},
 			"medium": {
 				"model": "claude-sonnet-4-6",
-				"provider": "claude"
+				"provider": "claude",
+				"reasoningEffort": "high"
 			},
 			"complex": {
-				"model": "claude-opus-4-6",
-				"provider": "claude"
+				"model": "claude-opus-4-7",
+				"provider": "claude",
+				"reasoningEffort": "high"
 			}
 		},
 		"ralphCodex.ralphIterationCap": 15,

@@ -396,22 +396,28 @@ function moveTask(tasks: PrdWizardTaskDraft[], taskId: string, direction: 'up' |
   return reordered;
 }
 
-function validateReviewedTasks(tasks: PrdWizardTaskDraft[]): string | null {
-  if (tasks.length === 0) {
-    return 'Review at least one task before writing files.';
-  }
+interface TaskPartition {
+  writable: PrdWizardTaskDraft[];
+  dropped: Array<{ task: PrdWizardTaskDraft; reason: string }>;
+}
+
+function partitionTasksForWrite(tasks: PrdWizardTaskDraft[]): TaskPartition {
+  const writable: PrdWizardTaskDraft[] = [];
+  const dropped: Array<{ task: PrdWizardTaskDraft; reason: string }> = [];
 
   for (const task of tasks) {
     if (!task.id.trim()) {
-      return 'Each reviewed task must keep a non-empty id before writing files.';
+      dropped.push({ task, reason: 'missing id' });
+      continue;
     }
-
     if (!task.title.trim()) {
-      return `Task ${task.id} must have a non-empty title before writing files.`;
+      dropped.push({ task, reason: 'missing title' });
+      continue;
     }
+    writable.push(task);
   }
 
-  return null;
+  return { writable, dropped };
 }
 
 const PLACEHOLDER_PATTERN = /\b(?:tbd|todo|placeholder|lorem ipsum|coming soon|fill in)\b/i;
@@ -1006,12 +1012,19 @@ export class PrdCreationWizardHost implements vscode.Disposable {
       return;
     }
 
+    const readiness = analyzePrdReadiness(prdText);
+    const readinessGuidance = readiness.blockers.length > 0
+      ? `PRD readiness has blockers — task generation will proceed but the results may need rework. ${readiness.blockers[0]}`
+      : null;
+
     this.bridge.send({ type: 'busy', value: true });
     this.state = {
       ...this.state,
       operationStatus: 'running',
-      operationMessage: 'Task generation started from reviewed PRD.',
-      warning: null,
+      operationMessage: readinessGuidance
+        ? `Task generation started despite PRD readiness blockers. ${readiness.blockers[0]}`
+        : 'Task generation started from approved PRD.',
+      warning: readinessGuidance,
       error: null
     };
     this.emitState();
@@ -1044,8 +1057,10 @@ export class PrdCreationWizardHost implements vscode.Disposable {
         taskGenerationStatus: generated.taskCountWarning ? 'weak' : 'generated',
         taskGenerationMessage: generated.taskCountWarning ?? 'Tasks generated from reviewed PRD.',
         operationStatus: 'succeeded',
-        operationMessage: 'Task generation completed.',
-        warning: null,
+        operationMessage: readinessGuidance
+          ? `Task generation completed despite PRD readiness blockers. ${readiness.blockers[0]}`
+          : 'Task generation completed.',
+        warning: readinessGuidance,
         error: null
       };
     } catch (error) {
@@ -1073,57 +1088,65 @@ export class PrdCreationWizardHost implements vscode.Disposable {
     }
 
     const draft = this.state.draft;
+    const guidance: string[] = [];
+
+    const readiness = analyzePrdReadiness(draft.prdText);
+    for (const blocker of readiness.blockers) {
+      guidance.push(`PRD readiness: ${blocker}`);
+    }
+
     if (this.state.tasksStale) {
-      this.state = {
-        ...this.state,
-        warning: 'Generated tasks are stale because PRD text changed. Regenerate tasks before writing.',
-        error: null
-      };
-      this.emitState();
-      return;
+      guidance.push('Tasks are stale because PRD text changed after task generation. The previously generated tasks will be written as-is unless you regenerate them first.');
     }
 
-    const taskValidationError = validateReviewedTasks(draft.tasks);
-    if (taskValidationError) {
-      this.state = {
-        ...this.state,
-        warning: taskValidationError,
-        error: null
-      };
-      this.emitState();
-      return;
+    const partition = partitionTasksForWrite(draft.tasks);
+    for (const drop of partition.dropped) {
+      const label = drop.task.id.trim() || drop.task.title.trim() || '(unnamed)';
+      guidance.push(`Skipped task "${label}" (${drop.reason}); fix or remove it to include it in tasks.json.`);
     }
 
-    const taskBlockers = analyzeTaskReviewFindings(draft.tasks).filter((finding) => finding.kind === 'blocker');
-    if (taskBlockers.length > 0) {
-      this.state = {
-        ...this.state,
-        warning: `Task readiness blockers remain. ${taskBlockers[0].message}`,
-        error: null
-      };
-      this.emitState();
-      return;
+    const taskBlockers = analyzeTaskReviewFindings(partition.writable).filter((finding) => finding.kind === 'blocker');
+    for (const blocker of taskBlockers) {
+      guidance.push(`Task readiness: ${blocker.message}`);
     }
+
+    if (partition.writable.length === 0 && draft.tasks.length > 0) {
+      guidance.push('No tasks had a non-empty id and title; tasks.json will not be rewritten.');
+    } else if (partition.writable.length === 0) {
+      guidance.push('No tasks generated yet; tasks.json will be left untouched and only prd.md will be written.');
+    }
+
+    const draftToWrite: PrdWizardDraftBundle = {
+      ...draft,
+      tasks: partition.writable
+    };
 
     this.bridge.send({ type: 'busy', value: true });
+    const guidancePrefix = guidance.length > 0 ? `${guidance.length} guidance item(s); ` : '';
     this.state = {
       ...this.state,
       operationStatus: 'running',
-      operationMessage: 'File write started. Writing prd.md and tasks.json.',
-      warning: null,
+      operationMessage: `${guidancePrefix}File write started.`,
+      warning: guidance.length > 0 ? guidance.join('\n') : null,
       error: null
     };
     this.emitState();
     try {
-      const result = await this.options.writeDraft(draft);
+      const result = await this.options.writeDraft(draftToWrite);
+      const writtenCount = result.filesWritten.length;
+      const summaryLine = writtenCount === 0
+        ? 'No files written.'
+        : `Wrote ${writtenCount} file(s): ${result.filesWritten.join(', ')}.`;
       this.state = {
         ...this.state,
         step: 6,
-        warning: null,
+        warning: guidance.length > 0 ? guidance.join('\n') : null,
         error: null,
         writeSummary: result,
         operationStatus: 'succeeded',
-        operationMessage: 'File write completed.'
+        operationMessage: guidance.length > 0
+          ? `${summaryLine} ${guidance.length} guidance item(s) recorded.`
+          : summaryLine
       };
       this.emitState();
       await this.options.onWriteComplete?.(result);

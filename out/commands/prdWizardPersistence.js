@@ -44,20 +44,26 @@ function normalizeWizardTasksForPersistence(newTasks) {
     return (0, taskCreation_1.normalizeTaskInputsForPersistence)(newTasks);
 }
 async function replaceTasksFile(tasksPath, newTasks) {
+    if (newTasks.length === 0) {
+        return;
+    }
     await (0, taskCreation_1.replaceTasksFileWithNormalizedTasks)(tasksPath, newTasks);
 }
 async function writePrdWizardDraft(draft, paths) {
+    const filesWritten = [];
     await fs.mkdir(path.dirname(paths.prdPath), { recursive: true });
     await fs.writeFile(paths.prdPath, draft.prdText, 'utf8');
-    await replaceTasksFile(paths.tasksPath, draft.tasks);
+    filesWritten.push(paths.prdPath);
+    if (draft.tasks.length > 0) {
+        await replaceTasksFile(paths.tasksPath, draft.tasks);
+        filesWritten.push(paths.tasksPath);
+    }
     if (draft.taskGenerationPlan && paths.artifactDir) {
         await (0, prdReadiness_1.persistTaskGenerationPlanArtifact)(paths.artifactDir, {
             ...draft.taskGenerationPlan,
             status: 'approved'
         });
     }
-    return {
-        filesWritten: [paths.prdPath, paths.tasksPath]
-    };
+    return { filesWritten };
 }
 //# sourceMappingURL=prdWizardPersistence.js.map

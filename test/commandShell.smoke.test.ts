@@ -1895,7 +1895,7 @@ test('Prompt-start commands open the PRD wizard and skip prompt preparation when
   }
 });
 
-test('Prompt and run commands persist readiness artifacts and skip provider work when PRD has blockers', async () => {
+test('Prompt and run commands persist readiness artifacts and proceed with guidance when PRD has blockers', async () => {
   const commands = [
     'ralphCodex.generatePrompt',
     'ralphCodex.runRalphIteration'
@@ -1914,7 +1914,7 @@ test('Prompt and run commands persist readiness artifacts and skip provider work
     await withMockedPreparePrompt(
       async () => {
         prepareCalls += 1;
-        throw new Error('preparePrompt should not run while PRD readiness has blockers');
+        return undefined as never;
       },
       async () => {
         await withMockedRunCliIteration(
@@ -1930,10 +1930,21 @@ test('Prompt and run commands persist readiness artifacts and skip provider work
       }
     );
 
-    assert.equal(prepareCalls, 0, `${command} should not prepare a provider-facing prompt`);
-    assert.equal(runCalls, 0, `${command} should not execute provider work`);
-    assert.equal(harness.state.createdWebviewPanels.at(-1)?.viewType, 'ralphCodex.prdCreationWizard');
-    assert.match(harness.state.warningMessages.at(-1)?.message ?? '', /PRD readiness.*complete/i);
+    if (command === 'ralphCodex.generatePrompt') {
+      assert.equal(prepareCalls, 1, `${command} should proceed past readiness blockers and prepare the prompt`);
+    } else {
+      assert.equal(runCalls, 1, `${command} should proceed past readiness blockers and execute the iteration`);
+    }
+
+    const wizardPanelOpened = harness.state.createdWebviewPanels.some(
+      (panel) => panel.viewType === 'ralphCodex.prdCreationWizard'
+    );
+    assert.equal(wizardPanelOpened, false, `${command} should not auto-open the PRD wizard for readiness blockers`);
+
+    const readinessWarningSeen = harness.state.warningMessages.some(
+      (entry) => /structural finding|readiness/i.test(entry.message)
+    );
+    assert.ok(readinessWarningSeen, `${command} should surface a non-blocking readiness warning`);
 
     const readinessSummaryPath = path.join(rootPath, '.ralph', 'artifacts', 'latest-prd-readiness-summary.md');
     const readinessSummary = await fs.readFile(readinessSummaryPath, 'utf8');
@@ -2710,7 +2721,7 @@ test('Run Pipeline routes to task generation when the latest task-generation pla
   );
 });
 
-test('Run Pipeline blocks on weak PRD readiness before scaffold or execution', async () => {
+test('Run Pipeline persists readiness artifacts and surfaces guidance when PRD has blockers', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath);
   await fs.writeFile(path.join(rootPath, '.ralph', 'prd.md'), '# Placeholder\n\n## Overview\nTODO\n', 'utf8');
@@ -2718,10 +2729,8 @@ test('Run Pipeline blocks on weak PRD readiness before scaffold or execution', a
   const harness = vscodeTestHarness();
   harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
 
-  let runCalls = 0;
   await withMockedRunCliIteration(
     async (workspaceFolderArg, mode) => {
-      runCalls += 1;
       return createMockRun(workspaceFolderArg.uri.fsPath, mode, null, {
         followUpAction: 'continue_next_task'
       });
@@ -2732,11 +2741,19 @@ test('Run Pipeline blocks on weak PRD readiness before scaffold or execution', a
     }
   );
 
-  assert.equal(runCalls, 0, 'runPipeline must stop before execution when readiness blockers exist');
   const readinessSummaryPath = path.join(rootPath, '.ralph', 'artifacts', 'latest-prd-readiness-summary.md');
   const readinessSummary = await fs.readFile(readinessSummaryPath, 'utf8');
-  assert.match(readinessSummary, /Blockers/i);
-  assert.match(harness.state.warningMessages.at(-1)?.message ?? '', /readiness blockers/i);
+  assert.match(readinessSummary, /Blockers/i, 'readiness summary should still be persisted for inspection');
+
+  const readinessWarningSeen = harness.state.warningMessages.some(
+    (entry) => /structural finding|readiness/i.test(entry.message)
+  );
+  assert.ok(readinessWarningSeen, 'runPipeline should surface a non-blocking readiness warning');
+
+  const wizardPanelOpened = harness.state.createdWebviewPanels.some(
+    (panel) => panel.viewType === 'ralphCodex.prdCreationWizard'
+  );
+  assert.equal(wizardPanelOpened, false, 'runPipeline should not auto-open the PRD wizard for readiness blockers');
 });
 
 test('Task seeding commands open the PRD wizard and skip provider task generation when PRD is default', async () => {
