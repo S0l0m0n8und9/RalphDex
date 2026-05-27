@@ -1,11 +1,12 @@
 import { LINKS } from '../content/siteContent';
+import ralphIconUrl from '../assets/ralph-icon.svg';
 
 export function Footer() {
   return (
     <footer className="footer">
       <div className="container footer-inner">
         <div className="brand footer-brand">
-          <img src="/ralph-icon.svg" alt="" />
+          <img src={ralphIconUrl} alt="" />
           <span>Ralphdex</span>
         </div>
         <p>Durable agentic coding loops for VS Code.</p>

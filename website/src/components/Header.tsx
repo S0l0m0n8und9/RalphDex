@@ -1,11 +1,13 @@
 import { LINKS } from '../content/siteContent';
 
+import ralphIconUrl from '../assets/ralph-icon.svg';
+
 export function Header() {
   return (
     <header className="site-header">
       <nav className="container nav" aria-label="Main navigation">
         <a className="brand" href="/" aria-label="Ralphdex home">
-          <img src="/ralph-icon.svg" alt="" />
+          <img src={ralphIconUrl} alt="" />
           <span>Ralphdex</span>
         </a>
         <div className="nav-links">

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import iconSource from '../public/ralph-icon.svg?raw';
+import iconSource from './assets/ralph-icon.svg?raw';
 
 describe('Ralphdex website icon', () => {
   it('carries explicit high-contrast colors when embedded as an image', () => {

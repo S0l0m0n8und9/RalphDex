@@ -5,7 +5,7 @@ import { LINKS } from './content/siteContent';
 
 describe('Ralphdex landing page', () => {
   it('presents launch CTAs and the core workflow', () => {
-    render(<App />);
+    const { container } = render(<App />);
 
     expect(
       screen.getByRole('heading', { name: /durable, file-backed agentic coding loops/i }),
@@ -24,5 +24,6 @@ describe('Ralphdex landing page', () => {
     );
     expect(screen.getByText(/define work/i)).toBeInTheDocument();
     expect(screen.getByText(/inspect evidence/i)).toBeInTheDocument();
+    expect(container.querySelector('img[src="/ralph-icon.svg"]')).not.toBeInTheDocument();
   });
 });
