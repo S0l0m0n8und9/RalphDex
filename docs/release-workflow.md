@@ -88,6 +88,24 @@ Confirm at minimum:
 - the README renders the install and post-install tour sections correctly
 - the icon, banner, and repo/support links resolve to the current Ralphdex project
 
+## Skipped or undocumented versions
+
+If a version number was bumped in `package.json` but never had a CHANGELOG entry written (for example, intermediate preparatory bumps that were superseded before publishing), backfill the entry from the corresponding commits rather than leaving a gap. To identify what belongs in the entry, run:
+
+```bash
+git log --oneline <previous-version-bump-sha>..<this-version-bump-sha>
+```
+
+Add the backfilled entry in the correct chronological position in CHANGELOG.md with the date from the version-bump commit (`git show --format="%ci" --no-patch <sha>`). If the version was intentionally abandoned with no meaningful changes, add a one-line note in its place:
+
+```markdown
+## [x.y.z] — YYYY-MM-DD
+
+> Preparatory version bump — superseded before publishing; no operator-visible changes.
+```
+
+Do not leave silent gaps — future maintainers and downstream tooling rely on a contiguous version history.
+
 ## Rollback
 
 If a bad version ships, yank it from the Marketplace management page and publish a patch release.  

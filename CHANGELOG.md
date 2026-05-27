@@ -41,6 +41,31 @@ All notable changes to Ralphdex are documented here.
 
 - Upgraded the Ralphdex UI with the latest React webview dashboard/sidebar improvements, including refined information architecture and diagnostics/doctrine visibility behavior.
 
+## [1.1.4] — 2026-05-06
+
+### Changed
+
+- Refactored command titles and descriptions for clarity across the extension.
+- Updated Node.js version requirement to 22 in package files.
+- Added UI fixture harness, evidence checklist, and dogfood report script for operator diagnostics.
+- Allowed empty `reasoningEffort` to omit the explicit flag in Codex and Copilot CLI providers.
+
+## [1.1.3] — 2026-05-06
+
+### Added
+
+- Added explicit doctrine-pack scaffold and repair command for established Ralph workspaces.
+- Surfaced doctrine-repair guidance in status output and dashboard flows when doctrine is missing or incomplete.
+- Implemented doctrine proposal application logic with test coverage.
+- Added command to open the latest doctrine proposal.
+- Implemented baseline offline evaluation harness fixtures.
+
+### Changed
+
+- Set extension config defaults to agentic values.
+- Enhanced model tiering configuration and reasoning-effort handling.
+- Enhanced workspace change detection to reduce spurious loop interruptions.
+
 ## [1.1.2] — 2026-04-27
 
 ### Changed

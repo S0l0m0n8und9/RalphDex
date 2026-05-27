@@ -2721,6 +2721,84 @@ test('Run Pipeline routes to task generation when the latest task-generation pla
   );
 });
 
+test('Readiness warning suppression: "Don\'t show again" silences future warnings for the same PRD content', async () => {
+  const rootPath = await makeTempRoot();
+  await seedReadinessBlockedPrdWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.reset();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const sharedContext = createExtensionContext();
+  let runCalls = 0;
+  await withMockedRunCliIteration(
+    async (workspaceFolderArg, mode) => {
+      runCalls += 1;
+      return createMockRun(workspaceFolderArg.uri.fsPath, mode, null);
+    },
+    async () => {
+      activate(sharedContext);
+
+      // First invocation — operator clicks "Don't show again".
+      harness.setMessageChoice("Don't show again");
+      await vscode.commands.executeCommand('ralphCodex.runRalphIteration');
+      const warningsAfterFirst = harness.state.warningMessages.filter(
+        (entry) => /structural finding/i.test(entry.message)
+      ).length;
+      assert.equal(warningsAfterFirst, 1, 'first invocation should surface the readiness warning');
+
+      // Second invocation — should be suppressed for the same PRD content.
+      harness.setMessageChoice(undefined);
+      await vscode.commands.executeCommand('ralphCodex.runRalphIteration');
+      const warningsAfterSecond = harness.state.warningMessages.filter(
+        (entry) => /structural finding/i.test(entry.message)
+      ).length;
+      assert.equal(warningsAfterSecond, 1, 'second invocation should not re-surface the readiness warning');
+      assert.equal(runCalls, 2, 'both iterations should still execute past the readiness gate');
+    }
+  );
+});
+
+test('Readiness warning suppression: editing the PRD re-surfaces the warning', async () => {
+  const rootPath = await makeTempRoot();
+  await seedReadinessBlockedPrdWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.reset();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const sharedContext = createExtensionContext();
+  await withMockedRunCliIteration(
+    async (workspaceFolderArg, mode) => createMockRun(workspaceFolderArg.uri.fsPath, mode, null),
+    async () => {
+      activate(sharedContext);
+
+      // Suppress for the current PRD content.
+      harness.setMessageChoice("Don't show again");
+      await vscode.commands.executeCommand('ralphCodex.runRalphIteration');
+
+      // Edit the PRD — same incomplete shape, but different content/hash.
+      await fs.writeFile(path.join(rootPath, '.ralph', 'prd.md'), [
+        '# Real but still incomplete PRD',
+        '',
+        '## Overview',
+        'Different content — should re-surface the warning even though structural findings remain.',
+        '',
+        '## Goals',
+        'Verify suppression keys on PRD hash, not workspace alone.'
+      ].join('\n'), 'utf8');
+
+      harness.setMessageChoice(undefined);
+      await vscode.commands.executeCommand('ralphCodex.runRalphIteration');
+
+      const warningsAfter = harness.state.warningMessages.filter(
+        (entry) => /structural finding/i.test(entry.message)
+      ).length;
+      assert.equal(warningsAfter, 2, 'editing the PRD should re-surface the readiness warning');
+    }
+  );
+});
+
 test('Run Pipeline persists readiness artifacts and surfaces guidance when PRD has blockers', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath);

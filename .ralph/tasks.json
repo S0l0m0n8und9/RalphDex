@@ -6399,8 +6399,8 @@
     {
       "id": "T223",
       "title": "Reconcile or document the CHANGELOG version-numbering gap (missing 1.1.3 and 1.1.4)",
-      "status": "todo",
-      "notes": "CHANGELOG.md jumps from `## [1.1.5]` directly to `## [1.1.2]` with no entries for 1.1.3 or 1.1.4. Either backfill the missing entries from the corresponding commits or add an explicit note in CHANGELOG/release-workflow explaining that those numbers were intentionally skipped (e.g. abandoned Marketplace republish attempts).",
+      "status": "done",
+      "notes": "Backfilled CHANGELOG entries for 1.1.3 (doctrine commands, offline eval fixtures, workspace change detection) and 1.1.4 (command clarity refactor, Node 22, UI fixture harness, reasoningEffort fix) from git commit history. Added 'Skipped or undocumented versions' section to docs/release-workflow.md with the convention for recording future gaps.",
       "validation": "npm run check:docs",
       "priority": "normal",
       "mode": "documentation",
@@ -6418,7 +6418,8 @@
         "CHANGELOG.md",
         "docs/release-workflow.md",
         "package.json"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T224",
@@ -6524,5 +6525,5 @@
       ]
     }
   ],
-  "mutationCount": 270
+  "mutationCount": 271
 }

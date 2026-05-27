@@ -593,23 +593,36 @@ export function registerCommands(
     // and let the command proceed — the operator's PRD is the source of truth.
     const blockerCount = gate.readiness.blockers.length;
     const summaryPath = gate.readinessArtifactPaths?.summaryPath ?? null;
-    void vscode.window.showWarningMessage(
-      `PRD has ${blockerCount} structural finding(s) flagged by readiness analysis. Continuing the command — open the wizard or the readiness report if you want to address them.`,
-      'Open Readiness Report',
-      'Open PRD Wizard'
-    ).then((choice) => {
-      if (choice === 'Open Readiness Report' && summaryPath) {
-        void openTextFile(summaryPath);
-      } else if (choice === 'Open PRD Wizard') {
-        void openPrdCreationWizard(panelManager, workspaceFolder, config, gate.paths, logger, {
-          mode: 'regenerate',
-          initialObjective: gate.prdText,
-          initialPrdPreview: gate.prdText,
-          initialStep: 3
-        });
-      }
+    const suppressionKey = `prdReadinessWarning.suppressedHash.${workspaceFolder.uri.fsPath}`;
+    const suppressedHash = context.workspaceState.get<string>(suppressionKey);
+    const isSuppressed = suppressedHash === gate.readiness.prdHash;
+
+    if (!isSuppressed) {
+      void vscode.window.showWarningMessage(
+        `PRD has ${blockerCount} structural finding(s) flagged by readiness analysis. Continuing the command — open the wizard or the readiness report if you want to address them.`,
+        'Open Readiness Report',
+        'Open PRD Wizard',
+        "Don't show again"
+      ).then((choice) => {
+        if (choice === 'Open Readiness Report' && summaryPath) {
+          void openTextFile(summaryPath);
+        } else if (choice === 'Open PRD Wizard') {
+          void openPrdCreationWizard(panelManager, workspaceFolder, config, gate.paths, logger, {
+            mode: 'regenerate',
+            initialObjective: gate.prdText,
+            initialPrdPreview: gate.prdText,
+            initialStep: 3
+          });
+        } else if (choice === "Don't show again") {
+          void context.workspaceState.update(suppressionKey, gate.readiness.prdHash);
+        }
+      });
+    }
+    progress.report({
+      message: isSuppressed
+        ? `PRD readiness has ${blockerCount} finding(s) — proceeding (warning suppressed for this PRD).`
+        : `PRD readiness has ${blockerCount} finding(s) — proceeding with guidance.`
     });
-    progress.report({ message: `PRD readiness has ${blockerCount} finding(s) — proceeding with guidance.` });
     return {
       status: 'ready',
       paths: gate.paths,
