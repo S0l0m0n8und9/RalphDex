@@ -25,5 +25,6 @@ describe('Ralphdex landing page', () => {
     expect(screen.getByText(/define work/i)).toBeInTheDocument();
     expect(screen.getByText(/inspect evidence/i)).toBeInTheDocument();
     expect(container.querySelector('img[src="/ralph-icon.svg"]')).not.toBeInTheDocument();
+    expect(container.querySelector('img[src^="data:image"]')).not.toBeInTheDocument();
   });
 });
