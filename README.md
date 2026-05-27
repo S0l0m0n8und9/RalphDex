@@ -61,6 +61,12 @@ Ralphdex ships to the VS Code Marketplace under the extension identifier `s0l0m0
 - [docs/release-workflow.md](docs/release-workflow.md) for version bump, packaging, and publish steps
 - [CHANGELOG.md](CHANGELOG.md) for operator-visible release notes
 
+## Website And Technical Documentation
+
+The public landing page for Ralphdex is maintained in [`website/`](website/) and published at [ralphdex.com](https://ralphdex.com). It presents the product, installation path, workflow, and evidence-first operating model using the same visual language as the shipped dashboard.
+
+For generated architecture navigation and code-grounded exploration, use the [Ralphdex DeepWiki](https://deepwiki.com/S0l0m0n8und9/RalphDex). Repository code, `package.json`, and the focused documents under [`docs/`](docs/) remain authoritative for shipped commands, configuration, verifier behavior, provenance, and security boundaries.
+
 ## CLI Shim
 
 Use `node out/shim/main.js <workspace-path>` to run one Ralph CLI iteration outside the VS Code extension host. The shim reads `.ralph-config.json` plus `RALPH_CODEX_*` environment overrides from the target workspace, streams Ralph output to stdout, and stays out of the packaged VSIX payload.

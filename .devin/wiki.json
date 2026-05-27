@@ -1,0 +1,16 @@
+{
+  "repo_notes": [
+    {
+      "author": "Ralphdex maintainers",
+      "content": "Ralphdex is a VS Code extension and file-backed orchestration harness for reviewable agentic coding loops. It is not a general agent platform or autonomous kernel. The canonical behavioral sources are package.json, shipped code under src/, and focused repository documents under docs/; the public website is an authored product introduction."
+    },
+    {
+      "author": "Ralphdex maintainers",
+      "content": "Prioritize documentation of durable .ralph/ workspace state, prompt preparation and provider execution paths, deterministic verification and provenance artifacts, stop/remediation behavior, and the command-driven operator workflows described in docs/workflows.md, docs/verifier.md, docs/provenance.md, and docs/security.md."
+    },
+    {
+      "author": "Ralphdex maintainers",
+      "content": "The shipped VS Code UI is owned by src/webview/ and src/webview-ui/. The website/ React application is a separate public landing page deployed as static content in a local Docker container behind Cloudflare Tunnel. Explain this boundary explicitly and do not treat marketing illustrations as live extension functionality."
+    }
+  ]
+}
