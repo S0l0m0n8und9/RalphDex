@@ -5,6 +5,7 @@ COPY package*.json ./
 RUN npm ci
 COPY . .
 RUN npm run build
+RUN chmod -R a+rX /app/dist
 
 FROM nginxinc/nginx-unprivileged:alpine
 
