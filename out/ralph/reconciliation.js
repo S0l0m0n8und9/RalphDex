@@ -160,18 +160,7 @@ async function reconcileCompletionReport(input) {
     const applied = await applyMutationUnderLock(input, state, plan);
     if (applied.verificationResult.claimContested) {
         warnings.push(`Completion report claim ownership check failed for ${state.selectedTask.id}; canonical holder was ${applied.verificationResult.canonicalHolder ?? 'none'}.`);
-        return {
-            artifact: {
-                ...artifactBase,
-                rejectionReason: 'claim_contested',
-                warnings
-            },
-            selectedTask: state.selectedTask,
-            progressChanged: false,
-            taskFileChanged: false,
-            claimContested: true,
-            warnings
-        };
+        return buildRejectedOutcome(state, artifactBase, 'claim_contested', warnings, false);
     }
     const post = await runPostWriteStages(input, state, plan, applied, warnings);
     if (warnings.length > 0) {

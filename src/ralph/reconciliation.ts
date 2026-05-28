@@ -1,6 +1,6 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { Logger } from '../services/logger';
+import type { Logger } from '../services/logger';
 import { CompletionReportArtifact, parseCompletionReport } from './completionReportParser';
 import { writeWatchdogDiagnosticArtifact, planGraphPath } from './artifactStore';
 import { readPlanGraph, validateFanIn } from './planGraph';
@@ -202,18 +202,7 @@ export async function reconcileCompletionReport(
     warnings.push(
       `Completion report claim ownership check failed for ${state.selectedTask.id}; canonical holder was ${applied.verificationResult.canonicalHolder ?? 'none'}.`
     );
-    return {
-      artifact: {
-        ...artifactBase,
-        rejectionReason: 'claim_contested',
-        warnings
-      },
-      selectedTask: state.selectedTask,
-      progressChanged: false,
-      taskFileChanged: false,
-      claimContested: true,
-      warnings
-    };
+    return buildRejectedOutcome(state, artifactBase, 'claim_contested', warnings, false);
   }
 
   const post = await runPostWriteStages(input, state, plan, applied, warnings);
