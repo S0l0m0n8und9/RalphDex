@@ -237,14 +237,53 @@ const blockedOverrideGate: Gate<'blockedOverride'> = {
   }
 };
 
+const planValidationGate: Gate<'planValidation'> = {
+  id: 'planValidation',
+  appliesTo: () => true,
+  run: (state) => {
+    const suggestedValidationFromPlan = state.suggestedValidationFromPlan;
+    const output = { suggestedValidationFromPlan };
+    const base = state.prepared.validationCommand;
+    if (!base || !suggestedValidationFromPlan) {
+      return { kind: 'pass', output };
+    }
+    const normalBase = base.trim().replace(/\s+/g, ' ');
+    const normalSuggested = suggestedValidationFromPlan.trim().replace(/\s+/g, ' ');
+    const supersets = normalSuggested !== normalBase
+      && (normalSuggested.startsWith(normalBase + ' ')
+        || normalSuggested.startsWith(normalBase + '&')
+        || normalSuggested.startsWith(normalBase + '|'));
+    if (!supersets) {
+      return { kind: 'pass', output };
+    }
+    return {
+      kind: 'warn',
+      output,
+      warnings: [
+        `planner_suggested_stronger_validation_not_used: planner suggested "${suggestedValidationFromPlan}" but Ralph used "${base}". Consider adopting the stronger command in the task's validation field.`
+      ]
+    };
+  }
+};
+
+// Terminal pass marker: confirms the pipeline ran to completion.  Reserved as a
+// hook for future heartbeat/in_progress observability that the composer can
+// read without consulting accumulated warnings.
+const heartbeatGate: Gate<'heartbeat'> = {
+  id: 'heartbeat',
+  appliesTo: () => true,
+  run: () => ({ kind: 'pass', output: undefined })
+};
+
 // Fixed sequence — there is exactly one caller and one ordering.
-// Gates are appended as they migrate over from reconciliation.ts.
 const GATE_SEQUENCE: readonly Gate<keyof GateOutputs>[] = [
   taskIdMatchGate,
   policyGate,
   handoffScopeGate,
   verificationGate,
-  blockedOverrideGate
+  blockedOverrideGate,
+  planValidationGate,
+  heartbeatGate
 ] as const;
 
 export function runGatePipeline(state: ReconciliationState): PipelineResult {

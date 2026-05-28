@@ -180,23 +180,8 @@ export async function reconcileCompletionReport(
 
   let taskFileChanged = false;
   let progressChanged = false;
-  const suggestedValidationFromPlan = state.suggestedValidationFromPlan;
-
-  // Advisory: if the planner proposed a validation command that is a strict
-  // superset of the one Ralph is actually using, warn so operators can decide
-  // whether to adopt the stronger command in the task definition.
-  if (state.prepared.validationCommand && suggestedValidationFromPlan) {
-    const normalBase = state.prepared.validationCommand.trim().replace(/\s+/g, ' ');
-    const normalSuggested = suggestedValidationFromPlan.trim().replace(/\s+/g, ' ');
-    if (normalSuggested !== normalBase
-      && (normalSuggested.startsWith(normalBase + ' ')
-        || normalSuggested.startsWith(normalBase + '&')
-        || normalSuggested.startsWith(normalBase + '|'))) {
-      warnings.push(
-        `planner_suggested_stronger_validation_not_used: planner suggested "${suggestedValidationFromPlan}" but Ralph used "${state.prepared.validationCommand}". Consider adopting the stronger command in the task's validation field.`
-      );
-    }
-  }
+  const suggestedValidationFromPlan = pipelineResult.outputs.planValidation?.suggestedValidationFromPlan
+    ?? state.suggestedValidationFromPlan;
 
   // Claim ownership re-check, task-file write, and progress.md append all happen inside a
   // single task-file lock to eliminate the TOCTOU window and the unprotected progress.md
