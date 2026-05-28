@@ -29,7 +29,35 @@ import {
 } from './types';
 import { getEffectivePolicy } from './rolePolicy';
 import type { PreparedIterationContext } from './iterationPreparation';
-import type { ReconciliationState } from './reconciliationGates';
+import {
+  type ReconciliationState,
+  type RejectionReason,
+  runGatePipeline
+} from './reconciliationGates';
+
+function buildRejectedOutcome(
+  state: ReconciliationState,
+  artifactBase: CompletionReportArtifact,
+  reason: RejectionReason,
+  warnings: readonly string[],
+  needsHumanReview: boolean
+): CompletionReconciliationOutcome {
+  const warningList = [...warnings];
+  return {
+    artifact: {
+      ...artifactBase,
+      status: 'rejected',
+      rejectionReason: reason,
+      warnings: warningList,
+      ...(needsHumanReview ? { needsHumanReview: true } : {})
+    },
+    selectedTask: state.selectedTask,
+    progressChanged: false,
+    taskFileChanged: false,
+    claimContested: reason === 'claim_contested',
+    warnings: warningList
+  };
+}
 
 type PreludeResult =
   | { kind: 'shortcircuit'; outcome: CompletionReconciliationOutcome }
@@ -135,23 +163,17 @@ export async function reconcileCompletionReport(
   const report = state.report;
 
   const warnings: string[] = [...artifactBase.warnings];
-  if (report.selectedTaskId !== state.selectedTask.id) {
-    warnings.push(
-      `Completion report selectedTaskId ${report.selectedTaskId} did not match the selected task ${state.selectedTask.id}.`
+  const pipelineResult = runGatePipeline(state);
+  if (pipelineResult.kind === 'rejected') {
+    return buildRejectedOutcome(
+      state,
+      artifactBase,
+      pipelineResult.reason,
+      [...warnings, ...pipelineResult.warnings],
+      pipelineResult.needsHumanReview
     );
-    return {
-      artifact: {
-        ...artifactBase,
-        rejectionReason: 'task_id_mismatch',
-        warnings
-      },
-      selectedTask: state.selectedTask,
-      progressChanged: false,
-      taskFileChanged: false,
-      claimContested: false,
-      warnings
-    };
   }
+  warnings.push(...pipelineResult.warnings);
 
   // Policy enforcement: check requested mutation and proposed actions against
   // the role's allowedTaskStateMutations / allowedNodeKinds before doing any

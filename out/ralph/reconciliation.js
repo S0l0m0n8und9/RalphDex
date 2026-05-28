@@ -44,6 +44,24 @@ const handoffManager_1 = require("./handoffManager");
 const taskFile_1 = require("./taskFile");
 const taskCreation_1 = require("./taskCreation");
 const rolePolicy_1 = require("./rolePolicy");
+const reconciliationGates_1 = require("./reconciliationGates");
+function buildRejectedOutcome(state, artifactBase, reason, warnings, needsHumanReview) {
+    const warningList = [...warnings];
+    return {
+        artifact: {
+            ...artifactBase,
+            status: 'rejected',
+            rejectionReason: reason,
+            warnings: warningList,
+            ...(needsHumanReview ? { needsHumanReview: true } : {})
+        },
+        selectedTask: state.selectedTask,
+        progressChanged: false,
+        taskFileChanged: false,
+        claimContested: reason === 'claim_contested',
+        warnings: warningList
+    };
+}
 async function buildReconciliationPrelude(input) {
     const parsed = (0, completionReportParser_1.parseCompletionReport)(input.lastMessage);
     const artifactBase = {
@@ -115,21 +133,11 @@ async function reconcileCompletionReport(input) {
     const { state, artifactBase } = prelude;
     const report = state.report;
     const warnings = [...artifactBase.warnings];
-    if (report.selectedTaskId !== state.selectedTask.id) {
-        warnings.push(`Completion report selectedTaskId ${report.selectedTaskId} did not match the selected task ${state.selectedTask.id}.`);
-        return {
-            artifact: {
-                ...artifactBase,
-                rejectionReason: 'task_id_mismatch',
-                warnings
-            },
-            selectedTask: state.selectedTask,
-            progressChanged: false,
-            taskFileChanged: false,
-            claimContested: false,
-            warnings
-        };
+    const pipelineResult = (0, reconciliationGates_1.runGatePipeline)(state);
+    if (pipelineResult.kind === 'rejected') {
+        return buildRejectedOutcome(state, artifactBase, pipelineResult.reason, [...warnings, ...pipelineResult.warnings], pipelineResult.needsHumanReview);
     }
+    warnings.push(...pipelineResult.warnings);
     // Policy enforcement: check requested mutation and proposed actions against
     // the role's allowedTaskStateMutations / allowedNodeKinds before doing any
     // task-file write.

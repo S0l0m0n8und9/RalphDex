@@ -6,9 +6,30 @@ exports.composeMutationPlan = composeMutationPlan;
 function assertNever(x) {
     throw new Error(`Unhandled discriminant: ${JSON.stringify(x)}`);
 }
+// ---------------------------------------------------------------------------
+// Gate implementations
+// ---------------------------------------------------------------------------
+const taskIdMatchGate = {
+    id: 'taskIdMatch',
+    appliesTo: () => true,
+    run: (state) => {
+        if (state.report.selectedTaskId === state.selectedTask.id) {
+            return { kind: 'pass', output: undefined };
+        }
+        return {
+            kind: 'reject',
+            reason: 'task_id_mismatch',
+            warnings: [
+                `Completion report selectedTaskId ${state.report.selectedTaskId} did not match the selected task ${state.selectedTask.id}.`
+            ]
+        };
+    }
+};
 // Fixed sequence — there is exactly one caller and one ordering.
 // Gates are appended as they migrate over from reconciliation.ts.
-const GATE_SEQUENCE = [];
+const GATE_SEQUENCE = [
+    taskIdMatchGate
+];
 function runGatePipeline(state) {
     const outputs = {};
     const accumulatedWarnings = [];
