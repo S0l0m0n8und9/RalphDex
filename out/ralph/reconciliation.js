@@ -138,11 +138,7 @@ async function reconcileCompletionReport(input) {
         return buildRejectedOutcome(state, artifactBase, pipelineResult.reason, [...warnings, ...pipelineResult.warnings], pipelineResult.needsHumanReview);
     }
     warnings.push(...pipelineResult.warnings);
-    let handoffScopeViolation = false;
-    if (state.acceptedHandoffs.some((h) => h.taskId !== report.selectedTaskId)) {
-        warnings.push('Completion report task does not match accepted handoff scope; downgrading to review required');
-        handoffScopeViolation = true;
-    }
+    const handoffScopeViolation = pipelineResult.outputs.handoffScope?.violation ?? false;
     const requestedStatus = report.requestedStatus;
     if (requestedStatus === 'done') {
         // Allow reconciliation when the validation command passed, even if gitDiff

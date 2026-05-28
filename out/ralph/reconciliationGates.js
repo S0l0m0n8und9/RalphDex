@@ -60,11 +60,29 @@ const policyGate = {
         };
     }
 };
+const handoffScopeGate = {
+    id: 'handoffScope',
+    appliesTo: () => true,
+    run: (state) => {
+        const violation = state.acceptedHandoffs.some((h) => h.taskId !== state.report.selectedTaskId);
+        if (!violation) {
+            return { kind: 'pass', output: { violation: false } };
+        }
+        return {
+            kind: 'warn',
+            output: { violation: true },
+            warnings: [
+                'Completion report task does not match accepted handoff scope; downgrading to review required'
+            ]
+        };
+    }
+};
 // Fixed sequence — there is exactly one caller and one ordering.
 // Gates are appended as they migrate over from reconciliation.ts.
 const GATE_SEQUENCE = [
     taskIdMatchGate,
-    policyGate
+    policyGate,
+    handoffScopeGate
 ];
 function runGatePipeline(state) {
     const outputs = {};
