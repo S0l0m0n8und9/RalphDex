@@ -1,4 +1,5 @@
 import type { PreparedIterationContext } from './iterationPreparation';
+import { isDocumentationMode } from './taskFile';
 import type {
   RalphCompletionClassification,
   RalphCompletionReport,
@@ -151,6 +152,56 @@ const policyGate: Gate<'policy'> = {
   }
 };
 
+const verificationGate: Gate<'verification'> = {
+  id: 'verification',
+  appliesTo: (state) => state.report.requestedStatus === 'done',
+  run: (state) => {
+    const { report, selectedTask, prepared, validationCommandStatus, verificationStatus, acceptedHandoffs } = state;
+    const validationGatePassed = validationCommandStatus === 'passed';
+    const docMode = isDocumentationMode(selectedTask);
+    const taskStateOnlyGate = prepared.config.verifierModes.includes('taskState')
+      && !prepared.config.verifierModes.includes('validationCommand')
+      && !prepared.config.verifierModes.includes('gitDiff')
+      && prepared.config.gitCheckpointMode !== 'snapshotAndDiff';
+
+    const localWarnings: string[] = [];
+    if (!validationGatePassed && verificationStatus !== 'passed' && !docMode && !taskStateOnlyGate) {
+      localWarnings.push(`Completion report requested done, but verification status was ${verificationStatus}.`);
+    }
+    if (report.needsHumanReview) {
+      localWarnings.push('Completion report requested done while also declaring needsHumanReview.');
+    }
+
+    // Parity with pre-pipeline behavior: a handoff-scope violation accompanying a
+    // 'done' report blocks the apply path through this gate (the inline check
+    // used to rely on accumulated warnings being non-zero). The check is
+    // re-derived from state — handoffScopeGate emits the same flag for the
+    // applied path, this duplication keeps the gate pure.
+    const handoffScopeViolation = acceptedHandoffs.some((h) => h.taskId !== report.selectedTaskId);
+
+    if (localWarnings.length === 0 && !handoffScopeViolation) {
+      // Non-blocking observability: surface when an agent marks a task done
+      // without reporting that it ran the configured validation command.
+      if (prepared.validationCommand && !report.validationRan) {
+        return {
+          kind: 'warn',
+          output: { docMode, taskStateOnlyGate },
+          warnings: [
+            `Completed task without reporting validationRan; configured validation command was '${prepared.validationCommand}'.`
+          ]
+        };
+      }
+      return { kind: 'pass', output: { docMode, taskStateOnlyGate } };
+    }
+
+    return {
+      kind: 'reject',
+      reason: report.needsHumanReview ? 'needs_human_review_with_done' : 'verification_failed',
+      warnings: localWarnings
+    };
+  }
+};
+
 const handoffScopeGate: Gate<'handoffScope'> = {
   id: 'handoffScope',
   appliesTo: () => true,
@@ -174,7 +225,8 @@ const handoffScopeGate: Gate<'handoffScope'> = {
 const GATE_SEQUENCE: readonly Gate<keyof GateOutputs>[] = [
   taskIdMatchGate,
   policyGate,
-  handoffScopeGate
+  handoffScopeGate,
+  verificationGate
 ] as const;
 
 export function runGatePipeline(state: ReconciliationState): PipelineResult {

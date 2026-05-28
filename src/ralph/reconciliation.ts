@@ -12,7 +12,6 @@ import {
   findTaskById,
   inspectClaimOwnership,
   inspectTaskGraph,
-  isDocumentationMode,
   parseTaskFile,
   resolveStaleClaimByTask,
   withTaskFileLock,
@@ -178,57 +177,6 @@ export async function reconcileCompletionReport(
   const handoffScopeViolation = pipelineResult.outputs.handoffScope?.violation ?? false;
 
   const requestedStatus = report.requestedStatus;
-  if (requestedStatus === 'done') {
-    // Allow reconciliation when the validation command passed, even if gitDiff
-    // failed (no code changes needed — the task was already complete).  The
-    // taskState verifier runs *after* reconciliation and will confirm the
-    // status change in tasks.json, so the final verification still has a
-    // meaningful gate.
-    //
-    // Documentation-mode tasks skip the validation gate entirely because their
-    // deliverables (markdown, text) are not verifiable by code-centric commands.
-    const validationGatePassed = state.validationCommandStatus === 'passed';
-    const docMode = isDocumentationMode(state.selectedTask);
-    const taskStateOnlyGate = state.prepared.config.verifierModes.includes('taskState')
-      && !state.prepared.config.verifierModes.includes('validationCommand')
-      && !state.prepared.config.verifierModes.includes('gitDiff')
-      && state.prepared.config.gitCheckpointMode !== 'snapshotAndDiff';
-    if (!validationGatePassed
-      && state.verificationStatus !== 'passed'
-      && !docMode
-      && !taskStateOnlyGate) {
-      warnings.push(`Completion report requested done, but verification status was ${state.verificationStatus}.`);
-    }
-    if (report.needsHumanReview) {
-      warnings.push('Completion report requested done while also declaring needsHumanReview.');
-    }
-    if (warnings.length > 0) {
-      return {
-        artifact: {
-          ...artifactBase,
-          rejectionReason: report.needsHumanReview
-            ? 'needs_human_review_with_done'
-            : 'verification_failed',
-          warnings
-        },
-        selectedTask: state.selectedTask,
-        progressChanged: false,
-        taskFileChanged: false,
-        claimContested: false,
-        warnings
-      };
-    }
-
-    // Non-blocking observability: surface when an agent marks a task done without
-    // reporting that it ran the configured validation command.  Ralph's own
-    // verifierStatus already provides the hard enforcement gate; this warning
-    // makes skipped validation self-reporting visible in parallel-run artefacts.
-    if (state.prepared.validationCommand && !report.validationRan) {
-      warnings.push(
-        `Completed task without reporting validationRan; configured validation command was '${state.prepared.validationCommand}'.`
-      );
-    }
-  }
 
   if (requestedStatus === 'blocked' && state.preliminaryClassification === 'complete') {
     warnings.push('Completion report requested blocked, but the preliminary outcome already classified the task as complete.');
