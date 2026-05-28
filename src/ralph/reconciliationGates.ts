@@ -342,34 +342,29 @@ export function composeMutationPlan(
   outputs: AccumulatedOutputs,
   warnings: readonly string[]
 ): TaskMutationPlan {
-  // Stub — populated in step 10 once all gates are in place.
-  void outputs;
-  const report = state.report;
+  const { report, selectedTask, verificationStatus } = state;
   const requestedStatus = report.requestedStatus;
+  const suggestedValidationFromPlan =
+    outputs.planValidation?.suggestedValidationFromPlan ?? state.suggestedValidationFromPlan;
   const validationToWrite =
-    !state.selectedTask.validation && state.suggestedValidationFromPlan
-      ? state.suggestedValidationFromPlan
-      : null;
+    !selectedTask.validation && suggestedValidationFromPlan ? suggestedValidationFromPlan : null;
   const lastVerifierResult: RalphTask['lastVerifierResult'] =
-    state.verificationStatus === 'passed'
+    verificationStatus === 'passed'
       ? 'passed'
-      : state.verificationStatus === 'skipped'
+      : verificationStatus === 'skipped'
         ? 'skipped'
-        : state.verificationStatus
+        : verificationStatus
           ? 'failed'
           : undefined;
   const conflictWarning = warnings.find((w) => w.toLowerCase().includes('conflict')) ?? null;
   return {
     nextStatus: requestedStatus,
     progressNote: report.progressNote ?? null,
-    blocker:
-      requestedStatus === 'blocked'
-        ? report.blocker ?? null
-        : report.blocker ?? null,
+    blocker: report.blocker ?? null,
     validationToWrite,
     lastVerifierResult,
     lastReconciliationWarning: conflictWarning,
     attemptAncestorCompletion: requestedStatus === 'done',
-    needsHumanReview: false
+    needsHumanReview: outputs.handoffScope?.violation ?? false
   };
 }

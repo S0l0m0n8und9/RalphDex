@@ -45,6 +45,24 @@ const taskFile_1 = require("./taskFile");
 const taskCreation_1 = require("./taskCreation");
 const rolePolicy_1 = require("./rolePolicy");
 const reconciliationGates_1 = require("./reconciliationGates");
+function applyMutationPlanToTask(task, plan) {
+    const nextTask = {
+        ...task,
+        status: plan.nextStatus,
+        notes: plan.progressNote ?? task.notes,
+        blocker: plan.blocker ?? task.blocker
+    };
+    if (plan.validationToWrite && !nextTask.validation) {
+        nextTask.validation = plan.validationToWrite;
+    }
+    if (plan.lastVerifierResult) {
+        nextTask.lastVerifierResult = plan.lastVerifierResult;
+    }
+    if (plan.lastReconciliationWarning) {
+        nextTask.lastReconciliationWarning = plan.lastReconciliationWarning;
+    }
+    return nextTask;
+}
 function buildRejectedOutcome(state, artifactBase, reason, warnings, needsHumanReview) {
     const warningList = [...warnings];
     return {
@@ -138,51 +156,22 @@ async function reconcileCompletionReport(input) {
         return buildRejectedOutcome(state, artifactBase, pipelineResult.reason, [...warnings, ...pipelineResult.warnings], pipelineResult.needsHumanReview);
     }
     warnings.push(...pipelineResult.warnings);
-    const handoffScopeViolation = pipelineResult.outputs.handoffScope?.violation ?? false;
-    const requestedStatus = report.requestedStatus;
+    const plan = (0, reconciliationGates_1.composeMutationPlan)(state, pipelineResult.outputs, warnings);
+    const handoffScopeViolation = plan.needsHumanReview;
+    const requestedStatus = plan.nextStatus;
     let taskFileChanged = false;
     let progressChanged = false;
-    const suggestedValidationFromPlan = pipelineResult.outputs.planValidation?.suggestedValidationFromPlan
-        ?? state.suggestedValidationFromPlan;
     // Claim ownership re-check, task-file write, and progress.md append all happen inside a
     // single task-file lock to eliminate the TOCTOU window and the unprotected progress.md
     // read-modify-write that existed when these operations ran sequentially outside any lock.
-    const verificationResult = await updateTaskFileWithVerification(input.taskFilePath, state.prepared.paths.claimFilePath, state.selectedTask.id, state.prepared.config.agentId, state.prepared.provenanceId, state.prepared.paths.progressPath, report.progressNote ?? null, (taskFile) => {
+    const verificationResult = await updateTaskFileWithVerification(input.taskFilePath, state.prepared.paths.claimFilePath, state.selectedTask.id, state.prepared.config.agentId, state.prepared.provenanceId, state.prepared.paths.progressPath, plan.progressNote, (taskFile) => {
         const selectedTaskUpdated = {
             ...taskFile,
             tasks: taskFile.tasks.map((task) => {
                 if (task.id !== state.selectedTask.id) {
                     return task;
                 }
-                const nextTask = {
-                    ...task,
-                    status: requestedStatus,
-                    notes: report.progressNote ?? task.notes,
-                    blocker: requestedStatus === 'blocked'
-                        ? report.blocker ?? task.blocker
-                        : task.blocker
-                };
-                if (requestedStatus !== 'blocked' && report.blocker) {
-                    nextTask.blocker = report.blocker;
-                }
-                // Populate validation from task-plan.json suggestedValidationCommand
-                // only when the task's validation field was empty.
-                if (!nextTask.validation && suggestedValidationFromPlan) {
-                    nextTask.validation = suggestedValidationFromPlan;
-                }
-                // Persist verifier result so fan-in gates can aggregate child outcomes.
-                const verifierResult = state.verificationStatus === 'passed' ? 'passed'
-                    : state.verificationStatus === 'skipped' ? 'skipped'
-                        : state.verificationStatus ? 'failed'
-                            : undefined;
-                if (verifierResult) {
-                    nextTask.lastVerifierResult = verifierResult;
-                }
-                // Capture conflict warnings so fan-in can detect unresolved merge conflicts.
-                const conflictWarning = warnings.find(w => w.toLowerCase().includes('conflict'));
-                if (conflictWarning) {
-                    nextTask.lastReconciliationWarning = conflictWarning;
-                }
+                const nextTask = applyMutationPlanToTask(task, plan);
                 taskFileChanged = nextTask.status !== task.status
                     || nextTask.notes !== task.notes
                     || nextTask.blocker !== task.blocker
@@ -192,7 +181,7 @@ async function reconcileCompletionReport(input) {
                 return nextTask;
             })
         };
-        if (requestedStatus !== 'done') {
+        if (!plan.attemptAncestorCompletion) {
             return selectedTaskUpdated;
         }
         const ancestorCompletion = (0, taskFile_1.autoCompleteSatisfiedAncestors)(selectedTaskUpdated, state.selectedTask.id);

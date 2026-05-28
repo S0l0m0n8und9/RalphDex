@@ -29,10 +29,31 @@ import {
 import { getEffectivePolicy } from './rolePolicy';
 import type { PreparedIterationContext } from './iterationPreparation';
 import {
+  composeMutationPlan,
+  runGatePipeline,
   type ReconciliationState,
   type RejectionReason,
-  runGatePipeline
+  type TaskMutationPlan
 } from './reconciliationGates';
+
+function applyMutationPlanToTask(task: RalphTask, plan: TaskMutationPlan): RalphTask {
+  const nextTask: RalphTask = {
+    ...task,
+    status: plan.nextStatus,
+    notes: plan.progressNote ?? task.notes,
+    blocker: plan.blocker ?? task.blocker
+  };
+  if (plan.validationToWrite && !nextTask.validation) {
+    nextTask.validation = plan.validationToWrite;
+  }
+  if (plan.lastVerifierResult) {
+    nextTask.lastVerifierResult = plan.lastVerifierResult;
+  }
+  if (plan.lastReconciliationWarning) {
+    nextTask.lastReconciliationWarning = plan.lastReconciliationWarning;
+  }
+  return nextTask;
+}
 
 function buildRejectedOutcome(
   state: ReconciliationState,
@@ -174,14 +195,12 @@ export async function reconcileCompletionReport(
   }
   warnings.push(...pipelineResult.warnings);
 
-  const handoffScopeViolation = pipelineResult.outputs.handoffScope?.violation ?? false;
-
-  const requestedStatus = report.requestedStatus;
+  const plan = composeMutationPlan(state, pipelineResult.outputs, warnings);
+  const handoffScopeViolation = plan.needsHumanReview;
+  const requestedStatus = plan.nextStatus;
 
   let taskFileChanged = false;
   let progressChanged = false;
-  const suggestedValidationFromPlan = pipelineResult.outputs.planValidation?.suggestedValidationFromPlan
-    ?? state.suggestedValidationFromPlan;
 
   // Claim ownership re-check, task-file write, and progress.md append all happen inside a
   // single task-file lock to eliminate the TOCTOU window and the unprotected progress.md
@@ -193,7 +212,7 @@ export async function reconcileCompletionReport(
     state.prepared.config.agentId,
     state.prepared.provenanceId,
     state.prepared.paths.progressPath,
-    report.progressNote ?? null,
+    plan.progressNote,
     (taskFile) => {
       const selectedTaskUpdated: RalphTaskFile = {
         ...taskFile,
@@ -201,54 +220,18 @@ export async function reconcileCompletionReport(
           if (task.id !== state.selectedTask.id) {
             return task;
           }
-
-          const nextTask: RalphTask = {
-            ...task,
-            status: requestedStatus,
-            notes: report.progressNote ?? task.notes,
-            blocker: requestedStatus === 'blocked'
-              ? report.blocker ?? task.blocker
-              : task.blocker
-          };
-
-          if (requestedStatus !== 'blocked' && report.blocker) {
-            nextTask.blocker = report.blocker;
-          }
-
-          // Populate validation from task-plan.json suggestedValidationCommand
-          // only when the task's validation field was empty.
-          if (!nextTask.validation && suggestedValidationFromPlan) {
-            nextTask.validation = suggestedValidationFromPlan;
-          }
-
-          // Persist verifier result so fan-in gates can aggregate child outcomes.
-          const verifierResult: RalphTask['lastVerifierResult'] =
-            state.verificationStatus === 'passed' ? 'passed'
-              : state.verificationStatus === 'skipped' ? 'skipped'
-                : state.verificationStatus ? 'failed'
-                  : undefined;
-          if (verifierResult) {
-            nextTask.lastVerifierResult = verifierResult;
-          }
-
-          // Capture conflict warnings so fan-in can detect unresolved merge conflicts.
-          const conflictWarning = warnings.find(w => w.toLowerCase().includes('conflict'));
-          if (conflictWarning) {
-            nextTask.lastReconciliationWarning = conflictWarning;
-          }
-
+          const nextTask = applyMutationPlanToTask(task, plan);
           taskFileChanged = nextTask.status !== task.status
             || nextTask.notes !== task.notes
             || nextTask.blocker !== task.blocker
             || nextTask.validation !== task.validation
             || nextTask.lastVerifierResult !== task.lastVerifierResult
             || nextTask.lastReconciliationWarning !== task.lastReconciliationWarning;
-
           return nextTask;
         })
       };
 
-      if (requestedStatus !== 'done') {
+      if (!plan.attemptAncestorCompletion) {
         return selectedTaskUpdated;
       }
 
