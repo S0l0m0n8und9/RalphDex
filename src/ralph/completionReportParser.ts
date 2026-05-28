@@ -2,6 +2,7 @@ import {
   DoctrineProposedUpdate,
   parseDoctrineUpdatesFromCompletionReport
 } from './doctrineProposals';
+import type { RejectionReason } from './reconciliationGates';
 import {
   RalphCompletionReport,
   RalphCompletionReportRequestedStatus,
@@ -18,7 +19,7 @@ export interface CompletionReportArtifact {
   kind: 'completionReport';
   status: 'applied' | 'rejected' | 'missing' | 'invalid';
   /** Machine-readable reason code when status is 'rejected', null otherwise. */
-  rejectionReason: string | null;
+  rejectionReason: RejectionReason | null;
   selectedTaskId: string | null;
   report: RalphCompletionReport | null;
   rawBlock: string | null;

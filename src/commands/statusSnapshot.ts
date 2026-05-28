@@ -233,7 +233,9 @@ export function normalizeCompletionReportArtifact(candidate: unknown): Completio
     schemaVersion: 1,
     kind: 'completionReport',
     status: record.status as CompletionReportArtifact['status'],
-    rejectionReason: typeof record.rejectionReason === 'string' ? record.rejectionReason : null,
+    rejectionReason: typeof record.rejectionReason === 'string'
+      ? record.rejectionReason as CompletionReportArtifact['rejectionReason']
+      : null,
     selectedTaskId: record.selectedTaskId,
     report: normalizedReport,
     rawBlock: typeof record.rawBlock === 'string' ? record.rawBlock : null,
