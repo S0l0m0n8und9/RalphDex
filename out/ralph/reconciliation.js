@@ -140,21 +140,6 @@ async function reconcileCompletionReport(input) {
     warnings.push(...pipelineResult.warnings);
     const handoffScopeViolation = pipelineResult.outputs.handoffScope?.violation ?? false;
     const requestedStatus = report.requestedStatus;
-    if (requestedStatus === 'blocked' && state.preliminaryClassification === 'complete') {
-        warnings.push('Completion report requested blocked, but the preliminary outcome already classified the task as complete.');
-        return {
-            artifact: {
-                ...artifactBase,
-                rejectionReason: 'blocked_overrides_complete',
-                warnings
-            },
-            selectedTask: state.selectedTask,
-            progressChanged: false,
-            taskFileChanged: false,
-            claimContested: false,
-            warnings
-        };
-    }
     let taskFileChanged = false;
     let progressChanged = false;
     const suggestedValidationFromPlan = state.suggestedValidationFromPlan;

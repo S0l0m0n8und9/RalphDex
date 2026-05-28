@@ -220,13 +220,31 @@ const handoffScopeGate: Gate<'handoffScope'> = {
   }
 };
 
+const blockedOverrideGate: Gate<'blockedOverride'> = {
+  id: 'blockedOverride',
+  appliesTo: (state) => state.report.requestedStatus === 'blocked',
+  run: (state) => {
+    if (state.preliminaryClassification !== 'complete') {
+      return { kind: 'pass', output: undefined };
+    }
+    return {
+      kind: 'reject',
+      reason: 'blocked_overrides_complete',
+      warnings: [
+        'Completion report requested blocked, but the preliminary outcome already classified the task as complete.'
+      ]
+    };
+  }
+};
+
 // Fixed sequence — there is exactly one caller and one ordering.
 // Gates are appended as they migrate over from reconciliation.ts.
 const GATE_SEQUENCE: readonly Gate<keyof GateOutputs>[] = [
   taskIdMatchGate,
   policyGate,
   handoffScopeGate,
-  verificationGate
+  verificationGate,
+  blockedOverrideGate
 ] as const;
 
 export function runGatePipeline(state: ReconciliationState): PipelineResult {
