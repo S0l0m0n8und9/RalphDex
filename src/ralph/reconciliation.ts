@@ -180,7 +180,6 @@ export async function reconcileCompletionReport(
     return prelude.outcome;
   }
   const { state, artifactBase } = prelude;
-  const report = state.report;
 
   const warnings: string[] = [...artifactBase.warnings];
   const pipelineResult = runGatePipeline(state);
@@ -197,14 +196,61 @@ export async function reconcileCompletionReport(
 
   const plan = composeMutationPlan(state, pipelineResult.outputs, warnings);
   const handoffScopeViolation = plan.needsHumanReview;
-  const requestedStatus = plan.nextStatus;
 
+  const applied = await applyMutationUnderLock(input, state, plan);
+  if (applied.verificationResult.claimContested) {
+    warnings.push(
+      `Completion report claim ownership check failed for ${state.selectedTask.id}; canonical holder was ${applied.verificationResult.canonicalHolder ?? 'none'}.`
+    );
+    return {
+      artifact: {
+        ...artifactBase,
+        rejectionReason: 'claim_contested',
+        warnings
+      },
+      selectedTask: state.selectedTask,
+      progressChanged: false,
+      taskFileChanged: false,
+      claimContested: true,
+      warnings
+    };
+  }
+
+  const post = await runPostWriteStages(input, state, plan, applied, warnings);
+
+  if (warnings.length > 0) {
+    input.logger.warn('Completion report reconciliation recorded warnings.', {
+      selectedTaskId: state.selectedTask.id,
+      warnings
+    });
+  }
+
+  return {
+    artifact: {
+      ...artifactBase,
+      status: 'applied',
+      warnings,
+      ...(handoffScopeViolation ? { needsHumanReview: true } : {})
+    },
+    selectedTask: post.selectedTask,
+    progressChanged: post.progressChanged,
+    taskFileChanged: post.taskFileChanged,
+    claimContested: false,
+    warnings
+  };
+}
+
+interface AppliedMutation {
+  verificationResult: Awaited<ReturnType<typeof updateTaskFileWithVerification>>;
+  taskFileChanged: boolean;
+}
+
+async function applyMutationUnderLock(
+  input: ReconcileCompletionReportInput,
+  state: ReconciliationState,
+  plan: TaskMutationPlan
+): Promise<AppliedMutation> {
   let taskFileChanged = false;
-  let progressChanged = false;
-
-  // Claim ownership re-check, task-file write, and progress.md append all happen inside a
-  // single task-file lock to eliminate the TOCTOU window and the unprotected progress.md
-  // read-modify-write that existed when these operations ran sequentially outside any lock.
   const verificationResult = await updateTaskFileWithVerification(
     input.taskFilePath,
     state.prepared.paths.claimFilePath,
@@ -239,30 +285,28 @@ export async function reconcileCompletionReport(
       if (ancestorCompletion.completedAncestorIds.length > 0) {
         taskFileChanged = true;
       }
-
       return ancestorCompletion.taskFile;
     }
   );
+  return { verificationResult, taskFileChanged };
+}
 
-  if (verificationResult.claimContested) {
-    warnings.push(
-      `Completion report claim ownership check failed for ${state.selectedTask.id}; canonical holder was ${verificationResult.canonicalHolder ?? 'none'}.`
-    );
-    return {
-      artifact: {
-        ...artifactBase,
-        rejectionReason: 'claim_contested',
-        warnings
-      },
-      selectedTask: state.selectedTask,
-      progressChanged: false,
-      taskFileChanged: false,
-      claimContested: true,
-      warnings
-    };
-  }
+interface PostWriteResult {
+  taskFileChanged: boolean;
+  progressChanged: boolean;
+  selectedTask: RalphTask | null;
+}
 
-  progressChanged = verificationResult.progressChanged;
+async function runPostWriteStages(
+  input: ReconcileCompletionReportInput,
+  state: ReconciliationState,
+  plan: TaskMutationPlan,
+  applied: AppliedMutation,
+  warnings: string[]
+): Promise<PostWriteResult> {
+  let taskFileChanged = applied.taskFileChanged;
+  let progressChanged = applied.verificationResult.progressChanged;
+  const report = state.report;
 
   if (state.prepared.config.agentRole === 'watchdog' && report.watchdog_actions?.length) {
     const watchdogOutcome = await processWatchdogActions(input, report.watchdog_actions);
@@ -286,13 +330,12 @@ export async function reconcileCompletionReport(
   // Fan-in gate: when a child task completes and its parent has a plan-graph,
   // evaluate whether all children in the wave are done and conflict-free.
   // If fan-in fails, revert the parent's auto-completion so it stays in_progress.
-  if (requestedStatus === 'done' && state.selectedTask.parentId) {
+  if (plan.nextStatus === 'done' && state.selectedTask.parentId) {
     const graphPath = planGraphPath(state.prepared.paths.artifactDir, state.selectedTask.parentId);
     const graph = await readPlanGraph(graphPath);
     if (graph) {
       const fanIn = await validateFanIn(graphPath, graph, postReconciliationTaskFile.tasks);
       if (!fanIn.passed) {
-        // Revert parent auto-completion: acquire the lock and set parent back to in_progress.
         const parentTask = findTaskById(postReconciliationTaskFile, state.selectedTask.parentId);
         if (parentTask?.status === 'done') {
           const parentId = state.selectedTask.parentId;
@@ -300,7 +343,7 @@ export async function reconcileCompletionReport(
             const current = parseTaskFile(await fs.readFile(input.taskFilePath, 'utf8'));
             const reverted = bumpMutationCount({
               ...current,
-              tasks: current.tasks.map(t =>
+              tasks: current.tasks.map((t) =>
                 t.id === parentId && t.status === 'done'
                   ? { ...t, status: 'in_progress' as const }
                   : t
@@ -317,7 +360,7 @@ export async function reconcileCompletionReport(
     }
   }
 
-  if (requestedStatus === 'done' && selectedTask?.status !== 'done') {
+  if (plan.nextStatus === 'done' && selectedTask?.status !== 'done') {
     warnings.push(
       `Completion report requested done, but the selected task ended as ${selectedTask?.status ?? 'missing'} after reconciliation.`
     );
@@ -328,26 +371,7 @@ export async function reconcileCompletionReport(
     state.selectedTask.id
   );
 
-  if (warnings.length > 0) {
-    input.logger.warn('Completion report reconciliation recorded warnings.', {
-      selectedTaskId: state.selectedTask.id,
-      warnings
-    });
-  }
-
-  return {
-    artifact: {
-      ...artifactBase,
-      status: 'applied',
-      warnings,
-      ...(handoffScopeViolation ? { needsHumanReview: true } : {})
-    },
-    selectedTask,
-    progressChanged,
-    taskFileChanged,
-    claimContested: false,
-    warnings
-  };
+  return { taskFileChanged, progressChanged, selectedTask };
 }
 
 // Acquires the task-file lock once and, inside that critical section, writes both
