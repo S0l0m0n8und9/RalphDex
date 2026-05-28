@@ -25,10 +25,46 @@ const taskIdMatchGate = {
         };
     }
 };
+const policyGate = {
+    id: 'policy',
+    appliesTo: () => true,
+    run: (state) => {
+        const { policy, report, selectedTask, prepared } = state;
+        const reqStatus = report.requestedStatus;
+        // Claim acquisition promotes todo→in_progress as a side effect and returns
+        // the original task object (status still 'todo').  Use in_progress as the
+        // effective from-status so mutation comparisons are correct.
+        const effectiveFromStatus = selectedTask.status === 'todo' ? 'in_progress' : selectedTask.status;
+        // requestedStatus === 'in_progress' is a heartbeat (no-op self-assignment).
+        // The structural todo→in_progress transition is handled by claim acquisition,
+        // so any role may emit a progress-only report without being policy-gated.
+        const isHeartbeat = reqStatus === 'in_progress';
+        const mutation = `${effectiveFromStatus}→${reqStatus}`;
+        const mutationAllowed = isHeartbeat || policy.allowedTaskStateMutations.includes(mutation);
+        const childTasksProposed = (report.suggestedChildTasks?.length ?? 0) > 0;
+        const sourceEditAllowed = policy.allowedNodeKinds.includes('task_exec');
+        if (mutationAllowed && !(childTasksProposed && !sourceEditAllowed)) {
+            return { kind: 'pass', output: undefined };
+        }
+        const role = prepared.config.agentRole ?? 'implementer';
+        const disallowedAction = !mutationAllowed
+            ? `task-state mutation ${mutation}`
+            : `suggestedChildTasks (source-edit proposal) by role '${role}'`;
+        return {
+            kind: 'reject',
+            reason: 'policy_violation',
+            warnings: [
+                `Policy violation (source: preset): disallowed ${disallowedAction} for role '${role}'.`
+            ],
+            needsHumanReview: true
+        };
+    }
+};
 // Fixed sequence — there is exactly one caller and one ordering.
 // Gates are appended as they migrate over from reconciliation.ts.
 const GATE_SEQUENCE = [
-    taskIdMatchGate
+    taskIdMatchGate,
+    policyGate
 ];
 function runGatePipeline(state) {
     const outputs = {};

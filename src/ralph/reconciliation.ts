@@ -175,46 +175,6 @@ export async function reconcileCompletionReport(
   }
   warnings.push(...pipelineResult.warnings);
 
-  // Policy enforcement: check requested mutation and proposed actions against
-  // the role's allowedTaskStateMutations / allowedNodeKinds before doing any
-  // task-file write.
-  {
-    const policy = state.policy;
-    const reqStatus = report.requestedStatus;
-    // Claim acquisition promotes todo→in_progress as a side effect and returns
-    // the original task object (status still 'todo').  Use in_progress as the
-    // effective from-status so mutation comparisons are correct.
-    const effectiveFromStatus = state.selectedTask.status === 'todo' ? 'in_progress' : state.selectedTask.status;
-    // requestedStatus === 'in_progress' is a heartbeat (no-op self-assignment).
-    // The structural todo→in_progress transition is handled by claim acquisition,
-    // so any role may emit a progress-only report without being policy-gated.
-    const isHeartbeat = reqStatus === 'in_progress';
-    const mutation = `${effectiveFromStatus}\u2192${reqStatus}`;
-    const mutationAllowed = isHeartbeat || policy.allowedTaskStateMutations.includes(mutation);
-    const childTasksProposed = (report.suggestedChildTasks?.length ?? 0) > 0;
-    const sourceEditAllowed = policy.allowedNodeKinds.includes('task_exec');
-    if (!mutationAllowed || (childTasksProposed && !sourceEditAllowed)) {
-      const disallowedAction = !mutationAllowed
-        ? `task-state mutation ${mutation}`
-        : `suggestedChildTasks (source-edit proposal) by role '${state.prepared.config.agentRole ?? 'implementer'}'`;
-      const policyWarning = `Policy violation (source: preset): disallowed ${disallowedAction} for role '${state.prepared.config.agentRole ?? 'implementer'}'.`;
-      warnings.push(policyWarning);
-      return {
-        artifact: {
-          ...artifactBase,
-          status: 'rejected',
-          rejectionReason: 'policy_violation',
-          warnings,
-          needsHumanReview: true
-        },
-        selectedTask: state.selectedTask,
-        progressChanged: false,
-        taskFileChanged: false,
-        claimContested: false,
-        warnings
-      };
-    }
-  }
 
   let handoffScopeViolation = false;
   if (state.acceptedHandoffs.some((h) => h.taskId !== report.selectedTaskId)) {
