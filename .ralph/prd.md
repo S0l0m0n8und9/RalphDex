@@ -15,6 +15,26 @@ Ralph should let an operator define the work once in `.ralph/`, then execute rep
 - Harden execution with explicit prompts, verifier output, provenance artifacts, and clear stop reasons.
 - Keep the architecture thin and repository-backed so operators can audit, resume, and refine work without hidden state.
 
+## Current scope
+
+This section is the live view. Everything under "Delivered horizons (archive)" below is an append-only historical record, not current scope. The durable, authoritative scope rules live in "Design principles and scope boundaries" at the end of this document.
+
+**Shipped baseline (reality as of 2026-05-29).** Ralphdex is a published VS Code extension (`package.json` version `1.1.9`) with the multi-agent control plane, end-to-end pipeline and durable orchestration graph, webview dashboard/sidebar, model tiering, intelligent failure recovery, and doctrine support all delivered. Doctrine context and the doctrine scaffold/repair command are shipped, and this workspace's `.ralph/doctrine/` pack already exists and is committed — which supersedes the doctrine-adoption horizon archived below (that horizon was written while the pack was still missing).
+
+**Live backlog.** The remaining active tasks in `.ralph/tasks.json` are:
+
+- **T224** — add a docs-validator guardrail for the doctrine-adoption workflow section.
+- **T226** — surface the model-tiering flat-vs-nested enable-flag disagreement at config-read time.
+- **T227** — document the `taskReadinessGate` modes (`off | warn | auto | strict`) in `docs/workflows.md`.
+
+T225 ("scaffold `.ralph/doctrine`") is closed: the doctrine pack already exists and is committed in this workspace.
+
+**Removed features.** Operator-mode presets (`simple | multi-agent | hardcore`) were shipped and later removed. The archived horizon below that describes them is historical only; operator-facing docs no longer reference them.
+
+## Delivered horizons (archive)
+
+The sections below are an append-only historical record of completed delivery horizons. Each describes the state and intent at the time it was written and is **not** a live scope authority — do not treat any "next delivery horizon" framing below as current work. They are retained for provenance.
+
 ### Immediate control-plane priority
 
 Before expanding Ralph into broader multi-agent orchestration, harden nested-repo semantics so the system can deterministically answer:

@@ -84,7 +84,7 @@ If the core Ralph files are missing, the command stops and points the operator b
 5. Generate and review the starter backlog, reorder or retitle tasks, adjust tiers, inspect validation and dependency detail, and resolve task-shape blockers before writing.
 6. Confirm the write after checking the explicit blast radius: `.ralph/prd.md` is written, `.ralph/tasks.json` is replaced, and no unrelated workspace settings are changed.
 
-This wizard is a narrow authoring surface. It owns PRD drafting, starter backlog drafting, review, and bounded file writes. It does not own provider selection, execution mode presets, skills management, or broader workspace control-plane settings.
+This wizard is a narrow authoring surface. It owns PRD drafting, starter backlog drafting, review, and bounded file writes. It does not own provider selection, execution-mode configuration, skills management, or broader workspace control-plane settings.
 
 Generation quality is surfaced explicitly:
 
@@ -602,7 +602,7 @@ When planning-gate decomposition writes child tasks, each child carries a planni
 - **`sliding-window`** (default) — only the last `ralphCodex.memoryWindowSize` (default 10) iterations are included. Older entries are dropped to keep prompts compact. Good for long loops where full verbatim history would exceed the prompt budget.
 - **`summary`** — when the iteration count exceeds `ralphCodex.memorySummaryThreshold` (default 20), Ralph invokes the configured CLI provider to produce a condensed `memory-summary.md` that replaces verbatim history in subsequent prompts. Below the threshold, behaves like verbatim. Each summarisation is an additional LLM call; inspect `.ralph/memory-summary.md` for the latest output.
 
-The operator presets select memory strategies automatically: `simple` uses `verbatim`, `multi-agent` uses `sliding-window`, and `hardcore` uses `summary`.
+Set `ralphCodex.memoryStrategy` directly to choose the strategy.
 
 Doctrine context is separate from memory strategy. Memory strategy controls how prior iteration history is carried forward (`verbatim`, `sliding-window`, `summary`/`memory-summary.md`), while doctrine context is a read-only bounded pull from `.ralph/doctrine/*.md` during prompt rendering.
 
