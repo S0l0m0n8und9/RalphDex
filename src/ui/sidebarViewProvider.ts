@@ -11,7 +11,6 @@ import type {
 import { DashboardHost, type DashboardHostActions } from '../webview/dashboardHost';
 import type { DashboardSnapshotLoader } from '../webview/dashboardDataLoader';
 import { buildWebviewUiHtml } from '../webview/reactWebviewHtml';
-import { buildDashboardHtml } from './sidebarHtml';
 
 /**
  * Provides the sidebar webview launcher for Ralphdex.
@@ -54,8 +53,7 @@ export class RalphSidebarViewProvider implements vscode.WebviewViewProvider {
         state,
         nonce,
         webview,
-        extensionUri: this.extensionUri,
-        fallbackHtml: buildDashboardHtml
+        extensionUri: this.extensionUri
       }),
       this.loadSnapshot,
       null,

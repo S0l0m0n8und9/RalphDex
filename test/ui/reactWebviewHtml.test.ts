@@ -123,16 +123,23 @@ test('buildWebviewUiHtml escapes serialized state from script-breaking markup', 
   assert.ok(html.includes('\\u003c/script\\u003e'));
 });
 
-test('buildWebviewUiHtml falls back to legacy HTML when debug webview assets are missing', () => {
+test('buildWebviewUiHtml returns a static missing-bundle page when webview assets are absent', () => {
   const extensionUri = vscode.Uri.file(fs.mkdtempSync(path.join(os.tmpdir(), 'ralph-missing-webview-assets-')));
   const html = buildWebviewUiHtml({
     mode: 'sidebar',
     state: defaultState({ workspaceName: 'fallback-ws' }),
     nonce: 'fallback-nonce',
     webview: mockWebview(),
-    extensionUri,
-    fallbackHtml: (state, nonce) => `<html data-fallback="${nonce}"><body>${state.workspaceName}</body></html>`
+    extensionUri
   });
 
-  assert.equal(html, '<html data-fallback="fallback-nonce"><body>fallback-ws</body></html>');
+  // No string-template UI fallback exists; the React bundle is the single
+  // renderer. A missing bundle yields a self-contained static error page.
+  assert.ok(html.includes('Ralphdex UI failed to load'));
+  assert.ok(html.includes('out/webview-ui/main.js'));
+  assert.ok(html.includes('data-ralph-mode="sidebar"'));
+  assert.ok(html.includes("default-src 'none'"));
+  assert.ok(html.includes("nonce-fallback-nonce"));
+  // The error page must not attempt to load the (missing) bundle script.
+  assert.ok(!html.includes('<script'));
 });

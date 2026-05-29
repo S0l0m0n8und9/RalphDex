@@ -42,7 +42,6 @@ const vscode = __importStar(require("vscode"));
 const settingsSurface_1 = require("../config/settingsSurface");
 const dashboardHost_1 = require("../webview/dashboardHost");
 const reactWebviewHtml_1 = require("../webview/reactWebviewHtml");
-const sidebarHtml_1 = require("./sidebarHtml");
 /**
  * Provides the sidebar webview launcher for Ralphdex.
  * Registered as a WebviewViewProvider for the `ralphCodex.dashboard` view.
@@ -77,8 +76,7 @@ class RalphSidebarViewProvider {
             state,
             nonce,
             webview,
-            extensionUri: this.extensionUri,
-            fallbackHtml: sidebarHtml_1.buildDashboardHtml
+            extensionUri: this.extensionUri
         }), this.loadSnapshot, null, this.actions);
         webviewView.onDidDispose(() => {
             this.host?.dispose();

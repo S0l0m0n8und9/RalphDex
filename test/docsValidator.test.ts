@@ -167,7 +167,7 @@ Validation entry points:
 
 Use \`Ralphdex: Add Task\` or \`Ralphdex: Seed Tasks from Feature Request\` when you want to append flat version-2 backlog tasks for one epic or feature request. Use \`Ralphdex: Regenerate PRD\` when the product brief itself needs to change first. Task-seeding evidence is written under \`.ralph/artifacts/task-seeding/\`.
 
-The shipped dashboard and sidebar live under \`src/webview/\` and the production renderers in \`src/ui/\`. \`UXrefresh/\` is a reference-only prototype bundle and must not be treated as the live implementation path.
+The shipped dashboard and sidebar live under \`src/webview/\` and the React renderer under \`src/webview-ui/\`.
 
 ## Document Map
 
@@ -189,9 +189,7 @@ The shipped dashboard and sidebar live under \`src/webview/\` and the production
 
 See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
 
-The shipped dashboard/sidebar ownership boundary lives in \`src/webview/\` for shared host, snapshot, bridge, and panel lifecycle plumbing, and in \`src/ui/panelHtml.ts\` plus \`src/ui/sidebarHtml.ts\` for the production renderers. Regression coverage for that shipped surface lives under \`test/ui/\` and \`test/webview/\`.
-
-\`UXrefresh/\` is a reference-only prototype bundle. It is not the live dashboard implementation path.
+The shipped dashboard/sidebar ownership boundary lives in \`src/webview/\` for shared host, snapshot, bridge, and panel lifecycle plumbing, and in \`src/webview-ui/\` for the React renderer. Regression coverage for that shipped surface lives under \`test/ui/\` and \`test/webview/\`.
 `);
 
   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
@@ -856,7 +854,7 @@ See [Invariants](${path.join(rootPath, 'docs/invariants.md')}), [Provenance](${p
       (issue) =>
         issue.code === 'missing_fragment'
         && issue.filePath === 'README.md'
-        && issue.message.includes('UXrefresh/')
+        && issue.message.includes('src/webview/')
     ),
     true
   );
@@ -865,7 +863,7 @@ See [Invariants](${path.join(rootPath, 'docs/invariants.md')}), [Provenance](${p
       (issue) =>
         issue.code === 'missing_fragment'
         && issue.filePath === 'docs/architecture.md'
-        && issue.message.includes('src/ui/panelHtml.ts')
+        && issue.message.includes('src/webview-ui/')
     ),
     true
   );
