@@ -415,6 +415,11 @@ export async function validateRepositoryDocs(rootDir: string): Promise<DocsValid
     markdownCache,
     issues
   });
+  await validateAgentsCommandTitles({
+    repoRoot,
+    markdownCache,
+    issues
+  });
   await validateReleaseWorkflowAlignment({
     repoRoot,
     markdownCache,
@@ -918,6 +923,68 @@ async function validateVerifierDocumentationAlignment(input: {
       documentedValues: documentedStopReasons,
       expectedValues: typeStopReasons,
       issues: input.issues
+    });
+  }
+}
+
+/**
+ * AGENTS.md is the authoritative routing document and is kept intentionally
+ * thin (it lists a curated subset of commands, not all of them). This guard
+ * does not require completeness — it requires correctness: every command label
+ * AGENTS.md *does* list under "Command And Validation Entry Points" must match
+ * a real `contributes.commands` title in package.json. This catches stale
+ * labels (e.g. "Run CLI Loop" after the title became "Run Loop") and phantom
+ * commands that no longer exist.
+ */
+async function validateAgentsCommandTitles(input: {
+  repoRoot: string;
+  markdownCache: Map<string, { text: string; parsed: ParsedMarkdown }>;
+  issues: DocsValidationIssue[];
+}): Promise<void> {
+  const packageJsonPath = path.join(input.repoRoot, 'package.json');
+  const agentsDoc = input.markdownCache.get('AGENTS.md');
+
+  if (!(await pathExists(packageJsonPath)) || !agentsDoc) {
+    return;
+  }
+
+  const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf8')) as {
+    contributes?: {
+      commands?: Array<{ title?: string }>;
+    };
+  };
+
+  const shippedTitles = new Set(
+    (packageJson.contributes?.commands ?? [])
+      .map((command) => command.title)
+      .filter((title): title is string => typeof title === 'string')
+  );
+
+  if (shippedTitles.size === 0) {
+    // Nothing shipped to compare against (e.g. a minimal fixture). The guard is
+    // correctness-only, so with no command surface there is no drift to catch.
+    return;
+  }
+
+  const sectionBody = getSectionBody(
+    agentsDoc.text,
+    agentsDoc.parsed.headings,
+    'Command And Validation Entry Points'
+  );
+  if (sectionBody === null) {
+    return;
+  }
+
+  const listedCommandTitles = extractBulletCodeValues(sectionBody).filter((value) =>
+    value.startsWith('Ralphdex: ')
+  );
+
+  const staleTitles = listedCommandTitles.filter((title) => !shippedTitles.has(title));
+  if (staleTitles.length > 0) {
+    input.issues.push({
+      code: 'agents_command_title_drift',
+      filePath: 'AGENTS.md',
+      message: `AGENTS.md "Command And Validation Entry Points" lists command labels with no matching package.json title: ${formatList(staleTitles)}. Update them to the shipped titles (package.json is authoritative for commands).`
     });
   }
 }
