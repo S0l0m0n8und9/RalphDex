@@ -37,3 +37,13 @@ jobs:
 
       - name: Run validation gate
         run: npm run validate
+
+      - name: Verify committed build artifacts are current
+        run: |
+          # `npm run validate` already compiled src -> out. If the committed
+          # out/ drifted from source, the working tree is now dirty. Fail so
+          # stale build artifacts can never be merged.
+          if ! git diff --exit-code -- out/; then
+            echo "::error::Committed out/ is stale. Run 'npm run compile' and commit the result."
+            exit 1
+          fi

@@ -1,0 +1,21 @@
+# Normalize all text files to LF in the repository AND the working tree.
+# This repo is stored entirely as LF; without this, core.autocrlf on Windows
+# checks files out as CRLF and produces phantom "modified" diffs on the
+# committed build output under out/. Forcing eol=lf keeps the committed
+# artifacts, fresh tsc/esbuild output, and the working tree byte-identical.
+* text=auto eol=lf
+
+# Generated build output. Committed because package.json `main` points at
+# ./out/extension.js, but treat it as generated so reviews de-emphasize it.
+out/** linguist-generated=true
+
+# Binary assets — never normalize line endings.
+*.vsix binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary

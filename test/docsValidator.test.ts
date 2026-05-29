@@ -1113,3 +1113,58 @@ If a bad version ships, yank it from the Marketplace management page.
     true
   );
 });
+
+async function seedWithCommandSurface(rootPath: string, listedCommandTitle: string): Promise<void> {
+  await seedValidRepository(rootPath);
+
+  // Add a real command surface to the seeded package.json.
+  const packageJsonPath = path.join(rootPath, 'package.json');
+  const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf8'));
+  packageJson.contributes = {
+    ...packageJson.contributes,
+    commands: [
+      { command: 'ralphCodex.runRalphLoop', title: 'Ralphdex: Run Loop' },
+      { command: 'ralphCodex.showRalphStatus', title: 'Ralphdex: Show Status' }
+    ]
+  };
+  await fs.writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2), 'utf8');
+
+  // Inject a command bullet into the AGENTS.md entry-points section.
+  const agentsPath = path.join(rootPath, 'AGENTS.md');
+  const agents = await fs.readFile(agentsPath, 'utf8');
+  const injected = agents.replace(
+    'Validation entry points:\n',
+    `- \`${listedCommandTitle}\`\n\nValidation entry points:\n`
+  );
+  await fs.writeFile(agentsPath, injected, 'utf8');
+}
+
+test('validateRepositoryDocs reports AGENTS.md command labels that no longer ship', async () => {
+  const rootPath = await makeTempRoot();
+  // "Run CLI Loop" is a stale label; the shipped title is "Run Loop".
+  await seedWithCommandSurface(rootPath, 'Ralphdex: Run CLI Loop');
+
+  const issues = await validateRepositoryDocs(rootPath);
+
+  assert.equal(
+    issues.some(
+      (issue) =>
+        issue.code === 'agents_command_title_drift'
+        && issue.filePath === 'AGENTS.md'
+        && issue.message.includes('Ralphdex: Run CLI Loop')
+    ),
+    true
+  );
+});
+
+test('validateRepositoryDocs accepts AGENTS.md command labels that match shipped titles', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWithCommandSurface(rootPath, 'Ralphdex: Run Loop');
+
+  const issues = await validateRepositoryDocs(rootPath);
+
+  assert.equal(
+    issues.some((issue) => issue.code === 'agents_command_title_drift'),
+    false
+  );
+});

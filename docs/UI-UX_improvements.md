@@ -35,7 +35,7 @@ The dashboard and sidebar are production surfaces backed by shared infrastructur
 
 ### 1. Progressive Disclosure
 
-Advanced settings (memory-summary threshold, tier thresholds, hook scripts) are collapsed inside `<details>` elements, grouped into core and advanced sections. Core settings (provider, presets, agent count) remain visible by default.
+Advanced settings (memory-summary threshold, tier thresholds, hook scripts) are collapsed inside `<details>` elements, grouped into core and advanced sections. Core settings (provider, agent count) remain visible by default.
 
 **Gaps to close:**
 - Verify every non-core setting defaults to collapsed on first open.
@@ -93,7 +93,7 @@ The sidebar provides a triage-oriented compact view:
 
 ## Acceptance Criteria
 
-1. Advanced settings are collapsed by default; core settings (provider, presets, agent count) are immediately visible.
+1. Advanced settings are collapsed by default; core settings (provider, agent count) are immediately visible.
 2. Provider and config issues surface inline guidance next to the responsible control.
 3. Every empty state includes at least one CTA directing the user to the next logical action.
 4. Iteration rows and artifact links have clear interactive affordances (cursor, hover state).

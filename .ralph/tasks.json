@@ -6450,8 +6450,8 @@
     {
       "id": "T225",
       "title": "Self-host adoption: scaffold .ralph/doctrine for the RalphDex workspace",
-      "status": "todo",
-      "notes": "`.ralph/doctrine/` is currently missing in this repository. The doctrine adoption command (Ralphdex: Initialize Doctrine Pack / createDoctrinePack) is shipped and tested. Running it once against this workspace satisfies the PRD self-hosting principle and exercises the shipped path end-to-end. The scaffolded files will be `Unknown / not yet captured.` placeholders — populating them with real content is out of scope for this task.",
+      "status": "done",
+      "notes": "Closed 2026-05-29 as already satisfied: `.ralph/doctrine/` exists (eight doctrine markdown files plus a valid `evidence-index.json`) and is committed to the repository. The task premise — that the pack was missing — is no longer true, so no scaffold run is needed. Original note retained for provenance: `.ralph/doctrine/` is currently missing in this repository. The doctrine adoption command (Ralphdex: Initialize Doctrine Pack / createDoctrinePack) is shipped and tested. Running it once against this workspace satisfies the PRD self-hosting principle and exercises the shipped path end-to-end.",
       "validation": "npm run validate",
       "priority": "low",
       "mode": "default",

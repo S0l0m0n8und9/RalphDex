@@ -70,7 +70,7 @@ Missing or malformed doctrine is treated as a preflight/status warning, not an a
 
 Proposal status lifecycle: `proposed` → `applied` | `rejected` | `partiallyApplied`.
 
-Autonomy mode does not change the principal-agent model. The operator remains the principal, and `autonomyMode` only changes a bounded set of loop defaults. Blocking preflight diagnostics and explicit task/provenance contracts remain enforced; hard stops and human-review behavior follow the configured gates (`stopOnHumanReviewNeeded`, `pipelineHumanGates`, and operator presets).
+Autonomy mode does not change the principal-agent model. The operator remains the principal, and `autonomyMode` only changes a bounded set of loop defaults. Blocking preflight diagnostics and explicit task/provenance contracts remain enforced; hard stops and human-review behavior follow the configured gates (`stopOnHumanReviewNeeded` and `pipelineHumanGates`).
 
 It does not:
 

@@ -44,7 +44,43 @@ const handoffManager_1 = require("./handoffManager");
 const taskFile_1 = require("./taskFile");
 const taskCreation_1 = require("./taskCreation");
 const rolePolicy_1 = require("./rolePolicy");
-async function reconcileCompletionReport(input) {
+const reconciliationGates_1 = require("./reconciliationGates");
+function applyMutationPlanToTask(task, plan) {
+    const nextTask = {
+        ...task,
+        status: plan.nextStatus,
+        notes: plan.progressNote ?? task.notes,
+        blocker: plan.blocker ?? task.blocker
+    };
+    if (plan.validationToWrite && !nextTask.validation) {
+        nextTask.validation = plan.validationToWrite;
+    }
+    if (plan.lastVerifierResult) {
+        nextTask.lastVerifierResult = plan.lastVerifierResult;
+    }
+    if (plan.lastReconciliationWarning) {
+        nextTask.lastReconciliationWarning = plan.lastReconciliationWarning;
+    }
+    return nextTask;
+}
+function buildRejectedOutcome(state, artifactBase, reason, warnings, needsHumanReview) {
+    const warningList = [...warnings];
+    return {
+        artifact: {
+            ...artifactBase,
+            status: 'rejected',
+            rejectionReason: reason,
+            warnings: warningList,
+            ...(needsHumanReview ? { needsHumanReview: true } : {})
+        },
+        selectedTask: state.selectedTask,
+        progressChanged: false,
+        taskFileChanged: false,
+        claimContested: reason === 'claim_contested',
+        warnings: warningList
+    };
+}
+async function buildReconciliationPrelude(input) {
     const parsed = (0, completionReportParser_1.parseCompletionReport)(input.lastMessage);
     const artifactBase = {
         schemaVersion: 1,
@@ -60,12 +96,15 @@ async function reconcileCompletionReport(input) {
     if (!input.selectedTask || input.prepared.promptKind === 'replenish-backlog') {
         artifactBase.status = 'missing';
         return {
-            artifact: artifactBase,
-            selectedTask: input.selectedTask,
-            progressChanged: false,
-            taskFileChanged: false,
-            claimContested: false,
-            warnings: []
+            kind: 'shortcircuit',
+            outcome: {
+                artifact: artifactBase,
+                selectedTask: input.selectedTask,
+                progressChanged: false,
+                taskFileChanged: false,
+                claimContested: false,
+                warnings: []
+            }
         };
     }
     if (parsed.status !== 'parsed' || !parsed.report) {
@@ -76,289 +115,57 @@ async function reconcileCompletionReport(input) {
                 : [...parsed.warnings];
         artifactBase.warnings = warnings;
         return {
-            artifact: {
-                ...artifactBase,
-                warnings
-            },
-            selectedTask: input.selectedTask,
-            progressChanged: false,
-            taskFileChanged: false,
-            claimContested: false,
-            warnings
-        };
-    }
-    const warnings = [...parsed.warnings];
-    if (parsed.report.selectedTaskId !== input.selectedTask.id) {
-        warnings.push(`Completion report selectedTaskId ${parsed.report.selectedTaskId} did not match the selected task ${input.selectedTask.id}.`);
-        return {
-            artifact: {
-                ...artifactBase,
-                rejectionReason: 'task_id_mismatch',
-                warnings
-            },
-            selectedTask: input.selectedTask,
-            progressChanged: false,
-            taskFileChanged: false,
-            claimContested: false,
-            warnings
-        };
-    }
-    // Policy enforcement: check requested mutation and proposed actions against
-    // the role's allowedTaskStateMutations / allowedNodeKinds before doing any
-    // I/O (handoff scan or task-file write).
-    {
-        const policy = (0, rolePolicy_1.getEffectivePolicy)(input.prepared.config.agentRole ?? 'implementer');
-        const reqStatus = parsed.report.requestedStatus;
-        // Claim acquisition promotes todo→in_progress as a side effect and returns
-        // the original task object (status still 'todo').  Use in_progress as the
-        // effective from-status so mutation comparisons are correct.
-        const effectiveFromStatus = input.selectedTask.status === 'todo' ? 'in_progress' : input.selectedTask.status;
-        // requestedStatus === 'in_progress' is a heartbeat (no-op self-assignment).
-        // The structural todo→in_progress transition is handled by claim acquisition,
-        // so any role may emit a progress-only report without being policy-gated.
-        const isHeartbeat = reqStatus === 'in_progress';
-        const mutation = `${effectiveFromStatus}\u2192${reqStatus}`;
-        const mutationAllowed = isHeartbeat || policy.allowedTaskStateMutations.includes(mutation);
-        const childTasksProposed = (parsed.report.suggestedChildTasks?.length ?? 0) > 0;
-        const sourceEditAllowed = policy.allowedNodeKinds.includes('task_exec');
-        if (!mutationAllowed || (childTasksProposed && !sourceEditAllowed)) {
-            const disallowedAction = !mutationAllowed
-                ? `task-state mutation ${mutation}`
-                : `suggestedChildTasks (source-edit proposal) by role '${input.prepared.config.agentRole ?? 'implementer'}'`;
-            const policyWarning = `Policy violation (source: preset): disallowed ${disallowedAction} for role '${input.prepared.config.agentRole ?? 'implementer'}'.`;
-            warnings.push(policyWarning);
-            return {
-                artifact: {
-                    ...artifactBase,
-                    status: 'rejected',
-                    rejectionReason: 'policy_violation',
-                    warnings,
-                    needsHumanReview: true
-                },
+            kind: 'shortcircuit',
+            outcome: {
+                artifact: { ...artifactBase, warnings },
                 selectedTask: input.selectedTask,
                 progressChanged: false,
                 taskFileChanged: false,
                 claimContested: false,
                 warnings
-            };
-        }
+            }
+        };
     }
     const acceptedHandoffs = await scanAcceptedHandoffs((0, handoffManager_1.resolveHandoffDir)(input.prepared.paths.ralphDir));
-    let handoffScopeViolation = false;
-    if (acceptedHandoffs.some((h) => h.taskId !== parsed.report.selectedTaskId)) {
-        warnings.push('Completion report task does not match accepted handoff scope; downgrading to review required');
-        handoffScopeViolation = true;
-    }
-    const requestedStatus = parsed.report.requestedStatus;
-    if (requestedStatus === 'done') {
-        // Allow reconciliation when the validation command passed, even if gitDiff
-        // failed (no code changes needed — the task was already complete).  The
-        // taskState verifier runs *after* reconciliation and will confirm the
-        // status change in tasks.json, so the final verification still has a
-        // meaningful gate.
-        //
-        // Documentation-mode tasks skip the validation gate entirely because their
-        // deliverables (markdown, text) are not verifiable by code-centric commands.
-        const validationGatePassed = input.validationCommandStatus === 'passed';
-        const docMode = (0, taskFile_1.isDocumentationMode)(input.selectedTask);
-        const taskStateOnlyGate = input.prepared.config.verifierModes.includes('taskState')
-            && !input.prepared.config.verifierModes.includes('validationCommand')
-            && !input.prepared.config.verifierModes.includes('gitDiff')
-            && input.prepared.config.gitCheckpointMode !== 'snapshotAndDiff';
-        if (!validationGatePassed
-            && input.verificationStatus !== 'passed'
-            && !docMode
-            && !taskStateOnlyGate) {
-            warnings.push(`Completion report requested done, but verification status was ${input.verificationStatus}.`);
-        }
-        if (parsed.report.needsHumanReview) {
-            warnings.push('Completion report requested done while also declaring needsHumanReview.');
-        }
-        if (warnings.length > 0) {
-            return {
-                artifact: {
-                    ...artifactBase,
-                    rejectionReason: parsed.report.needsHumanReview
-                        ? 'needs_human_review_with_done'
-                        : 'verification_failed',
-                    warnings
-                },
-                selectedTask: input.selectedTask,
-                progressChanged: false,
-                taskFileChanged: false,
-                claimContested: false,
-                warnings
-            };
-        }
-        // Non-blocking observability: surface when an agent marks a task done without
-        // reporting that it ran the configured validation command.  Ralph's own
-        // verifierStatus already provides the hard enforcement gate; this warning
-        // makes skipped validation self-reporting visible in parallel-run artefacts.
-        if (input.prepared.validationCommand && !parsed.report.validationRan) {
-            warnings.push(`Completed task without reporting validationRan; configured validation command was '${input.prepared.validationCommand}'.`);
-        }
-    }
-    if (requestedStatus === 'blocked' && input.preliminaryClassification === 'complete') {
-        warnings.push('Completion report requested blocked, but the preliminary outcome already classified the task as complete.');
-        return {
-            artifact: {
-                ...artifactBase,
-                rejectionReason: 'blocked_overrides_complete',
-                warnings
-            },
-            selectedTask: input.selectedTask,
-            progressChanged: false,
-            taskFileChanged: false,
-            claimContested: false,
-            warnings
-        };
-    }
-    let taskFileChanged = false;
-    let progressChanged = false;
-    // If task-plan.json has a suggestedValidationCommand and the task's validation
-    // field is currently empty, populate it so future iterations use it.
     const taskPlan = await (0, planningPass_1.readTaskPlan)(input.prepared.paths.artifactDir, input.selectedTask.id);
     const suggestedValidationFromPlan = taskPlan?.suggestedValidationCommand ?? null;
-    // Advisory: if the planner proposed a validation command that is a strict
-    // superset of the one Ralph is actually using, warn so operators can decide
-    // whether to adopt the stronger command in the task definition.
-    if (input.prepared.validationCommand && suggestedValidationFromPlan) {
-        const normalBase = input.prepared.validationCommand.trim().replace(/\s+/g, ' ');
-        const normalSuggested = suggestedValidationFromPlan.trim().replace(/\s+/g, ' ');
-        if (normalSuggested !== normalBase
-            && (normalSuggested.startsWith(normalBase + ' ')
-                || normalSuggested.startsWith(normalBase + '&')
-                || normalSuggested.startsWith(normalBase + '|'))) {
-            warnings.push(`planner_suggested_stronger_validation_not_used: planner suggested "${suggestedValidationFromPlan}" but Ralph used "${input.prepared.validationCommand}". Consider adopting the stronger command in the task's validation field.`);
-        }
+    const policy = (0, rolePolicy_1.getEffectivePolicy)(input.prepared.config.agentRole ?? 'implementer');
+    const state = {
+        prepared: input.prepared,
+        selectedTask: input.selectedTask,
+        report: parsed.report,
+        verificationStatus: input.verificationStatus,
+        validationCommandStatus: input.validationCommandStatus,
+        preliminaryClassification: input.preliminaryClassification,
+        acceptedHandoffs,
+        suggestedValidationFromPlan,
+        policy
+    };
+    return { kind: 'state', state, artifactBase };
+}
+async function reconcileCompletionReport(input) {
+    const prelude = await buildReconciliationPrelude(input);
+    if (prelude.kind === 'shortcircuit') {
+        return prelude.outcome;
     }
-    // Claim ownership re-check, task-file write, and progress.md append all happen inside a
-    // single task-file lock to eliminate the TOCTOU window and the unprotected progress.md
-    // read-modify-write that existed when these operations ran sequentially outside any lock.
-    const verificationResult = await updateTaskFileWithVerification(input.taskFilePath, input.prepared.paths.claimFilePath, input.selectedTask.id, input.prepared.config.agentId, input.prepared.provenanceId, input.prepared.paths.progressPath, parsed.report.progressNote ?? null, (taskFile) => {
-        const selectedTaskUpdated = {
-            ...taskFile,
-            tasks: taskFile.tasks.map((task) => {
-                if (task.id !== input.selectedTask.id) {
-                    return task;
-                }
-                const nextTask = {
-                    ...task,
-                    status: requestedStatus,
-                    notes: parsed.report.progressNote ?? task.notes,
-                    blocker: requestedStatus === 'blocked'
-                        ? parsed.report.blocker ?? task.blocker
-                        : task.blocker
-                };
-                if (requestedStatus !== 'blocked' && parsed.report.blocker) {
-                    nextTask.blocker = parsed.report.blocker;
-                }
-                // Populate validation from task-plan.json suggestedValidationCommand
-                // only when the task's validation field was empty.
-                if (!nextTask.validation && suggestedValidationFromPlan) {
-                    nextTask.validation = suggestedValidationFromPlan;
-                }
-                // Persist verifier result so fan-in gates can aggregate child outcomes.
-                const verifierResult = input.verificationStatus === 'passed' ? 'passed'
-                    : input.verificationStatus === 'skipped' ? 'skipped'
-                        : input.verificationStatus ? 'failed'
-                            : undefined;
-                if (verifierResult) {
-                    nextTask.lastVerifierResult = verifierResult;
-                }
-                // Capture conflict warnings so fan-in can detect unresolved merge conflicts.
-                const conflictWarning = warnings.find(w => w.toLowerCase().includes('conflict'));
-                if (conflictWarning) {
-                    nextTask.lastReconciliationWarning = conflictWarning;
-                }
-                taskFileChanged = nextTask.status !== task.status
-                    || nextTask.notes !== task.notes
-                    || nextTask.blocker !== task.blocker
-                    || nextTask.validation !== task.validation
-                    || nextTask.lastVerifierResult !== task.lastVerifierResult
-                    || nextTask.lastReconciliationWarning !== task.lastReconciliationWarning;
-                return nextTask;
-            })
-        };
-        if (requestedStatus !== 'done') {
-            return selectedTaskUpdated;
-        }
-        const ancestorCompletion = (0, taskFile_1.autoCompleteSatisfiedAncestors)(selectedTaskUpdated, input.selectedTask.id);
-        if (ancestorCompletion.completedAncestorIds.length > 0) {
-            taskFileChanged = true;
-        }
-        return ancestorCompletion.taskFile;
-    });
-    if (verificationResult.claimContested) {
-        warnings.push(`Completion report claim ownership check failed for ${input.selectedTask.id}; canonical holder was ${verificationResult.canonicalHolder ?? 'none'}.`);
-        return {
-            artifact: {
-                ...artifactBase,
-                rejectionReason: 'claim_contested',
-                warnings
-            },
-            selectedTask: input.selectedTask,
-            progressChanged: false,
-            taskFileChanged: false,
-            claimContested: true,
-            warnings
-        };
+    const { state, artifactBase } = prelude;
+    const warnings = [...artifactBase.warnings];
+    const pipelineResult = (0, reconciliationGates_1.runGatePipeline)(state);
+    if (pipelineResult.kind === 'rejected') {
+        return buildRejectedOutcome(state, artifactBase, pipelineResult.reason, [...warnings, ...pipelineResult.warnings], pipelineResult.needsHumanReview);
     }
-    progressChanged = verificationResult.progressChanged;
-    if (input.prepared.config.agentRole === 'watchdog' && parsed.report.watchdog_actions?.length) {
-        const watchdogOutcome = await processWatchdogActions(input, parsed.report.watchdog_actions);
-        taskFileChanged = taskFileChanged || watchdogOutcome.taskFileChanged;
-        progressChanged = progressChanged || watchdogOutcome.progressChanged;
-        warnings.push(...watchdogOutcome.warnings);
+    warnings.push(...pipelineResult.warnings);
+    const plan = (0, reconciliationGates_1.composeMutationPlan)(state, pipelineResult.outputs, warnings);
+    const handoffScopeViolation = plan.needsHumanReview;
+    const applied = await applyMutationUnderLock(input, state, plan);
+    if (applied.verificationResult.claimContested) {
+        warnings.push(`Completion report claim ownership check failed for ${state.selectedTask.id}; canonical holder was ${applied.verificationResult.canonicalHolder ?? 'none'}.`);
+        return buildRejectedOutcome(state, artifactBase, 'claim_contested', warnings, false);
     }
-    // Gap 7: Detect completed_parent_with_incomplete_descendants drift immediately
-    // after reconciliation instead of waiting for the next preflight cycle.
-    // autoCompleteSatisfiedAncestors can produce this state when it marks an ancestor
-    // done while a sibling child remains open; parallel runs make the window worse.
-    const postReconciliationTaskFile = (0, taskFile_1.parseTaskFile)(await fs.readFile(input.taskFilePath, 'utf8'));
-    let selectedTask = (0, taskFile_1.findTaskById)(postReconciliationTaskFile, input.selectedTask.id);
-    const driftDiagnostics = (0, taskFile_1.inspectTaskGraph)(postReconciliationTaskFile)
-        .filter((d) => d.severity === 'error' && d.code === 'completed_parent_with_incomplete_descendants');
-    for (const diagnostic of driftDiagnostics) {
-        warnings.push(`Ledger drift after reconciliation: ${diagnostic.message}`);
-    }
-    // Fan-in gate: when a child task completes and its parent has a plan-graph,
-    // evaluate whether all children in the wave are done and conflict-free.
-    // If fan-in fails, revert the parent's auto-completion so it stays in_progress.
-    if (requestedStatus === 'done' && input.selectedTask.parentId) {
-        const graphPath = (0, artifactStore_1.planGraphPath)(input.prepared.paths.artifactDir, input.selectedTask.parentId);
-        const graph = await (0, planGraph_1.readPlanGraph)(graphPath);
-        if (graph) {
-            const fanIn = await (0, planGraph_1.validateFanIn)(graphPath, graph, postReconciliationTaskFile.tasks);
-            if (!fanIn.passed) {
-                // Revert parent auto-completion: acquire the lock and set parent back to in_progress.
-                const parentTask = (0, taskFile_1.findTaskById)(postReconciliationTaskFile, input.selectedTask.parentId);
-                if (parentTask?.status === 'done') {
-                    await (0, taskFile_1.withTaskFileLock)(input.taskFilePath, undefined, async () => {
-                        const current = (0, taskFile_1.parseTaskFile)(await fs.readFile(input.taskFilePath, 'utf8'));
-                        const reverted = (0, taskFile_1.bumpMutationCount)({
-                            ...current,
-                            tasks: current.tasks.map(t => t.id === input.selectedTask.parentId && t.status === 'done'
-                                ? { ...t, status: 'in_progress' }
-                                : t)
-                        });
-                        await fs.writeFile(input.taskFilePath, (0, taskFile_1.stringifyTaskFile)(reverted), 'utf8');
-                    });
-                    taskFileChanged = true;
-                }
-                for (const err of fanIn.errors) {
-                    warnings.push(`Fan-in gate failed for parent '${input.selectedTask.parentId}': ${err}`);
-                }
-            }
-        }
-    }
-    if (requestedStatus === 'done' && selectedTask?.status !== 'done') {
-        warnings.push(`Completion report requested done, but the selected task ended as ${selectedTask?.status ?? 'missing'} after reconciliation.`);
-    }
-    selectedTask = (0, taskFile_1.findTaskById)((0, taskFile_1.parseTaskFile)(await fs.readFile(input.taskFilePath, 'utf8')), input.selectedTask.id);
+    const post = await runPostWriteStages(input, state, plan, applied, warnings);
     if (warnings.length > 0) {
         input.logger.warn('Completion report reconciliation recorded warnings.', {
-            selectedTaskId: input.selectedTask.id,
+            selectedTaskId: state.selectedTask.id,
             warnings
         });
     }
@@ -369,12 +176,99 @@ async function reconcileCompletionReport(input) {
             warnings,
             ...(handoffScopeViolation ? { needsHumanReview: true } : {})
         },
-        selectedTask,
-        progressChanged,
-        taskFileChanged,
+        selectedTask: post.selectedTask,
+        progressChanged: post.progressChanged,
+        taskFileChanged: post.taskFileChanged,
         claimContested: false,
         warnings
     };
+}
+async function applyMutationUnderLock(input, state, plan) {
+    let taskFileChanged = false;
+    const verificationResult = await updateTaskFileWithVerification(input.taskFilePath, state.prepared.paths.claimFilePath, state.selectedTask.id, state.prepared.config.agentId, state.prepared.provenanceId, state.prepared.paths.progressPath, plan.progressNote, (taskFile) => {
+        const selectedTaskUpdated = {
+            ...taskFile,
+            tasks: taskFile.tasks.map((task) => {
+                if (task.id !== state.selectedTask.id) {
+                    return task;
+                }
+                const nextTask = applyMutationPlanToTask(task, plan);
+                taskFileChanged = nextTask.status !== task.status
+                    || nextTask.notes !== task.notes
+                    || nextTask.blocker !== task.blocker
+                    || nextTask.validation !== task.validation
+                    || nextTask.lastVerifierResult !== task.lastVerifierResult
+                    || nextTask.lastReconciliationWarning !== task.lastReconciliationWarning;
+                return nextTask;
+            })
+        };
+        if (!plan.attemptAncestorCompletion) {
+            return selectedTaskUpdated;
+        }
+        const ancestorCompletion = (0, taskFile_1.autoCompleteSatisfiedAncestors)(selectedTaskUpdated, state.selectedTask.id);
+        if (ancestorCompletion.completedAncestorIds.length > 0) {
+            taskFileChanged = true;
+        }
+        return ancestorCompletion.taskFile;
+    });
+    return { verificationResult, taskFileChanged };
+}
+async function runPostWriteStages(input, state, plan, applied, warnings) {
+    let taskFileChanged = applied.taskFileChanged;
+    let progressChanged = applied.verificationResult.progressChanged;
+    const report = state.report;
+    if (state.prepared.config.agentRole === 'watchdog' && report.watchdog_actions?.length) {
+        const watchdogOutcome = await processWatchdogActions(input, report.watchdog_actions);
+        taskFileChanged = taskFileChanged || watchdogOutcome.taskFileChanged;
+        progressChanged = progressChanged || watchdogOutcome.progressChanged;
+        warnings.push(...watchdogOutcome.warnings);
+    }
+    // Gap 7: Detect completed_parent_with_incomplete_descendants drift immediately
+    // after reconciliation instead of waiting for the next preflight cycle.
+    // autoCompleteSatisfiedAncestors can produce this state when it marks an ancestor
+    // done while a sibling child remains open; parallel runs make the window worse.
+    const postReconciliationTaskFile = (0, taskFile_1.parseTaskFile)(await fs.readFile(input.taskFilePath, 'utf8'));
+    let selectedTask = (0, taskFile_1.findTaskById)(postReconciliationTaskFile, state.selectedTask.id);
+    const driftDiagnostics = (0, taskFile_1.inspectTaskGraph)(postReconciliationTaskFile)
+        .filter((d) => d.severity === 'error' && d.code === 'completed_parent_with_incomplete_descendants');
+    for (const diagnostic of driftDiagnostics) {
+        warnings.push(`Ledger drift after reconciliation: ${diagnostic.message}`);
+    }
+    // Fan-in gate: when a child task completes and its parent has a plan-graph,
+    // evaluate whether all children in the wave are done and conflict-free.
+    // If fan-in fails, revert the parent's auto-completion so it stays in_progress.
+    if (plan.nextStatus === 'done' && state.selectedTask.parentId) {
+        const graphPath = (0, artifactStore_1.planGraphPath)(state.prepared.paths.artifactDir, state.selectedTask.parentId);
+        const graph = await (0, planGraph_1.readPlanGraph)(graphPath);
+        if (graph) {
+            const fanIn = await (0, planGraph_1.validateFanIn)(graphPath, graph, postReconciliationTaskFile.tasks);
+            if (!fanIn.passed) {
+                const parentTask = (0, taskFile_1.findTaskById)(postReconciliationTaskFile, state.selectedTask.parentId);
+                if (parentTask?.status === 'done') {
+                    const parentId = state.selectedTask.parentId;
+                    await (0, taskFile_1.withTaskFileLock)(input.taskFilePath, undefined, async () => {
+                        const current = (0, taskFile_1.parseTaskFile)(await fs.readFile(input.taskFilePath, 'utf8'));
+                        const reverted = (0, taskFile_1.bumpMutationCount)({
+                            ...current,
+                            tasks: current.tasks.map((t) => t.id === parentId && t.status === 'done'
+                                ? { ...t, status: 'in_progress' }
+                                : t)
+                        });
+                        await fs.writeFile(input.taskFilePath, (0, taskFile_1.stringifyTaskFile)(reverted), 'utf8');
+                    });
+                    taskFileChanged = true;
+                }
+                for (const err of fanIn.errors) {
+                    warnings.push(`Fan-in gate failed for parent '${state.selectedTask.parentId}': ${err}`);
+                }
+            }
+        }
+    }
+    if (plan.nextStatus === 'done' && selectedTask?.status !== 'done') {
+        warnings.push(`Completion report requested done, but the selected task ended as ${selectedTask?.status ?? 'missing'} after reconciliation.`);
+    }
+    selectedTask = (0, taskFile_1.findTaskById)((0, taskFile_1.parseTaskFile)(await fs.readFile(input.taskFilePath, 'utf8')), state.selectedTask.id);
+    return { taskFileChanged, progressChanged, selectedTask };
 }
 // Acquires the task-file lock once and, inside that critical section, writes both
 // tasks.json and the progress bullet.  Used by the watchdog escalate_to_human path so

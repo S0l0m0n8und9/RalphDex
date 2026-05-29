@@ -239,7 +239,7 @@ This section lists **core settings** only. Source of truth for the full settings
 
 | Setting | Default | Description |
 |---|---|---|
-| `ralphCodex.ralphIterationCap` | `20` | Maximum CLI iterations for the loop command (operator presets can raise this) |
+| `ralphCodex.ralphIterationCap` | `20` | Maximum CLI iterations for the loop command |
 | `ralphCodex.autonomyMode` | `"autonomous"` | `supervised` or `autonomous` |
 | `ralphCodex.planningPass` | `{"enabled":true,"mode":"inline"}` | Pre-execution planning pass defaults used by iteration commands |
 | `ralphCodex.stopOnHumanReviewNeeded` | `true` | Stop the loop on `needs_human_review` classification |

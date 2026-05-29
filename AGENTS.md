@@ -64,10 +64,10 @@ Ralphdex is a VS Code extension that:
 
 ## Command And Validation Entry Points
 
-- `Ralphdex: Prepare Prompt`
+- `Ralphdex: Prepare IDE Prompt`
 - `Ralphdex: Open Codex IDE`
-- `Ralphdex: Run CLI Iteration`
-- `Ralphdex: Run CLI Loop`
+- `Ralphdex: Run Single Iteration`
+- `Ralphdex: Run Loop`
 - `Ralphdex: Run Multi-Agent Loop`
 - `Ralphdex: Show Status`
 - `Ralphdex: Initialize Doctrine Pack`
@@ -78,10 +78,10 @@ Ralphdex is a VS Code extension that:
 - `Ralphdex: Apply Latest Task Decomposition Proposal`
 - `Ralphdex: Resolve Stale Task Claim`
 - `Ralphdex: Reveal Latest Provenance Bundle Directory`
-- `Ralphdex: Cleanup Runtime Artifacts`
+- `Ralphdex: Clean Up Old Run Artifacts`
 - `Ralphdex: Reset Runtime State`
-- `Ralphdex: Run Pipeline`
-- `Ralphdex: Open Latest Pipeline Run`
+- `Ralphdex: Run Full Workflow`
+- `Ralphdex: Open Latest Run Report`
 - `Ralphdex: Regenerate PRD`
 - `Ralphdex: Show Sidebar`
 
