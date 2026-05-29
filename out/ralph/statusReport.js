@@ -39,6 +39,7 @@ const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 const fs_1 = require("../util/fs");
 const doctrine_1 = require("./doctrine");
+const stopReasonPresentation_1 = require("./stopReasonPresentation");
 const rootPolicy_1 = require("./rootPolicy");
 const artifactStore_1 = require("./artifactStore");
 function relativeFromRoot(rootPath, target) {
@@ -574,7 +575,8 @@ function buildStatusReport(snapshot) {
         `- Verification: ${lastIteration?.verificationStatus ?? 'none'}`,
         `- Completion report status: ${lastIteration?.completionReportStatus ?? 'none'}`,
         `- Reconciliation warnings: ${lastIteration?.reconciliationWarnings?.join(' | ') || 'none'}`,
-        `- Stop reason: ${lastIteration?.stopReason ?? 'none'}`,
+        `- Stop reason: ${lastIteration?.stopReason ? `${(0, stopReasonPresentation_1.describeStopReason)(lastIteration.stopReason).label} (${lastIteration.stopReason})` : 'none'}`,
+        `- What to do next: ${lastIteration?.stopReason ? (0, stopReasonPresentation_1.describeStopReason)(lastIteration.stopReason).nextAction : 'none'}`,
         `- Remediation: ${latestRemediation?.summary ?? 'none'}`,
         `- Remediation action: ${latestRemediation?.action ?? 'none'}`,
         `- Remediation attempts: ${latestRemediation?.attemptCount ?? 'none'}`,

@@ -6,6 +6,7 @@ import { pathExists } from '../util/fs';
 import { DOCTRINE_MARKDOWN_FILES, type DoctrineContext, type DoctrineInspection } from './doctrine';
 import type { DoctrineProposalArtifact, DoctrineProposalRisk } from './doctrineProposals';
 import { EffectiveTierInfo } from './complexityScorer';
+import { describeStopReason } from './stopReasonPresentation';
 import { deriveRootPolicy } from './rootPolicy';
 import { PipelineRunArtifact } from './pipeline';
 import type { RolePolicy } from './types';
@@ -820,7 +821,8 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
     `- Verification: ${lastIteration?.verificationStatus ?? 'none'}`,
     `- Completion report status: ${lastIteration?.completionReportStatus ?? 'none'}`,
     `- Reconciliation warnings: ${lastIteration?.reconciliationWarnings?.join(' | ') || 'none'}`,
-    `- Stop reason: ${lastIteration?.stopReason ?? 'none'}`,
+    `- Stop reason: ${lastIteration?.stopReason ? `${describeStopReason(lastIteration.stopReason).label} (${lastIteration.stopReason})` : 'none'}`,
+    `- What to do next: ${lastIteration?.stopReason ? describeStopReason(lastIteration.stopReason).nextAction : 'none'}`,
     `- Remediation: ${latestRemediation?.summary ?? 'none'}`,
     `- Remediation action: ${latestRemediation?.action ?? 'none'}`,
     `- Remediation attempts: ${latestRemediation?.attemptCount ?? 'none'}`,
