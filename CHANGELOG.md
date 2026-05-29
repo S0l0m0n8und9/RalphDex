@@ -2,6 +2,29 @@
 
 All notable changes to Ralphdex are documented here.
 
+## [1.2.0] — 2026-05-29
+
+A quality-first release: stronger fundamentals, a clearer first-run and operator flow, and a large internal cleanup. No breaking changes to commands, settings, or workspace state.
+
+### Added
+
+- **Getting Started walkthrough** — a VS Code "Get started with Ralphdex" walkthrough guides new operators through creating a PRD, confirming their provider, running a first iteration, and reading the dashboard.
+- **Humanized stop reasons** — the status report and dashboard now show a plain-language label, explanation, and "what to do next" for every loop stop reason instead of raw enum values.
+
+### Changed
+
+- **Calmer command palette** — 16 niche/diagnostic commands (the "Open Latest …" artifact openers, doctrine sub-views and proposal commands, and redundant dashboard aliases) are hidden from the command palette. They remain fully available from the dashboard and programmatically; recovery commands stay visible.
+- **Trustworthy docs and PRD** — `.ralph/prd.md` now leads with a live "Current scope" section over an archived history; stale operator-mode-preset references were removed from operator-facing docs; AGENTS.md command labels are corrected and now locked against drift by `check:docs`.
+
+### Removed
+
+- **Duplicate dashboard renderer** — removed the legacy string-template dashboard/sidebar fallback (`panelHtml.ts`/`sidebarHtml.ts`) and the unused `UXrefresh/` prototype (~10,500 lines). The React UI under `src/webview-ui/` is the single renderer; if its bundle is ever missing, a small static "UI failed to load" page is shown.
+
+### Internal
+
+- Build hygiene: added `.gitattributes` (LF normalization) and a CI guard that fails if committed `out/` build output drifts from source.
+- Refactors (behaviour-preserving, snapshot/test-guarded): extracted the source-location JSON locator from `taskFile.ts`, the role-aware context-section builders from `promptBuilder.ts`, and the pre-execution planning gate from `iterationEngine.ts` (restoring it to a thin orchestrator). Added direct unit tests for the reconciliation gate pipeline and the new modules.
+
 ## [1.1.9] — 2026-05-19
 
 ### Changed
