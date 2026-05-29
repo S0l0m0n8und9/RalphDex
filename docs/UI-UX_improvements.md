@@ -2,7 +2,7 @@
 
 > **Status:** Active implementation guide.
 > **Scope:** Dashboard (editor panel) and sidebar (activity-bar view) refresh.
-> **Live code:** `src/ui/panelHtml.ts`, `src/ui/sidebarHtml.ts`, `src/ui/dashboardPanel.ts`, `src/ui/sidebarViewProvider.ts`, `src/webview/`.
+> **Live code:** `src/webview-ui/` (React renderer), `src/webview/` (shared host), `src/ui/dashboardPanel.ts`, `src/ui/sidebarViewProvider.ts`.
 
 ---
 
@@ -10,12 +10,12 @@
 
 | Path | Role |
 |---|---|
-| `src/ui/` | **Production** — dashboard panel and sidebar HTML, state, broadcasting |
+| `src/webview-ui/` | **Production** — bundled React dashboard/sidebar renderer (the single renderer) |
 | `src/webview/` | **Production** — shared webview infrastructure (WebviewPanelManager, MessageBridge, DashboardHost, styles) |
-| `UXrefresh/` | **Reference only** — static HTML prototype captured during redesign; not shipped, not imported, not tested |
+| `src/ui/` | **Production** — VS Code panel/sidebar adapters, dashboard state, broadcasting |
 | Third generated design image | **Prompt-note / design-brief artifact** — captured as creative direction input; it is not a runtime interface and must not be implemented as a screen |
 
-No production code may import from or depend on `UXrefresh/`.
+The dashboard/sidebar is rendered only by the `src/webview-ui/` React tree. When the bundle is missing, the view shows a static "UI failed to load" page — there is no string-template renderer.
 
 ---
 
@@ -111,7 +111,7 @@ The sidebar provides a triage-oriented compact view:
 | **1 — Docs cleanup** | This document. Align doc language to implementation state; remove exploratory/recommendation wording. |
 | **2 — Dashboard gap hardening** | Close gaps listed under directives 1–5: collapsed-default audit, extended inline validation, busy indicator, iteration-row affordances, empty-state CTA completeness. |
 | **3 — Sidebar triage work** | Close gaps listed under directive 6: status filter, blocked/dead-letter badges, persistent seed feedback, simple-mode empty-state CTA. |
-| **4 — UI tests** | Extend `test/ui/panelHtml.test.ts`, `test/ui/sidebarHtml.test.ts`, and `test/webview/dashboardHost.test.ts` to cover new affordances, collapsed defaults, and empty-state CTAs. |
+| **4 — UI tests** | Extend the `test/ui/` React component tests and `test/webview/dashboardHost.test.ts` to cover new affordances, collapsed defaults, and empty-state CTAs. |
 | **5 — Validate** | `npm run validate` (compile → check:docs → lint → tests) must pass green before any phase is considered done. |
 
 ---

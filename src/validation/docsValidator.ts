@@ -122,8 +122,6 @@ const DOC_RULES: Record<string, DocRule> = {
       'Ralphdex: Regenerate PRD',
       '.ralph/artifacts/task-seeding/',
       'flat version-2 backlog tasks',
-      'UXrefresh/',
-      'reference-only prototype',
       'src/webview/'
     ],
     forbiddenFragments: [
@@ -135,12 +133,9 @@ const DOC_RULES: Record<string, DocRule> = {
     requiredHeadings: [],
     requiredFragments: [
       'src/webview/',
-      'src/ui/panelHtml.ts',
-      'src/ui/sidebarHtml.ts',
+      'src/webview-ui/',
       'test/ui/',
-      'test/webview/',
-      'UXrefresh/',
-      'reference-only prototype'
+      'test/webview/'
     ]
   },
   'docs/invariants.md': {

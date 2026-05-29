@@ -49,11 +49,10 @@ The shipped dashboard and sidebar share one production host path:
 
 - `src/webview/` owns shared host lifecycle, durable snapshot assembly, typed message bridging, webview-safe HTML scaffolding, and reusable plumbing through files such as `dashboardHost.ts`, `reactWebviewHtml.ts`, `dashboardSnapshot.ts`, `dashboardDataLoader.ts`, `MessageBridge.ts`, and `WebviewPanelManager.ts`.
 - `src/webview-ui/` owns the bundled React + TypeScript dashboard/sidebar shell. The bundle is built locally to `out/webview-ui/` and loaded through VS Code webview resource URIs only.
-- `src/ui/dashboardPanel.ts` and `src/ui/sidebarViewProvider.ts` own the VS Code panel/sidebar adapters that mount the React shell on the shared `DashboardHost`.
-- `src/ui/panelHtml.ts` and `src/ui/sidebarHtml.ts` are retained as legacy string-rendered compatibility surfaces for deterministic fixture coverage and rollback while the React shell is expanded incrementally. They are also the explicit debug fallback if the local `out/webview-ui/` bundle is missing, so an Extension Development Host does not show a blank dashboard/sidebar when the webview watcher has not produced assets yet.
-- `test/ui/` and `test/webview/` own regression coverage for the React shell bootstrap, legacy fixture surfaces, and shared host wiring.
+- `src/ui/dashboardPanel.ts` and `src/ui/sidebarViewProvider.ts` own the VS Code panel/sidebar adapters that mount the React shell on the shared `DashboardHost`. When the local `out/webview-ui/` bundle is missing (a build step did not run), `reactWebviewHtml.ts` serves a small static "UI failed to load" page — there is no second string-template renderer.
+- `test/ui/` and `test/webview/` own regression coverage for the React shell bootstrap, component behaviour, and shared host wiring.
 
-The top-level `UXrefresh/` directory is retained only as a reference-only prototype bundle from the redesign work. It is not loaded by the extension, not part of the production ownership boundary, and should only be consulted as historical design material when the shipped `src/webview/` + `src/webview-ui/` implementation needs visual context.
+The React tree under `src/webview-ui/` is the single dashboard/sidebar renderer; no parallel string-template implementation is maintained.
 
 ## End-To-End Flow
 
