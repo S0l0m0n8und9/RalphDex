@@ -383,6 +383,26 @@
         ]
       }
     ],
+    "menus": {
+      "commandPalette": [
+        { "command": "ralphCodex.openLatestRalphSummary", "when": "false" },
+        { "command": "ralphCodex.openLatestProvenanceBundle", "when": "false" },
+        { "command": "ralphCodex.openLatestPromptEvidence", "when": "false" },
+        { "command": "ralphCodex.openLatestCliTranscript", "when": "false" },
+        { "command": "ralphCodex.openLatestPipelineRun", "when": "false" },
+        { "command": "ralphCodex.revealLatestProvenanceBundleDirectory", "when": "false" },
+        { "command": "ralphCodex.openDoctrineFolder", "when": "false" },
+        { "command": "ralphCodex.openDoctrineInvariants", "when": "false" },
+        { "command": "ralphCodex.openDoctrineBoundaries", "when": "false" },
+        { "command": "ralphCodex.openDoctrineAgents", "when": "false" },
+        { "command": "ralphCodex.openLatestDoctrineProposal", "when": "false" },
+        { "command": "ralphCodex.applyLatestDoctrineProposal", "when": "false" },
+        { "command": "ralphCodex.rejectLatestDoctrineProposal", "when": "false" },
+        { "command": "ralphCodex.applyLatestTaskDecompositionProposal", "when": "false" },
+        { "command": "ralphCodex.showDashboard", "when": "false" },
+        { "command": "ralphCodex.openDashboard", "when": "false" }
+      ]
+    },
     "configuration": {
       "title": "Ralphdex",
       "properties": {
