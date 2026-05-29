@@ -1212,7 +1212,8 @@ test('buildStatusReport keeps replenish-backlog drift exhaustion explicit in loo
   assert.match(report, /- Summary: No task selected because task-ledger drift blocks safe selection/);
   assert.match(report, /- Last task: none/);
   assert.match(report, /- Next actionable task available: no/);
-  assert.match(report, /- Stop reason: no_actionable_task/);
+  assert.match(report, /- Stop reason: No actionable task \(no_actionable_task\)/);
+  assert.match(report, /- What to do next: Seed or unblock tasks/);
   assert.match(report, /- Task-ledger drift: Task T1 is marked done but descendant tasks are still unfinished: T1\.1 \(blocked\)\./);
 });
 

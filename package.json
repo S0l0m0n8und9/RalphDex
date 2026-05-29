@@ -347,6 +347,62 @@
         }
       ]
     },
+    "walkthroughs": [
+      {
+        "id": "ralphdexGettingStarted",
+        "title": "Get started with Ralphdex",
+        "description": "Set up a durable, file-backed agentic coding loop in four steps.",
+        "steps": [
+          {
+            "id": "ralphdex.createPrd",
+            "title": "Create your PRD and task backlog",
+            "description": "Scaffold `.ralph/` with a product brief and a starter task backlog.\n[Open PRD Wizard](command:ralphCodex.openPrdWizard)",
+            "media": { "markdown": "media/walkthrough/01-prd.md" },
+            "completionEvents": ["onCommand:ralphCodex.openPrdWizard"]
+          },
+          {
+            "id": "ralphdex.checkProvider",
+            "title": "Confirm your AI provider",
+            "description": "Ralphdex runs iterations through a provider CLI or Azure endpoint. Confirm yours is ready in the First-Run Readiness card.\n[Show Status](command:ralphCodex.showRalphStatus)",
+            "media": { "markdown": "media/walkthrough/02-provider.md" },
+            "completionEvents": ["onCommand:ralphCodex.showRalphStatus"]
+          },
+          {
+            "id": "ralphdex.runIteration",
+            "title": "Run your first iteration",
+            "description": "Execute one deterministic Ralph cycle and inspect its stop reason.\n[Run Single Iteration](command:ralphCodex.runRalphIteration)",
+            "media": { "markdown": "media/walkthrough/03-iterate.md" },
+            "completionEvents": ["onCommand:ralphCodex.runRalphIteration"]
+          },
+          {
+            "id": "ralphdex.readDashboard",
+            "title": "Read the dashboard",
+            "description": "See what happened and why, with plain-language stop reasons and artifact links.\n[Show Status](command:ralphCodex.showRalphStatus)",
+            "media": { "markdown": "media/walkthrough/04-dashboard.md" }
+          }
+        ]
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        { "command": "ralphCodex.openLatestRalphSummary", "when": "false" },
+        { "command": "ralphCodex.openLatestProvenanceBundle", "when": "false" },
+        { "command": "ralphCodex.openLatestPromptEvidence", "when": "false" },
+        { "command": "ralphCodex.openLatestCliTranscript", "when": "false" },
+        { "command": "ralphCodex.openLatestPipelineRun", "when": "false" },
+        { "command": "ralphCodex.revealLatestProvenanceBundleDirectory", "when": "false" },
+        { "command": "ralphCodex.openDoctrineFolder", "when": "false" },
+        { "command": "ralphCodex.openDoctrineInvariants", "when": "false" },
+        { "command": "ralphCodex.openDoctrineBoundaries", "when": "false" },
+        { "command": "ralphCodex.openDoctrineAgents", "when": "false" },
+        { "command": "ralphCodex.openLatestDoctrineProposal", "when": "false" },
+        { "command": "ralphCodex.applyLatestDoctrineProposal", "when": "false" },
+        { "command": "ralphCodex.rejectLatestDoctrineProposal", "when": "false" },
+        { "command": "ralphCodex.applyLatestTaskDecompositionProposal", "when": "false" },
+        { "command": "ralphCodex.showDashboard", "when": "false" },
+        { "command": "ralphCodex.openDashboard", "when": "false" }
+      ]
+    },
     "configuration": {
       "title": "Ralphdex",
       "properties": {

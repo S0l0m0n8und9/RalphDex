@@ -1,6 +1,7 @@
 import React from 'react';
 import type { RalphDashboardIteration } from '../../../ui/uiTypes';
 import type { RalphCompletionClassification } from '../../../ralph/types';
+import { describeStopReason } from '../../../ralph/stopReasonPresentation';
 import { Card } from '../primitives/Card';
 
 interface TimelineProps {
@@ -63,8 +64,11 @@ export function Timeline({ iterations, onOpenArtifact }: TimelineProps) {
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--dim)' }}>
                 {it.effectiveTier ?? ''}
               </span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--dim)', textAlign: 'right' }}>
-                {it.stopReason ? it.stopReason.replace(/_/g, ' ') : ''}
+              <span
+                style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--dim)', textAlign: 'right' }}
+                title={it.stopReason ? `${describeStopReason(it.stopReason).explanation}\n\nNext: ${describeStopReason(it.stopReason).nextAction}` : undefined}
+              >
+                {it.stopReason ? describeStopReason(it.stopReason).label : ''}
               </span>
             </button>
           );

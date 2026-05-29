@@ -503,7 +503,7 @@ test('runCliIteration records successful progress, artifacts, and state persiste
 
   const latestSummary = await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-summary.md'), 'utf8');
   assert.match(latestSummary, /Backlog remaining: 1/);
-  assert.doesNotMatch(latestSummary, /Stop reason: task_marked_complete/);
+  assert.doesNotMatch(latestSummary, /Stop reason:.*task_marked_complete/);
 
   const finalTaskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as RalphTaskFile;
   assert.equal(finalTaskFile.tasks.find((task) => task.id === 'T1')?.status, 'done');
