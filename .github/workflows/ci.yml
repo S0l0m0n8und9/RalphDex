@@ -41,9 +41,15 @@ jobs:
       - name: Verify committed build artifacts are current
         run: |
           # `npm run validate` already compiled src -> out. If the committed
-          # out/ drifted from source, the working tree is now dirty. Fail so
-          # stale build artifacts can never be merged.
-          if ! git diff --exit-code -- out/; then
+          # tsc output drifted from source, the working tree is now dirty. Fail
+          # so stale build artifacts can never be merged.
+          #
+          # out/webview-ui/ is excluded: it is produced by esbuild --minify
+          # --sourcemap and its sourcemap is not byte-reproducible across the
+          # dev (Windows) and CI (Linux) toolchains, so checking it here only
+          # yields false positives. That bundle is rebuilt by vscode:prepublish
+          # at packaging time regardless of its committed bytes.
+          if ! git diff --exit-code -- out/ ':(exclude)out/webview-ui/'; then
             echo "::error::Committed out/ is stale. Run 'npm run compile' and commit the result."
             exit 1
           fi
