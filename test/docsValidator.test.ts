@@ -1076,6 +1076,55 @@ Review runtime diagnostics.
   );
 });
 
+test('validateRepositoryDocs reports the missing doctrine command reference even when the heading is retained', async () => {
+  const rootPath = await makeTempRoot();
+  await seedValidRepository(rootPath);
+
+  // Keep the doctrine-adoption heading but strip only the command label + id,
+  // proving the fragment guardrail fires independently of the heading rule
+  // (acceptance: fail when the heading OR the command reference is removed).
+  const workflowsPath = path.join(rootPath, 'docs/workflows.md');
+  const seeded = await fs.readFile(workflowsPath, 'utf8');
+  const stripped = seeded.replace(
+    '2. Run `Ralphdex: Initialize Doctrine Pack` (`ralphCodex.initializeDoctrinePack`).',
+    '2. Run the documented doctrine command.'
+  );
+  assert.notEqual(stripped, seeded, 'expected the seeded fixture to contain the doctrine command reference line');
+  await writeFile(rootPath, 'docs/workflows.md', stripped);
+
+  const issues = await validateRepositoryDocs(rootPath);
+
+  // The heading is still present, so the heading rule must NOT fire.
+  assert.equal(
+    issues.some(
+      (issue) =>
+        issue.code === 'missing_heading'
+        && issue.filePath === 'docs/workflows.md'
+        && issue.message.includes('Initialize Or Repair A Doctrine Pack For An Established Workspace')
+    ),
+    false
+  );
+  // Both command references are gone, so the fragment rule must fire for each.
+  assert.equal(
+    issues.some(
+      (issue) =>
+        issue.code === 'missing_fragment'
+        && issue.filePath === 'docs/workflows.md'
+        && issue.message.includes('ralphCodex.initializeDoctrinePack')
+    ),
+    true
+  );
+  assert.equal(
+    issues.some(
+      (issue) =>
+        issue.code === 'missing_fragment'
+        && issue.filePath === 'docs/workflows.md'
+        && issue.message.includes('Ralphdex: Initialize Doctrine Pack')
+    ),
+    true
+  );
+});
+
 test('validateRepositoryDocs reports missing Task Readiness Gate heading and module reference in workflows', async () => {
   const rootPath = await makeTempRoot();
   await seedValidRepository(rootPath);
