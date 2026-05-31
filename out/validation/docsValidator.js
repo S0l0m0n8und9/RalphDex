@@ -225,6 +225,7 @@ const DOC_RULES = {
             'Run One CLI Iteration',
             'Run The Ralph Loop',
             'Seed Flat Backlog Tasks',
+            'Task Readiness Gate',
             'Memory Strategy',
             'Azure AI Foundry Provider',
             'Inspect State',
@@ -242,7 +243,8 @@ const DOC_RULES = {
             '`.ralph/tasks.json` unchanged',
             'flat version-2 backlog tasks',
             'Ralphdex: Initialize Doctrine Pack',
-            'ralphCodex.initializeDoctrinePack'
+            'ralphCodex.initializeDoctrinePack',
+            'src/ralph/planningGate.ts'
         ],
         forbiddenFragments: [
             'Azure-backed provider is not yet implemented',
