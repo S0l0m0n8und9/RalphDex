@@ -2,7 +2,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as vscode from 'vscode';
 import { DEFAULT_CONFIG } from '../src/config/defaults';
-import { detectModelTieringEnableConflict, readConfig } from '../src/config/readConfig';
+import {
+  detectModelTieringEnableConflict,
+  explicitBoolean,
+  explicitNestedTieringEnabled,
+  readConfig
+} from '../src/config/readConfig';
 import { RalphCodexConfig } from '../src/config/types';
 import { buildPreflightReport } from '../src/ralph/preflight';
 import { inspectTaskFileText } from '../src/ralph/taskFile';
@@ -81,6 +86,53 @@ test('detectModelTieringEnableConflict is silent when either value is implicit',
   assert.equal(detectModelTieringEnableConflict(true, undefined), null);
   assert.equal(detectModelTieringEnableConflict(undefined, false), null);
   assert.equal(detectModelTieringEnableConflict(undefined, undefined), null);
+});
+
+// --- Explicit-value scope precedence ---------------------------------------
+// inspect() precedence must mirror config.get() for a resource-scoped
+// configuration (workspaceFolderValue > workspaceValue > globalValue) so the
+// detected conflict and the flat-alias override stay consistent at folder
+// scope in multi-root workspaces.
+
+test('explicitBoolean honors workspaceFolderValue over workspace and global scope', () => {
+  assert.equal(explicitBoolean({ workspaceFolderValue: true, workspaceValue: false, globalValue: false }), true);
+  assert.equal(explicitBoolean({ workspaceFolderValue: false, workspaceValue: true }), false);
+  // Falls back through the precedence chain when higher scopes are absent.
+  assert.equal(explicitBoolean({ workspaceValue: true }), true);
+  assert.equal(explicitBoolean({ globalValue: false }), false);
+  // Implicit (manifest default only) stays undefined.
+  assert.equal(explicitBoolean({}), undefined);
+  assert.equal(explicitBoolean(undefined), undefined);
+});
+
+test('explicitNestedTieringEnabled honors workspaceFolderValue over workspace and global scope', () => {
+  assert.equal(
+    explicitNestedTieringEnabled({
+      workspaceFolderValue: { enabled: true },
+      workspaceValue: { enabled: false }
+    }),
+    true
+  );
+  assert.equal(explicitNestedTieringEnabled({ workspaceValue: { enabled: false } }), false);
+  assert.equal(explicitNestedTieringEnabled({ globalValue: { enabled: true } }), true);
+  // A folder-scoped object without a boolean `enabled` key is not explicit.
+  assert.equal(explicitNestedTieringEnabled({ workspaceFolderValue: { simpleThreshold: 4 } }), undefined);
+  assert.equal(explicitNestedTieringEnabled(undefined), undefined);
+});
+
+test('a disagreement pinned at folder scope is detected as a conflict', () => {
+  // Flat alias enabled at folder scope, nested disabled at workspace scope:
+  // config.get() would resolve the flat alias as the effective value, so the
+  // detector must see it too (flat alias wins).
+  const flat = explicitBoolean({ workspaceFolderValue: true });
+  const nested = explicitNestedTieringEnabled({ workspaceValue: { enabled: false } });
+  assert.deepEqual(detectModelTieringEnableConflict(flat, nested), {
+    flatKey: 'ralphCodex.enableModelTiering',
+    nestedKey: 'ralphCodex.modelTiering.enabled',
+    flatValue: true,
+    nestedValue: false,
+    effectiveValue: true
+  });
 });
 
 // --- readConfig wiring ------------------------------------------------------

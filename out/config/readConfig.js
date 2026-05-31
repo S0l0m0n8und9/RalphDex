@@ -33,6 +33,8 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.explicitBoolean = explicitBoolean;
+exports.explicitNestedTieringEnabled = explicitNestedTieringEnabled;
 exports.detectModelTieringEnableConflict = detectModelTieringEnableConflict;
 exports.readConfig = readConfig;
 const vscode = __importStar(require("vscode"));
@@ -245,22 +247,28 @@ function readModelTiering(config, fallback) {
     };
 }
 /**
- * Returns the explicitly-configured (workspace- or global-scope) value of a
- * boolean setting, or `undefined` when only the manifest default applies.
- * Using inspect() avoids treating the package.json default as a user choice.
+ * Returns the explicitly-configured value of a boolean setting, or `undefined`
+ * when only the manifest default applies. Using inspect() avoids treating the
+ * package.json default as a user choice. Scope precedence mirrors
+ * `config.get()` for a resource-scoped configuration
+ * (`workspaceFolderValue > workspaceValue > globalValue`) so the detected
+ * explicit value stays consistent with the effective value the rest of
+ * readConfig() applies, including in multi-root (folder-scoped) workspaces.
  */
 function explicitBoolean(inspected) {
-    const value = inspected?.workspaceValue ?? inspected?.globalValue;
+    const value = inspected?.workspaceFolderValue ?? inspected?.workspaceValue ?? inspected?.globalValue;
     return typeof value === 'boolean' ? value : undefined;
 }
 /**
  * Returns the explicitly-configured `modelTiering.enabled` value, reading it
- * out of the nested `ralphCodex.modelTiering` object set at workspace/global
- * scope. Returns `undefined` when the object is absent or has no boolean
- * `enabled` key (i.e. the nested enable flag is implicit).
+ * out of the nested `ralphCodex.modelTiering` object. Scope precedence mirrors
+ * `config.get()` for a resource-scoped configuration
+ * (`workspaceFolderValue > workspaceValue > globalValue`). Returns `undefined`
+ * when the object is absent or has no boolean `enabled` key (i.e. the nested
+ * enable flag is implicit).
  */
 function explicitNestedTieringEnabled(inspected) {
-    const raw = inspected?.workspaceValue ?? inspected?.globalValue;
+    const raw = inspected?.workspaceFolderValue ?? inspected?.workspaceValue ?? inspected?.globalValue;
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
         return undefined;
     }
