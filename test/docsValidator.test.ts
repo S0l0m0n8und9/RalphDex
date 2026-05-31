@@ -230,6 +230,10 @@ blocked preflight remains a hard stop even in autonomyMode.
 
 Use this workflow to append flat version-2 backlog tasks for one feature request. Each run writes \`.ralph/artifacts/task-seeding/task-seeding-<timestamp>.json\` and leaves \`.ralph/tasks.json\` unchanged on failure.
 
+## Task Readiness Gate
+
+\`ralphCodex.taskReadinessGate\` (off / warn / auto / strict) gates execution. Evaluated in \`src/ralph/planningGate.ts\`.
+
 ## Memory Strategy
 
 Memory strategy controls prior-iteration context.
@@ -1016,6 +1020,10 @@ blocked preflight remains a hard stop even in autonomyMode.
 
 Use this workflow to append flat version-2 backlog tasks for one feature request. Each run writes \`.ralph/artifacts/task-seeding/task-seeding-<timestamp>.json\` and leaves \`.ralph/tasks.json\` unchanged on failure.
 
+## Task Readiness Gate
+
+\`ralphCodex.taskReadinessGate\` (off / warn / auto / strict) gates execution. Evaluated in \`src/ralph/planningGate.ts\`.
+
 ## Memory Strategy
 
 Memory strategy controls prior-iteration context.
@@ -1063,6 +1071,88 @@ Review runtime diagnostics.
         issue.code === 'missing_fragment'
         && issue.filePath === 'docs/workflows.md'
         && issue.message.includes('Ralphdex: Initialize Doctrine Pack')
+    ),
+    true
+  );
+});
+
+test('validateRepositoryDocs reports missing Task Readiness Gate heading and module reference in workflows', async () => {
+  const rootPath = await makeTempRoot();
+  await seedValidRepository(rootPath);
+  await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+
+See [Invariants](${path.join(rootPath, 'docs/invariants.md')}), [Provenance](${path.join(rootPath, 'docs/provenance.md')}), [Verifier](${path.join(rootPath, 'docs/verifier.md')}), and [Boundaries](${path.join(rootPath, 'docs/boundaries.md')}).
+
+## Develop The Extension
+
+Run the extension locally.
+
+## Package And Install A .vsix
+
+Use this path to build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
+
+## Initialize Or Repair A Doctrine Pack For An Established Workspace
+
+1. Run \`Ralphdex: Initialize Doctrine Pack\` (\`ralphCodex.initializeDoctrinePack\`).
+
+## Prepare A Prompt For IDE Use
+
+Prepare the next prompt.
+
+## Run One CLI Iteration
+
+Run one iteration.
+
+## Run The Ralph Loop
+
+Run the loop.
+
+The autonomyMode setting controls loop defaults, but hard stops still require the operator.
+
+blocked preflight remains a hard stop even in autonomyMode.
+
+## Seed Flat Backlog Tasks
+
+Use this workflow to append flat version-2 backlog tasks for one feature request. Each run writes \`.ralph/artifacts/task-seeding/task-seeding-<timestamp>.json\` and leaves \`.ralph/tasks.json\` unchanged on failure.
+
+## Memory Strategy
+
+Memory strategy controls prior-iteration context.
+
+## Azure AI Foundry Provider
+
+Azure AI Foundry direct-HTTPS provider.
+
+## Inspect State
+
+Inspect persisted state.
+
+## Reset State
+
+Reset generated state.
+
+## Diagnostics
+
+Review runtime diagnostics.
+`);
+
+  const issues = await validateRepositoryDocs(rootPath);
+
+  assert.equal(
+    issues.some(
+      (issue) =>
+        issue.code === 'missing_heading'
+        && issue.filePath === 'docs/workflows.md'
+        && issue.message.includes('Task Readiness Gate')
+    ),
+    true
+  );
+  assert.equal(
+    issues.some(
+      (issue) =>
+        issue.code === 'missing_fragment'
+        && issue.filePath === 'docs/workflows.md'
+        && issue.message.includes('src/ralph/planningGate.ts')
     ),
     true
   );

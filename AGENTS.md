@@ -108,7 +108,7 @@ Full schema rules and invariants live in [docs/invariants.md](docs/invariants.md
 
 `.ralph/crew.json` is an optional JSON array that defines a named crew for multi-agent loops. Each entry requires `id` (string) and `role` (`planner` | `implementer` | `reviewer`), and accepts optional `goal` and `backstory` strings. When absent, Ralph synthesizes a uniform crew from `ralphCodex.agentCount`. `ralphCodex.agentRole` sets the active role for one running agent; the default is `implementer`.
 
-`ralphCodex.planningPass.enabled` and `ralphCodex.planningPass.mode` control the pre-execution planning pass. Default: `enabled=true`, `mode='inline'`. Full workflow: [docs/workflows.md](docs/workflows.md#planning-pass).
+`ralphCodex.planningPass.enabled` and `ralphCodex.planningPass.mode` control the pre-execution planning pass. Default: `enabled=true`, `mode='inline'`. Full workflow: [docs/workflows.md](docs/workflows.md#planning-pass). Readiness enforcement modes (`ralphCodex.taskReadinessGate`): [docs/workflows.md](docs/workflows.md#task-readiness-gate).
 
 Example `.ralph/crew.json` with one planner and two implementers:
 

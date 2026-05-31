@@ -592,6 +592,28 @@ Planning-gate decomposition is pre-execution: it happens before the implementer 
 
 When planning-gate decomposition writes child tasks, each child carries a planning-doc backlink via `context[]` (for example `.ralph/artifacts/plans/<taskId>/plan.md#task-1`) so implementation/review passes can trace the decomposition rationale without introducing a new task schema field.
 
+## Task Readiness Gate
+
+`ralphCodex.taskReadinessGate` selects how the [Planning Pass](#planning-pass) readiness verdict is enforced before any provider execution. The gate is evaluated in `src/ralph/planningGate.ts`, which inspects the selected task plus the planner's `task-plan.json` readiness fields and the deterministic task-shape diagnostics, then returns exactly one pre-execution decision. When `taskReadinessGate != off`, the gate runs even if `ralphCodex.planningPass.enabled` is `false`, so the readiness decision is always explicit.
+
+Each decision is one of these classifications:
+
+- `proceed` — the task is ready; execution continues with no warnings.
+- `warn_and_proceed` — readiness findings were recorded as warnings, but execution continues.
+- `decomposed_and_stop` — valid bounded `suggestedChildTasks` were written to the task file (parent made to depend on them); the iteration stops before provider execution so the next loop can pick the first child.
+- `blocked_and_stop` — readiness is insufficient and there is no safe automated recovery; the iteration stops before provider execution.
+- `human_review_and_stop` — the task is escalated for a human; the iteration stops before provider execution.
+- `skipped` — the gate did not evaluate (no selectable task, or `off` with planning disabled).
+
+The four modes differ only in which of those classifications they are allowed to emit:
+
+- `off` — never gates. Emits `skipped` or `proceed`; any `task-plan.json` stays advisory context and is not regenerated solely for missing freshness metadata.
+- `warn` — observe-only. Emits `proceed`, or `warn_and_proceed` when planner readiness is not `ready` or any task-shape finding fires. Never stops or decomposes.
+- `auto` (default) — acts on the planner verdict. Emits `decomposed_and_stop` for `needs_decomposition` with valid bounded children (falling back to `warn_and_proceed` when no valid child is produced), `blocked_and_stop` for planner `blocked` or a deterministic `block_or_review` finding, and `human_review_and_stop` for `needs_human_review`; otherwise `proceed` / `warn_and_proceed`.
+- `strict` — additionally enforces an executable task shape (a concrete validation command, acceptance criteria, bounded non-greenfield scope, and planner readiness of `ready`). When that shape is missing it emits `human_review_and_stop` for `needs_human_review` readiness and `blocked_and_stop` otherwise, in addition to the `auto` decomposition behaviour.
+
+All `*_and_stop` classifications are pre-execution readiness outcomes, not implementer failures: they persist the planning artifacts (including readiness fields) and stop cleanly. See [Greenfield Readiness](#greenfield-readiness) for recommended mode choices when starting broad backlogs.
+
 ## Memory Strategy
 
 > **Maturity: stable** (`verbatim`) / **stable** (`sliding-window`) / **beta** (`summary`) — verbatim and sliding-window are production-exercised. Summary invokes the configured CLI provider to produce a condensed `memory-summary.md` and incurs an additional LLM call when the iteration count exceeds `memorySummaryThreshold`.
