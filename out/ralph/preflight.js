@@ -785,6 +785,10 @@ function buildPreflightReport(input) {
     for (const diagnostic of input.doctrineDiagnostics ?? []) {
         diagnostics.push(createDiagnostic('workspaceRuntime', diagnostic.severity, diagnostic.code, diagnostic.message));
     }
+    const tieringConflict = input.config.modelTieringEnableConflict;
+    if (tieringConflict) {
+        diagnostics.push(createDiagnostic('workspaceRuntime', 'warning', 'model_tiering_enable_conflict', `Model-tiering enable flags disagree: ${tieringConflict.flatKey}=${tieringConflict.flatValue} and ${tieringConflict.nestedKey}=${tieringConflict.nestedValue} are both explicitly set. The flat alias wins, so model tiering is effectively enabled=${tieringConflict.effectiveValue}. Reconcile the two settings to remove the ambiguity.`));
+    }
     if (hasUntrackedProjectBaseline(input.gitStatusBefore)) {
         diagnostics.push(createDiagnostic('workspaceRuntime', 'warning', 'workspace_has_untracked_baseline', 'Workspace contains untracked project files; git diff may not represent greenfield progress until a baseline commit/checkpoint exists.'));
     }

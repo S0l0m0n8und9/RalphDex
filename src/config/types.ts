@@ -81,6 +81,26 @@ export interface RalphModelTieringConfig {
 }
 
 /**
+ * Describes a config-read-time disagreement between the flat
+ * `ralphCodex.enableModelTiering` convenience alias and the nested
+ * `ralphCodex.modelTiering.enabled` value when both are explicitly set.
+ * The flat alias wins; this record makes the silent override visible so an
+ * operator can reconcile the two keys from settings inspection alone.
+ */
+export interface ModelTieringEnableConflict {
+  /** Flat convenience-alias setting key. */
+  flatKey: 'ralphCodex.enableModelTiering';
+  /** Nested model-tiering setting key. */
+  nestedKey: 'ralphCodex.modelTiering.enabled';
+  /** Explicitly-set value of the flat alias. */
+  flatValue: boolean;
+  /** Explicitly-set value of the nested key. */
+  nestedValue: boolean;
+  /** Effective value applied at runtime (the flat alias wins). */
+  effectiveValue: boolean;
+}
+
+/**
  * Shell commands run at key iteration lifecycle points.
  * Adopted from Ruflo's hook system. Each value is a shell command string.
  * Hook failures are logged but never stop the loop.
@@ -205,4 +225,10 @@ export interface RalphCodexConfig {
   maxRecoveryAttempts: number;
   maxReplansPerParent: number;
   maxGeneratedChildren: number;
+  /**
+   * Set only when `enableModelTiering` and `modelTiering.enabled` are both
+   * explicitly configured and disagree. Surfaced as a diagnostic in preflight
+   * and Show Status. Absent when the two keys agree or either is implicit.
+   */
+  modelTieringEnableConflict?: ModelTieringEnableConflict;
 }

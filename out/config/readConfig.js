@@ -33,6 +33,9 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.explicitBoolean = explicitBoolean;
+exports.explicitNestedTieringEnabled = explicitNestedTieringEnabled;
+exports.detectModelTieringEnableConflict = detectModelTieringEnableConflict;
 exports.readConfig = readConfig;
 const vscode = __importStar(require("vscode"));
 const defaults_1 = require("./defaults");
@@ -243,6 +246,57 @@ function readModelTiering(config, fallback) {
             : fallback.complexThreshold
     };
 }
+/**
+ * Returns the explicitly-configured value of a boolean setting, or `undefined`
+ * when only the manifest default applies. Using inspect() avoids treating the
+ * package.json default as a user choice. Scope precedence mirrors
+ * `config.get()` for a resource-scoped configuration
+ * (`workspaceFolderValue > workspaceValue > globalValue`) so the detected
+ * explicit value stays consistent with the effective value the rest of
+ * readConfig() applies, including in multi-root (folder-scoped) workspaces.
+ */
+function explicitBoolean(inspected) {
+    const value = inspected?.workspaceFolderValue ?? inspected?.workspaceValue ?? inspected?.globalValue;
+    return typeof value === 'boolean' ? value : undefined;
+}
+/**
+ * Returns the explicitly-configured `modelTiering.enabled` value, reading it
+ * out of the nested `ralphCodex.modelTiering` object. Scope precedence mirrors
+ * `config.get()` for a resource-scoped configuration
+ * (`workspaceFolderValue > workspaceValue > globalValue`). Returns `undefined`
+ * when the object is absent or has no boolean `enabled` key (i.e. the nested
+ * enable flag is implicit).
+ */
+function explicitNestedTieringEnabled(inspected) {
+    const raw = inspected?.workspaceFolderValue ?? inspected?.workspaceValue ?? inspected?.globalValue;
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+        return undefined;
+    }
+    const enabled = raw.enabled;
+    return typeof enabled === 'boolean' ? enabled : undefined;
+}
+/**
+ * Detects a disagreement between the flat `ralphCodex.enableModelTiering` alias
+ * and the nested `ralphCodex.modelTiering.enabled` value. Pure and
+ * deterministic: a conflict is reported only when BOTH values are explicitly
+ * set (booleans) and differ. The flat alias wins, so `effectiveValue` mirrors
+ * `flatValue`. Returns `null` when either value is implicit or they agree.
+ */
+function detectModelTieringEnableConflict(flatExplicit, nestedExplicit) {
+    if (typeof flatExplicit !== 'boolean' || typeof nestedExplicit !== 'boolean') {
+        return null;
+    }
+    if (flatExplicit === nestedExplicit) {
+        return null;
+    }
+    return {
+        flatKey: 'ralphCodex.enableModelTiering',
+        nestedKey: 'ralphCodex.modelTiering.enabled',
+        flatValue: flatExplicit,
+        nestedValue: nestedExplicit,
+        effectiveValue: flatExplicit
+    };
+}
 function readHooks(config, fallback) {
     const raw = config.get('hooks');
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
@@ -287,6 +341,12 @@ function readConfig(workspaceFolder) {
             autoReplenishBacklog,
             autoApplyRemediation
         };
+    // The flat `enableModelTiering` alias wins over nested `modelTiering.enabled`
+    // when both are explicitly set. Capture the explicit values once so the
+    // override below and the conflict diagnostic stay in agreement.
+    const flatTieringEnableExplicit = explicitBoolean(config.inspect('enableModelTiering'));
+    const nestedTieringEnableExplicit = explicitNestedTieringEnabled(config.inspect('modelTiering'));
+    const modelTieringEnableConflict = detectModelTieringEnableConflict(flatTieringEnableExplicit, nestedTieringEnableExplicit);
     return {
         cliProvider,
         codexCommandPath: readString(config, 'codexCommandPath', defaults_1.DEFAULT_CONFIG.codexCommandPath, ['codexExecutable']),
@@ -342,11 +402,8 @@ function readConfig(workspaceFolder) {
             const tiering = readModelTiering(config, defaults_1.DEFAULT_CONFIG.modelTiering);
             // Flat ralphCodex.enableModelTiering takes precedence over modelTiering.enabled,
             // but only if explicitly set by the user (workspace or global scope).
-            // Using inspect() avoids treating the package.json default (false) as a user choice.
-            const enableInspect = config.inspect('enableModelTiering');
-            const enableOverride = enableInspect?.workspaceValue ?? enableInspect?.globalValue;
-            if (typeof enableOverride === 'boolean') {
-                tiering.enabled = enableOverride;
+            if (typeof flatTieringEnableExplicit === 'boolean') {
+                tiering.enabled = flatTieringEnableExplicit;
             }
             return tiering;
         })(),
@@ -367,7 +424,8 @@ function readConfig(workspaceFolder) {
         failureDiagnostics: readEnum(config, 'failureDiagnostics', ['auto', 'off'], defaults_1.DEFAULT_CONFIG.failureDiagnostics),
         maxRecoveryAttempts: readNumber(config, 'maxRecoveryAttempts', defaults_1.DEFAULT_CONFIG.maxRecoveryAttempts, 1),
         maxReplansPerParent: readNumber(config, 'maxReplansPerParent', defaults_1.DEFAULT_CONFIG.maxReplansPerParent, 1),
-        maxGeneratedChildren: readNumber(config, 'maxGeneratedChildren', defaults_1.DEFAULT_CONFIG.maxGeneratedChildren, 1)
+        maxGeneratedChildren: readNumber(config, 'maxGeneratedChildren', defaults_1.DEFAULT_CONFIG.maxGeneratedChildren, 1),
+        ...(modelTieringEnableConflict ? { modelTieringEnableConflict } : {})
     };
 }
 //# sourceMappingURL=readConfig.js.map
