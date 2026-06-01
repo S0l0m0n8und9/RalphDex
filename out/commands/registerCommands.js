@@ -52,6 +52,7 @@ const workspaceSupport_1 = require("./workspaceSupport");
 const statusSnapshot_1 = require("./statusSnapshot");
 const artifactCommands_1 = require("./artifactCommands");
 const pipeline_1 = require("../ralph/pipeline");
+const pipelineDriver_1 = require("../ralph/pipelineDriver");
 const pathResolver_1 = require("../ralph/pathResolver");
 const projectGenerator_1 = require("../ralph/projectGenerator");
 const prdReadiness_1 = require("../ralph/prdReadiness");
@@ -488,66 +489,25 @@ function registerCommands(context, logger, broadcaster, panelManager) {
      * so a crash at any point leaves a resumable artifact on disk.
      */
     async function runPipelineFromPhase(startPhase, artifact, workspaceFolder, config, paths, progress) {
-        let current = artifact;
-        const checkpoint = async (updates) => {
-            current = { ...current, ...updates };
-            await (0, pipeline_1.writePipelineArtifact)(paths.artifactDir, current);
-        };
-        // --- Loop phase ---
-        let loopStatus = 'complete';
-        if (startPhase === 'loop') {
-            progress.report({ message: `Pipeline ${current.runId}: starting multi-agent loop (${current.decomposedTaskIds.length} task(s))` });
-            try {
-                await vscode.commands.executeCommand('ralphCodex.runMultiAgentLoop');
-            }
-            catch (error) {
-                loopStatus = 'failed';
-                logger.error('Pipeline multi-agent loop failed.', error);
-            }
-            if (loopStatus === 'complete') {
-                await checkpoint({ phase: 'loop' });
-            }
-        }
-        // --- Review phase ---
-        let reviewTranscriptPath;
-        let runScm = startPhase === 'scm';
-        if (loopStatus === 'complete' && startPhase !== 'scm') {
-            progress.report({ message: `Pipeline ${current.runId}: running review agent` });
-            try {
-                const reviewRun = await vscode.commands.executeCommand('ralphCodex.runReviewAgent');
-                reviewTranscriptPath = reviewRun?.transcriptPath;
-                await checkpoint({
-                    phase: 'review',
-                    ...(reviewTranscriptPath !== undefined && { reviewTranscriptPath })
-                });
-                runScm = true;
-            }
-            catch (error) {
-                logger.error('Pipeline review/SCM phase failed.', error);
-            }
-        }
-        // --- SCM phase ---
-        let prUrl;
-        if (runScm) {
-            progress.report({ message: `Pipeline ${current.runId}: running SCM agent` });
-            try {
-                const scmRun = await vscode.commands.executeCommand('ralphCodex.runScmAgent');
-                prUrl = scmRun?.prUrl;
-            }
-            catch (error) {
-                logger.error('Pipeline SCM phase failed.', error);
-            }
-        }
-        // --- Finalize ---
-        await checkpoint({
-            status: loopStatus,
-            loopEndTime: new Date().toISOString(),
-            phase: 'done',
-            ...(prUrl !== undefined && { prUrl })
+        const { artifact: finalArtifact, status: loopStatus } = await (0, pipelineDriver_1.drivePipelineRun)({
+            startPhase,
+            artifact,
+            runners: {
+                runLoop: async () => {
+                    await vscode.commands.executeCommand('ralphCodex.runMultiAgentLoop');
+                },
+                runReview: async () => (await vscode.commands.executeCommand('ralphCodex.runReviewAgent')),
+                runScm: async () => (await vscode.commands.executeCommand('ralphCodex.runScmAgent'))
+            },
+            checkpoint: async (next) => {
+                await (0, pipeline_1.writePipelineArtifact)(paths.artifactDir, next);
+            },
+            reportProgress: (message) => progress.report({ message }),
+            onError: (message, error) => logger.error(message, error)
         });
-        logger.info('Pipeline run complete.', { runId: current.runId, status: loopStatus });
-        const prSuffix = prUrl ? ` PR: ${prUrl}` : '';
-        void vscode.window.showInformationMessage(`Ralph pipeline ${current.runId} finished with status: ${loopStatus}. Root task: ${current.rootTaskId} (${current.decomposedTaskIds.length} subtask(s)).${prSuffix}`);
+        logger.info('Pipeline run complete.', { runId: finalArtifact.runId, status: loopStatus });
+        const prSuffix = finalArtifact.prUrl ? ` PR: ${finalArtifact.prUrl}` : '';
+        void vscode.window.showInformationMessage(`Ralph pipeline ${finalArtifact.runId} finished with status: ${loopStatus}. Root task: ${finalArtifact.rootTaskId} (${finalArtifact.decomposedTaskIds.length} subtask(s)).${prSuffix}`);
     }
     registerCommand(context, logger, {
         commandId: 'ralphCodex.initializeWorkspace',

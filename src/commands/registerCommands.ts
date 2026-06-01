@@ -38,6 +38,7 @@ import {
   writePipelineArtifact
 } from '../ralph/pipeline';
 import type { PipelineRunArtifact } from '../ralph/pipeline';
+import { drivePipelineRun } from '../ralph/pipelineDriver';
 import type { RalphPaths } from '../ralph/pathResolver';
 import type { RalphCodexConfig } from '../config/types';
 import { resolveRalphPaths } from '../ralph/pathResolver';
@@ -681,72 +682,33 @@ export function registerCommands(
     paths: RalphPaths,
     progress: vscode.Progress<{ message?: string; increment?: number }>
   ): Promise<void> {
-    let current = artifact;
-
-    const checkpoint = async (updates: Partial<PipelineRunArtifact>): Promise<void> => {
-      current = { ...current, ...updates };
-      await writePipelineArtifact(paths.artifactDir, current);
-    };
-
-    // --- Loop phase ---
-    let loopStatus: 'complete' | 'failed' = 'complete';
-    if (startPhase === 'loop') {
-      progress.report({ message: `Pipeline ${current.runId}: starting multi-agent loop (${current.decomposedTaskIds.length} task(s))` });
-      try {
-        await vscode.commands.executeCommand('ralphCodex.runMultiAgentLoop');
-      } catch (error) {
-        loopStatus = 'failed';
-        logger.error('Pipeline multi-agent loop failed.', error);
-      }
-      if (loopStatus === 'complete') {
-        await checkpoint({ phase: 'loop' });
-      }
-    }
-
-    // --- Review phase ---
-    let reviewTranscriptPath: string | undefined;
-    let runScm = startPhase === 'scm';
-
-    if (loopStatus === 'complete' && startPhase !== 'scm') {
-      progress.report({ message: `Pipeline ${current.runId}: running review agent` });
-      try {
-        const reviewRun = await vscode.commands.executeCommand('ralphCodex.runReviewAgent') as ReviewAgentCommandResult | undefined;
-        reviewTranscriptPath = reviewRun?.transcriptPath;
-        await checkpoint({
-          phase: 'review',
-          ...(reviewTranscriptPath !== undefined && { reviewTranscriptPath })
-        });
-
-        runScm = true;
-      } catch (error) {
-        logger.error('Pipeline review/SCM phase failed.', error);
-      }
-    }
-
-    // --- SCM phase ---
-    let prUrl: string | undefined;
-    if (runScm) {
-      progress.report({ message: `Pipeline ${current.runId}: running SCM agent` });
-      try {
-        const scmRun = await vscode.commands.executeCommand('ralphCodex.runScmAgent') as ScmAgentCommandResult | undefined;
-        prUrl = scmRun?.prUrl;
-      } catch (error) {
-        logger.error('Pipeline SCM phase failed.', error);
-      }
-    }
-
-    // --- Finalize ---
-    await checkpoint({
-      status: loopStatus,
-      loopEndTime: new Date().toISOString(),
-      phase: 'done',
-      ...(prUrl !== undefined && { prUrl })
+    const { artifact: finalArtifact, status: loopStatus } = await drivePipelineRun({
+      startPhase,
+      artifact,
+      runners: {
+        runLoop: async () => {
+          await vscode.commands.executeCommand('ralphCodex.runMultiAgentLoop');
+        },
+        runReview: async () =>
+          (await vscode.commands.executeCommand('ralphCodex.runReviewAgent')) as
+            | ReviewAgentCommandResult
+            | undefined,
+        runScm: async () =>
+          (await vscode.commands.executeCommand('ralphCodex.runScmAgent')) as
+            | ScmAgentCommandResult
+            | undefined
+      },
+      checkpoint: async (next) => {
+        await writePipelineArtifact(paths.artifactDir, next);
+      },
+      reportProgress: (message) => progress.report({ message }),
+      onError: (message, error) => logger.error(message, error)
     });
 
-    logger.info('Pipeline run complete.', { runId: current.runId, status: loopStatus });
-    const prSuffix = prUrl ? ` PR: ${prUrl}` : '';
+    logger.info('Pipeline run complete.', { runId: finalArtifact.runId, status: loopStatus });
+    const prSuffix = finalArtifact.prUrl ? ` PR: ${finalArtifact.prUrl}` : '';
     void vscode.window.showInformationMessage(
-      `Ralph pipeline ${current.runId} finished with status: ${loopStatus}. Root task: ${current.rootTaskId} (${current.decomposedTaskIds.length} subtask(s)).${prSuffix}`
+      `Ralph pipeline ${finalArtifact.runId} finished with status: ${loopStatus}. Root task: ${finalArtifact.rootTaskId} (${finalArtifact.decomposedTaskIds.length} subtask(s)).${prSuffix}`
     );
   }
 
