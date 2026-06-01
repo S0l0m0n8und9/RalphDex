@@ -167,17 +167,21 @@ export function readShimConfig(
   const mutableConfig = config as unknown as Record<string, unknown>;
   const fileConfig = readConfigFile(workspaceRoot);
 
+  // Precedence (lowest to highest): built-in defaults < `.ralph-config.json` <
+  // `RALPH_CODEX_*` environment variables. Environment variables are documented
+  // as overrides, so they win over the file; the file wins over defaults. A
+  // malformed env value coerces against the file value (then defaults) rather
+  // than discarding the file layer entirely.
   for (const key of Object.keys(DEFAULT_CONFIG) as Array<keyof RalphCodexConfig>) {
     const fallback = DEFAULT_CONFIG[key];
     const fileOverride = readFileOverride(fileConfig, key);
-    if (fileOverride !== undefined) {
-      mutableConfig[key] = coerceValue(fileOverride, fallback);
-      continue;
-    }
+    const fileValue = fileOverride !== undefined ? coerceValue(fileOverride, fallback) : fallback;
 
     const envOverride = readEnvOverride(env, key);
     if (envOverride !== undefined) {
-      mutableConfig[key] = coerceValue(envOverride, fallback);
+      mutableConfig[key] = coerceValue(envOverride, fileValue);
+    } else if (fileOverride !== undefined) {
+      mutableConfig[key] = fileValue;
     }
   }
 

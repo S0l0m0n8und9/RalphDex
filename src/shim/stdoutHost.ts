@@ -1,19 +1,26 @@
 import { createShimWorkspaceConfiguration } from './shimConfig';
 import { ICommandExecutor, IOutputChannel, IProgress, IWorkspaceConfiguration, IVSCodeHost } from './types';
 
+/** Raw text sink for shim log output. Defaults to stdout; `--json` mode routes it to stderr. */
+export type ShimLogSink = (text: string) => void;
+
+const defaultLogSink: ShimLogSink = (text) => process.stdout.write(text);
+
 class StdoutOutputChannel implements IOutputChannel {
   readonly name = 'Ralph Shim';
 
+  constructor(private readonly write: ShimLogSink = defaultLogSink) {}
+
   append(value: string): void {
-    process.stdout.write(value);
+    this.write(value);
   }
 
   appendLine(value: string): void {
-    console.log(value);
+    this.write(`${value}\n`);
   }
 
   replace(value: string): void {
-    console.log(value);
+    this.write(`${value}\n`);
   }
 
   clear(): void {}
@@ -41,8 +48,8 @@ export class StdoutHost implements IVSCodeHost {
   readonly configuration: IWorkspaceConfiguration;
   readonly commands: ICommandExecutor;
 
-  constructor(workspaceRoot: string, env: NodeJS.ProcessEnv = process.env) {
-    this.outputChannel = new StdoutOutputChannel();
+  constructor(workspaceRoot: string, env: NodeJS.ProcessEnv = process.env, logSink: ShimLogSink = defaultLogSink) {
+    this.outputChannel = new StdoutOutputChannel(logSink);
     this.progress = new NoOpProgress();
     this.configuration = createShimWorkspaceConfiguration(workspaceRoot, env);
     this.commands = new NoOpCommandExecutor();
@@ -51,7 +58,8 @@ export class StdoutHost implements IVSCodeHost {
 
 export function createStdoutHost(
   workspaceRoot: string,
-  env: NodeJS.ProcessEnv = process.env
+  env: NodeJS.ProcessEnv = process.env,
+  logSink: ShimLogSink = defaultLogSink
 ): IVSCodeHost {
-  return new StdoutHost(workspaceRoot, env);
+  return new StdoutHost(workspaceRoot, env, logSink);
 }

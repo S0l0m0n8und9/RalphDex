@@ -40,6 +40,7 @@ const fs = __importStar(require("node:fs/promises"));
 const node_path_1 = __importDefault(require("node:path"));
 const stdoutHost_1 = require("./stdoutHost");
 const installVscodeShim_1 = require("./installVscodeShim");
+const contract_1 = require("./contract");
 class MemoryMemento {
     values = new Map();
     keys() {
@@ -57,19 +58,79 @@ class MemoryMemento {
     }
 }
 function usage() {
-    return 'Usage: node out/shim/main.js <workspace-path>';
+    return 'Usage: node out/shim/main.js [--json] <workspace-path>';
 }
-async function main() {
-    const workspaceArg = process.argv[2];
-    if (!workspaceArg) {
-        throw new Error(usage());
+/**
+ * Pre-scans argv for `--json` so the output mode is known even when `parseArgs`
+ * throws (e.g. `--json` with no workspace path). Without this, a parse-time
+ * failure would leave the automation consumer with an exit code but nothing on
+ * stdout, breaking the machine-readable contract for the callers who rely on it
+ * most. Respects the bare `--` end-of-options separator, matching `parseArgs`:
+ * a `--json` after `--` is a positional, not the flag.
+ */
+function wantsJson(argv) {
+    for (const arg of argv) {
+        if (arg === '--') {
+            break;
+        }
+        if (arg === '--json') {
+            return true;
+        }
     }
-    const workspaceRoot = node_path_1.default.resolve(workspaceArg);
+    return false;
+}
+function parseArgs(argv) {
+    let json = false;
+    // After a bare `--`, every remaining token is a positional regardless of its
+    // spelling (the conventional end-of-options contract).
+    let argsDone = false;
+    const positionals = [];
+    for (const arg of argv) {
+        if (argsDone) {
+            positionals.push(arg);
+        }
+        else if (arg === '--json') {
+            json = true;
+        }
+        else if (arg === '--') {
+            argsDone = true;
+        }
+        else if (arg.startsWith('--')) {
+            throw new contract_1.ShimError(`Unknown option: ${arg}\n${usage()}`, 'config');
+        }
+        else {
+            positionals.push(arg);
+        }
+    }
+    if (positionals.length === 0) {
+        throw new contract_1.ShimError(usage(), 'config');
+    }
+    if (positionals.length > 1) {
+        throw new contract_1.ShimError(`Expected a single workspace path.\n${usage()}`, 'config');
+    }
+    return { workspacePath: positionals[0], json };
+}
+async function runIteration(args) {
+    const workspaceRoot = node_path_1.default.resolve(args.workspacePath);
     const stat = await fs.stat(workspaceRoot).catch(() => null);
     if (!stat?.isDirectory()) {
-        throw new Error(`Workspace path does not exist or is not a directory: ${workspaceRoot}`);
+        throw new contract_1.ShimError(`Workspace path does not exist or is not a directory: ${workspaceRoot}`, 'config');
     }
-    const host = (0, stdoutHost_1.createStdoutHost)(workspaceRoot, process.env);
+    // In --json mode stdout must contain only the JSON report, so route human/log
+    // output to stderr. Redact that stderr stream too, so the README's "free-text
+    // fields are redacted" guarantee also holds for log output an automation
+    // consumer might capture (e.g. into a CI log).
+    const logSink = args.json
+        ? (text) => process.stderr.write((0, contract_1.redactShimText)(text))
+        : (text) => process.stdout.write(text);
+    let host;
+    try {
+        host = (0, stdoutHost_1.createStdoutHost)(workspaceRoot, process.env, logSink);
+    }
+    catch (error) {
+        // A malformed .ralph-config.json surfaces here as a config-category failure.
+        throw new contract_1.ShimError(error instanceof Error ? error.message : String(error), 'config');
+    }
     (0, installVscodeShim_1.installVscodeShim)(workspaceRoot, host);
     const vscode = await Promise.resolve().then(() => __importStar(require('vscode')));
     const [{ Logger }, { RalphStateManager }, { CodexStrategyRegistry }, { RalphIterationEngine }] = await Promise.all([
@@ -89,10 +150,28 @@ async function main() {
     };
     const run = await engine.runCliIteration(workspaceFolder, 'singleExec', host.progress, { reachedIterationCap: false });
     host.outputChannel.appendLine(`Ralph shim iteration ${run.result.iteration} finished: ${run.result.summary}`);
+    return (0, contract_1.buildIterationReport)(run.result);
 }
-void main().catch((error) => {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(message);
-    process.exitCode = 1;
-});
+async function main() {
+    const argv = process.argv.slice(2);
+    // Resolve the output mode before parsing, so a parse-time failure still emits
+    // the JSON report on stdout rather than leaving a `--json` consumer empty-handed.
+    const json = wantsJson(argv);
+    let report;
+    try {
+        report = await runIteration(parseArgs(argv));
+    }
+    catch (error) {
+        report = (0, contract_1.buildErrorReport)(error);
+    }
+    if (json) {
+        // Exactly one line of JSON on stdout: the machine-readable contract.
+        process.stdout.write(`${JSON.stringify(report)}\n`);
+    }
+    else if (!report.ok && report.error) {
+        process.stderr.write(`${report.error.message}\n`);
+    }
+    process.exitCode = report.exitCode;
+}
+void main();
 //# sourceMappingURL=main.js.map
