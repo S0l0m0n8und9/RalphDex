@@ -200,6 +200,35 @@ test('shim with no arguments exits with the config exit code (2)', async () => {
   assert.equal(exitCode, 2);
 });
 
+test('shim --json still emits a JSON report on stdout when parseArgs throws (no workspace)', async () => {
+  // The parse-time failure path: `--json` is present but no workspace positional
+  // follows, so parseArgs throws before `runIteration` runs. The JSON contract
+  // must still hold — a single JSON line on stdout, not a bare exit code.
+  const { stdout, stderr, exitCode } = await runShim(['--json']);
+  const lines = stdout.trimEnd().split('\n');
+  assert.equal(lines.length, 1, `expected one JSON line on stdout, got:\n${stdout}`);
+  const report = JSON.parse(lines[0]);
+  assert.equal(report.ok, false);
+  assert.equal(report.category, 'config');
+  assert.equal(report.exitCode, 2);
+  assert.equal(exitCode, 2);
+  // The usage error stays on stderr; stdout carries only the JSON channel.
+  assert.equal(stderr.includes(JSON.stringify(report)), false);
+});
+
+test('shim --json emits a JSON report on stdout for an unknown option before the path', async () => {
+  // `--bad-flag` makes parseArgs throw a config error; `--json` was still
+  // requested, so the consumer must receive the machine-readable report.
+  const { stdout, exitCode } = await runShim(['--json', '--bad-flag', os.tmpdir()]);
+  const lines = stdout.trimEnd().split('\n');
+  assert.equal(lines.length, 1, `expected one JSON line on stdout, got:\n${stdout}`);
+  const report = JSON.parse(lines[0]);
+  assert.equal(report.ok, false);
+  assert.equal(report.category, 'config');
+  assert.equal(report.exitCode, 2);
+  assert.equal(exitCode, 2);
+});
+
 test('shim rejects an unknown option with the config exit code (2)', async () => {
   const { exitCode } = await runShim(['--nope', os.tmpdir()]);
   assert.equal(exitCode, 2);

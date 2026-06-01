@@ -60,6 +60,25 @@ class MemoryMemento {
 function usage() {
     return 'Usage: node out/shim/main.js [--json] <workspace-path>';
 }
+/**
+ * Pre-scans argv for `--json` so the output mode is known even when `parseArgs`
+ * throws (e.g. `--json` with no workspace path). Without this, a parse-time
+ * failure would leave the automation consumer with an exit code but nothing on
+ * stdout, breaking the machine-readable contract for the callers who rely on it
+ * most. Respects the bare `--` end-of-options separator, matching `parseArgs`:
+ * a `--json` after `--` is a positional, not the flag.
+ */
+function wantsJson(argv) {
+    for (const arg of argv) {
+        if (arg === '--') {
+            break;
+        }
+        if (arg === '--json') {
+            return true;
+        }
+    }
+    return false;
+}
 function parseArgs(argv) {
     let json = false;
     // After a bare `--`, every remaining token is a positional regardless of its
@@ -134,16 +153,18 @@ async function runIteration(args) {
     return (0, contract_1.buildIterationReport)(run.result);
 }
 async function main() {
-    let args;
+    const argv = process.argv.slice(2);
+    // Resolve the output mode before parsing, so a parse-time failure still emits
+    // the JSON report on stdout rather than leaving a `--json` consumer empty-handed.
+    const json = wantsJson(argv);
     let report;
     try {
-        args = parseArgs(process.argv.slice(2));
-        report = await runIteration(args);
+        report = await runIteration(parseArgs(argv));
     }
     catch (error) {
         report = (0, contract_1.buildErrorReport)(error);
     }
-    if (args?.json) {
+    if (json) {
         // Exactly one line of JSON on stdout: the machine-readable contract.
         process.stdout.write(`${JSON.stringify(report)}\n`);
     }

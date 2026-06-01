@@ -43,6 +43,26 @@ interface ShimArgs {
   json: boolean;
 }
 
+/**
+ * Pre-scans argv for `--json` so the output mode is known even when `parseArgs`
+ * throws (e.g. `--json` with no workspace path). Without this, a parse-time
+ * failure would leave the automation consumer with an exit code but nothing on
+ * stdout, breaking the machine-readable contract for the callers who rely on it
+ * most. Respects the bare `--` end-of-options separator, matching `parseArgs`:
+ * a `--json` after `--` is a positional, not the flag.
+ */
+function wantsJson(argv: string[]): boolean {
+  for (const arg of argv) {
+    if (arg === '--') {
+      break;
+    }
+    if (arg === '--json') {
+      return true;
+    }
+  }
+  return false;
+}
+
 function parseArgs(argv: string[]): ShimArgs {
   let json = false;
   // After a bare `--`, every remaining token is a positional regardless of its
@@ -131,16 +151,18 @@ async function runIteration(args: ShimArgs): Promise<ShimReport> {
 }
 
 async function main(): Promise<void> {
-  let args: ShimArgs | undefined;
+  const argv = process.argv.slice(2);
+  // Resolve the output mode before parsing, so a parse-time failure still emits
+  // the JSON report on stdout rather than leaving a `--json` consumer empty-handed.
+  const json = wantsJson(argv);
   let report: ShimReport;
   try {
-    args = parseArgs(process.argv.slice(2));
-    report = await runIteration(args);
+    report = await runIteration(parseArgs(argv));
   } catch (error) {
     report = buildErrorReport(error);
   }
 
-  if (args?.json) {
+  if (json) {
     // Exactly one line of JSON on stdout: the machine-readable contract.
     process.stdout.write(`${JSON.stringify(report)}\n`);
   } else if (!report.ok && report.error) {
