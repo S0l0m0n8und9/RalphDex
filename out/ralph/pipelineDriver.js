@@ -62,7 +62,7 @@ async function drivePipelineRun(options) {
             runScm = true;
         }
         catch (error) {
-            onError('Pipeline review/SCM phase failed.', error);
+            onError('Pipeline review phase failed.', error);
         }
     }
     // --- SCM phase ---

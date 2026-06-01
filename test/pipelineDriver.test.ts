@@ -151,6 +151,28 @@ test('drivePipelineRun skips SCM but stays complete when review fails', async ()
   assert.equal(h.result.artifact.prUrl, undefined);
   assert.equal(h.errors.length, 1);
   assert.equal(h.errors[0].error, reviewError);
+  // The review catch names only the review phase (SCM never ran here).
+  assert.match(h.errors[0].message, /review phase failed/i);
+  assert.doesNotMatch(h.errors[0].message, /SCM/i);
+});
+
+test('drivePipelineRun logs the SCM failure but stays complete with no PR URL', async () => {
+  const scmError = new Error('git push rejected');
+  const h = await drive('loop', {
+    runScm: async () => {
+      throw scmError;
+    }
+  });
+
+  // SCM is attempted (all roles run) but its failure is non-terminal: the run
+  // still finalizes as `complete` and simply carries no PR URL.
+  assert.deepEqual(h.result.rolesRun, ['loop', 'review', 'scm']);
+  assert.equal(h.result.status, 'complete');
+  assert.deepEqual(h.checkpoints.map((c) => c.phase), ['loop', 'review', 'done']);
+  assert.equal('prUrl' in h.result.artifact, false);
+  assert.equal(h.errors.length, 1);
+  assert.equal(h.errors[0].error, scmError);
+  assert.match(h.errors[0].message, /SCM phase failed/i);
 });
 
 test('drivePipelineRun resumes at the review phase without re-running the loop', async () => {

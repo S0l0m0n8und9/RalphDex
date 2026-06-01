@@ -125,7 +125,7 @@ export async function drivePipelineRun(
 
       runScm = true;
     } catch (error) {
-      onError('Pipeline review/SCM phase failed.', error);
+      onError('Pipeline review phase failed.', error);
     }
   }
 
