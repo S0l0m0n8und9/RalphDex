@@ -37,9 +37,42 @@ const FORBIDDEN_UI_TREE_SEGMENTS = [
   'archive-ui'
 ];
 
+// Directory names that are generated, vendored, or VCS metadata. They are not
+// production source, so the recursive scans below do not descend into them.
+const IGNORED_DIR_NAMES = new Set([
+  'node_modules',
+  '.git',
+  'out',
+  'out-test',
+  'dist',
+  'coverage',
+  '.nyc_output',
+  '.vscode-test'
+]);
+
+/** Recursively lists every directory under `root` (relative paths), skipping generated/vendored trees. */
+function listDirectories(root: string): string[] {
+  const out: string[] = [];
+  if (!fs.existsSync(root)) {
+    return out;
+  }
+  for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+    if (!entry.isDirectory() || IGNORED_DIR_NAMES.has(entry.name)) {
+      continue;
+    }
+    const full = path.join(root, entry.name);
+    out.push(full);
+    out.push(...listDirectories(full));
+  }
+  return out;
+}
+
 function listSourceFiles(dir: string): string[] {
   const out: string[] = [];
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.isDirectory() && IGNORED_DIR_NAMES.has(entry.name)) {
+      continue;
+    }
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
       out.push(...listSourceFiles(full));
@@ -50,8 +83,21 @@ function listSourceFiles(dir: string): string[] {
   return out;
 }
 
-/** Extracts module specifiers from `import ... from '...'`, `import('...')`, and `require('...')`. */
+/** Removes block and line comments so import scanning ignores commented-out or historical references. */
+function stripComments(source: string): string {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    // Strip `// ...` line comments, but not the `//` inside a `scheme://` URL.
+    .replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+}
+
+/**
+ * Extracts module specifiers from `import ... from '...'`, `import('...')`, and
+ * `require('...')`. Comments are stripped first so historical references inside
+ * comments do not produce false positives.
+ */
 function importSpecifiers(source: string): string[] {
+  const code = stripComments(source);
   const specifiers: string[] = [];
   const patterns = [
     /\bfrom\s*['"]([^'"]+)['"]/g,
@@ -60,7 +106,7 @@ function importSpecifiers(source: string): string[] {
   ];
   for (const pattern of patterns) {
     let match: RegExpExecArray | null;
-    while ((match = pattern.exec(source)) !== null) {
+    while ((match = pattern.exec(code)) !== null) {
       specifiers.push(match[1]);
     }
   }
@@ -82,20 +128,31 @@ test('src/webview-ui React shell is present as the authoritative renderer', () =
 });
 
 test('no reference/archive UI tree exists under the repo root or src/', () => {
-  for (const root of [REPO_ROOT, SRC_ROOT]) {
-    for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
-      if (!entry.isDirectory()) {
-        continue;
-      }
-      const forbidden = matchedForbiddenSegment(entry.name);
-      assert.equal(
-        forbidden,
-        undefined,
-        `reference/archive UI tree "${entry.name}" must not exist (matched forbidden segment "${forbidden}"); `
-          + 'the React shell under src/webview-ui/ is the single renderer.'
-      );
+  // Scan the repo root's immediate children and then recurse through all of
+  // src/, so a forbidden tree nested at e.g. src/utils/uxrefresh/ is also caught.
+  const candidates = [
+    ...fs
+      .readdirSync(REPO_ROOT, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory() && !IGNORED_DIR_NAMES.has(entry.name))
+      .map((entry) => path.join(REPO_ROOT, entry.name)),
+    ...listDirectories(SRC_ROOT)
+  ];
+
+  const offenders: string[] = [];
+  for (const dir of candidates) {
+    const relative = path.relative(REPO_ROOT, dir);
+    const forbidden = matchedForbiddenSegment(relative);
+    if (forbidden) {
+      offenders.push(`${relative} (matched forbidden segment "${forbidden}")`);
     }
   }
+
+  assert.deepEqual(
+    offenders,
+    [],
+    'reference/archive UI trees must not exist; the React shell under '
+      + `src/webview-ui/ is the single renderer:\n${offenders.join('\n')}`
+  );
 });
 
 test('production code under src/ does not import a reference/archive UI tree', () => {
