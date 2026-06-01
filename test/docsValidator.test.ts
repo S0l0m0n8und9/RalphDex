@@ -189,6 +189,8 @@ The shipped dashboard and sidebar live under \`src/webview/\` and the React rend
 
 See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
 
+## UI Ownership Boundary
+
 The shipped dashboard/sidebar ownership boundary lives in \`src/webview/\` for shared host, snapshot, bridge, and panel lifecycle plumbing, and in \`src/webview-ui/\` for the React renderer. Regression coverage for that shipped surface lives under \`test/ui/\` and \`test/webview/\`.
 `);
 
@@ -870,6 +872,35 @@ See [Invariants](${path.join(rootPath, 'docs/invariants.md')}), [Provenance](${p
         && issue.message.includes('src/webview-ui/')
     ),
     true
+  );
+});
+
+test('validateRepositoryDocs requires the UI Ownership Boundary heading even when its fragments remain', async () => {
+  const rootPath = await makeTempRoot();
+  await seedValidRepository(rootPath);
+  // Keep every required architecture fragment but drop only the section heading,
+  // proving the heading rule fires independently of the fragment rule.
+  await writeFile(rootPath, 'docs/architecture.md', `# Architecture
+
+See [Invariants](${path.join(rootPath, 'docs/invariants.md')}), [Provenance](${path.join(rootPath, 'docs/provenance.md')}), [Verifier](${path.join(rootPath, 'docs/verifier.md')}), and [Boundaries](${path.join(rootPath, 'docs/boundaries.md')}).
+
+Ownership lives in \`src/webview/\` and \`src/webview-ui/\`, with regression coverage under \`test/ui/\` and \`test/webview/\`.
+`);
+
+  const issues = await validateRepositoryDocs(rootPath);
+  const architectureIssues = issues.filter((issue) => issue.filePath === 'docs/architecture.md');
+
+  assert.equal(
+    architectureIssues.some(
+      (issue) => issue.code === 'missing_heading' && issue.message.includes('UI Ownership Boundary')
+    ),
+    true,
+    'expected a missing_heading issue for the UI Ownership Boundary section'
+  );
+  assert.equal(
+    architectureIssues.some((issue) => issue.code === 'missing_fragment'),
+    false,
+    'fragments are present, so no missing_fragment issue should be reported'
   );
 });
 

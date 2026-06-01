@@ -129,7 +129,9 @@ const DOC_RULES = {
         ]
     },
     'docs/architecture.md': {
-        requiredHeadings: [],
+        requiredHeadings: [
+            'UI Ownership Boundary'
+        ],
         requiredFragments: [
             'src/webview/',
             'src/webview-ui/',
