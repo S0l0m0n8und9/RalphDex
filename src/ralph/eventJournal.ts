@@ -1,7 +1,6 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import type {
-  RalphCompletionClassification,
   RalphExecutionStatus,
   RalphStopReason,
   RalphTaskStatus,
@@ -372,7 +371,6 @@ export interface RunStateSnapshot {
   currentTaskId: string | null;
   lastExecutionStatus: RalphExecutionStatus | null;
   lastVerificationStatus: RalphVerificationStatus | null;
-  lastCompletionClassification: RalphCompletionClassification | null;
   tasks: Record<string, RunTaskSnapshot>;
   totals: {
     events: number;
@@ -398,7 +396,6 @@ function emptySnapshot(runId: string | null): RunStateSnapshot {
     currentTaskId: null,
     lastExecutionStatus: null,
     lastVerificationStatus: null,
-    lastCompletionClassification: null,
     tasks: {},
     totals: {
       events: 0,

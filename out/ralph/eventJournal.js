@@ -227,7 +227,6 @@ function emptySnapshot(runId) {
         currentTaskId: null,
         lastExecutionStatus: null,
         lastVerificationStatus: null,
-        lastCompletionClassification: null,
         tasks: {},
         totals: {
             events: 0,
