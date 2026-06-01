@@ -10,7 +10,7 @@ async function createWorkspaceRoot(): Promise<string> {
   return fs.mkdtemp(path.join(os.tmpdir(), 'ralph-shim-config-'));
 }
 
-test('readShimConfig prefers .ralph-config.json values over env fallbacks', async (t) => {
+test('readShimConfig precedence: defaults < .ralph-config.json < RALPH_CODEX_* env', async (t) => {
   const workspaceRoot = await createWorkspaceRoot();
   t.after(async () => {
     await fs.rm(workspaceRoot, { recursive: true, force: true });
@@ -20,8 +20,10 @@ test('readShimConfig prefers .ralph-config.json values over env fallbacks', asyn
     path.join(workspaceRoot, SHIM_CONFIG_FILENAME),
     JSON.stringify(
       {
+        // `model` and `ralphIterationCap` are overridden by env below (env wins).
         model: 'file-model',
         ralphIterationCap: 7,
+        // `approvalMode` has no env override, so the file value wins over the default.
         ralphCodex: {
           approvalMode: 'on-request'
         }
@@ -33,13 +35,36 @@ test('readShimConfig prefers .ralph-config.json values over env fallbacks', asyn
 
   const config = readShimConfig(workspaceRoot, {
     RALPH_CODEX_MODEL: 'env-model',
-    RALPH_CODEX_RALPH_ITERATION_CAP: '12',
-    RALPH_CODEX_APPROVAL_MODE: 'untrusted'
+    RALPH_CODEX_RALPH_ITERATION_CAP: '12'
   });
 
-  assert.equal(config.model, 'file-model');
-  assert.equal(config.ralphIterationCap, 7);
+  // Highest precedence: env overrides the file.
+  assert.equal(config.model, 'env-model');
+  assert.equal(config.ralphIterationCap, 12);
+  // Middle precedence: file overrides the default when no env is set.
   assert.equal(config.approvalMode, 'on-request');
+  // Lowest precedence: default applies when neither file nor env set a value.
+  assert.deepEqual(config.verifierModes, DEFAULT_CONFIG.verifierModes);
+});
+
+test('readShimConfig falls back to the file value when an env override is malformed', async (t) => {
+  const workspaceRoot = await createWorkspaceRoot();
+  t.after(async () => {
+    await fs.rm(workspaceRoot, { recursive: true, force: true });
+  });
+
+  await fs.writeFile(
+    path.join(workspaceRoot, SHIM_CONFIG_FILENAME),
+    JSON.stringify({ ralphIterationCap: 9 }, null, 2)
+  );
+
+  // A non-numeric env value cannot coerce, so the file layer (9) is used rather
+  // than the built-in default.
+  const config = readShimConfig(workspaceRoot, {
+    RALPH_CODEX_RALPH_ITERATION_CAP: 'not-a-number'
+  });
+
+  assert.equal(config.ralphIterationCap, 9);
 });
 
 test('readShimConfig falls back to environment variables when the file is absent', async (t) => {

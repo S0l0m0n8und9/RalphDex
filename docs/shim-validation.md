@@ -79,6 +79,10 @@ Key fields relevant to the shim:
 
 Environment variable overrides follow the pattern
 `RALPH_CODEX_<SCREAMING_SNAKE_CASE>`, e.g. `RALPH_CODEX_CLI_PROVIDER=claude`.
+Precedence is built-in defaults < `.ralph-config.json` < `RALPH_CODEX_*`
+environment variables: an env override wins over the file, and the file wins
+over the defaults. See the [CLI Shim](../README.md#cli-shim) section for the full
+automation contract (output modes and exit codes).
 
 ---
 

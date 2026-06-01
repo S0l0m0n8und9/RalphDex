@@ -63,7 +63,49 @@ Ralphdex ships to the VS Code Marketplace under the extension identifier `s0l0m0
 
 ## CLI Shim
 
-Use `node out/shim/main.js <workspace-path>` to run one Ralph CLI iteration outside the VS Code extension host. The shim reads `.ralph-config.json` plus `RALPH_CODEX_*` environment overrides from the target workspace, streams Ralph output to stdout, and stays out of the packaged VSIX payload.
+Use `node out/shim/main.js [--json] <workspace-path>` to run one Ralph CLI iteration outside the VS Code extension host. The shim is a supported **automation surface**, not a second product: it runs a single non-interactive iteration and exits. It adds no UI/webview dependencies.
+
+**Configuration precedence** (lowest to highest): built-in defaults < `.ralph-config.json` < `RALPH_CODEX_*` environment variables. Environment variables override the file; the file overrides defaults.
+
+**Output modes:**
+- Default: human-readable Ralph output (preflight, progress) is streamed to stdout.
+- `--json`: stdout carries exactly one line — a machine-readable JSON report (schema below). All human/log output is redirected to stderr so stdout stays parseable. Free-text fields are redacted of secrets.
+
+**Deterministic exit codes** distinguish failure categories so automation can branch without scraping text:
+
+| Code | Category | Meaning |
+|---|---|---|
+| `0` | `success` | The iteration ran and the shim completed its job (the task itself may still be blocked — see the report body). |
+| `1` | `internal` | Unexpected/unclassified failure inside the shim. |
+| `2` | `config` | Bad invocation or a workspace/config that could not be loaded (usage, missing directory, malformed `.ralph-config.json`). |
+| `3` | `preflight` | The run was gated before execution (preflight not ready / no actionable task). |
+| `4` | `provider` | The provider/CLI execution itself failed. |
+| `5` | `validation` | Execution ran but deterministic verification failed. |
+
+The `--json` report shape (`schemaVersion: 1`):
+
+```json
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "category": "success",
+  "exitCode": 0,
+  "iteration": 1,
+  "selectedTaskId": "T1",
+  "selectedTaskTitle": "Example task",
+  "executionStatus": "succeeded",
+  "verificationStatus": "passed",
+  "completionClassification": "complete",
+  "stopReason": null,
+  "summary": "…",
+  "warnings": [],
+  "errors": []
+}
+```
+
+On a failure before the iteration runs, the report carries `ok: false`, the failure `category`/`exitCode`, and an `error: { message, category }` field instead of the result fields.
+
+The shim stays out of the packaged VSIX payload (excluded via `.vscodeignore`); `test/shimPackaging.test.ts` guards that exclusion.
 
 ## Getting Started
 

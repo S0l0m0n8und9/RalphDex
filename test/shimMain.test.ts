@@ -30,7 +30,9 @@ async function seedShimWorkspace(workspaceRoot: string, codexCommandPath: string
         id: 'T1',
         title: 'Run one shim iteration',
         status: 'todo',
-        validation: 'node -e "process.exit(0)"'
+        // Use the POSIX `true` builtin: a deterministic exit-0 validation that
+        // survives /bin/sh (dash) without shell-quoting hazards.
+        validation: 'true'
       }
     ]
   }, null, 2)}\n`, 'utf8');
@@ -40,7 +42,10 @@ async function seedShimWorkspace(workspaceRoot: string, codexCommandPath: string
     codexCommandPath,
     approvalMode: 'never',
     sandboxMode: 'workspace-write',
-    verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
+    // Keep the e2e contract deterministic by exercising the validation-command
+    // verifier only; git/task-state outcomes depend on repo/reconciliation state
+    // that is out of scope for the shim's exit-code contract.
+    verifierModes: ['validationCommand'],
     modelTiering: { enabled: false }
   }, null, 2)}\n`, 'utf8');
 }
@@ -83,6 +88,30 @@ process.stdin.on('end', () => {
 `, 'utf8');
 }
 
+const PACKAGE_ROOT = path.resolve(__dirname, '..', '..');
+const SHIM_ENTRY = path.join(PACKAGE_ROOT, 'out', 'shim', 'main.js');
+
+interface ShimRun {
+  stdout: string;
+  stderr: string;
+  exitCode: number;
+}
+
+/** Runs the compiled shim and captures stdout/stderr/exit code without throwing on non-zero. */
+async function runShim(args: string[]): Promise<ShimRun> {
+  try {
+    const { stdout, stderr } = await execFileAsync(process.execPath, [SHIM_ENTRY, ...args], {
+      cwd: PACKAGE_ROOT,
+      timeout: 60_000,
+      maxBuffer: 10 * 1024 * 1024
+    });
+    return { stdout, stderr, exitCode: 0 };
+  } catch (error) {
+    const err = error as { stdout?: string; stderr?: string; code?: number };
+    return { stdout: err.stdout ?? '', stderr: err.stderr ?? '', exitCode: err.code ?? 1 };
+  }
+}
+
 test('shim main boots a seeded workspace, prints preflight output, and exits zero', async (t) => {
   const workspaceRoot = await createWorkspaceRoot();
   t.after(async () => {
@@ -95,14 +124,9 @@ test('shim main boots a seeded workspace, prints preflight output, and exits zer
   // we created in workspaceRoot (set as cwd by the provider).
   await seedShimWorkspace(workspaceRoot, process.execPath);
 
-  const packageRoot = path.resolve(__dirname, '..', '..');
-  const shimEntry = path.join(packageRoot, 'out', 'shim', 'main.js');
-  const { stdout, stderr } = await execFileAsync(process.execPath, [shimEntry, workspaceRoot], {
-    cwd: packageRoot,
-    timeout: 60_000,
-    maxBuffer: 10 * 1024 * 1024
-  });
+  const { stdout, stderr, exitCode } = await runShim([workspaceRoot]);
 
+  assert.equal(exitCode, 0);
   assert.equal(stderr, '');
   assert.match(stdout, /# Ralph Preflight/);
   assert.match(stdout, /- Ready: yes/);
@@ -110,4 +134,73 @@ test('shim main boots a seeded workspace, prints preflight output, and exits zer
 
   const progressText = await fs.readFile(path.join(workspaceRoot, '.ralph', 'progress.md'), 'utf8');
   assert.match(progressText, /Fake codex advanced the shim workspace/);
+});
+
+test('shim --json emits a single machine-readable success report on stdout and exits zero', async (t) => {
+  const workspaceRoot = await createWorkspaceRoot();
+  t.after(async () => {
+    await fs.rm(workspaceRoot, { recursive: true, force: true });
+  });
+
+  await createFakeCodexExecScript(workspaceRoot);
+  await seedShimWorkspace(workspaceRoot, process.execPath);
+
+  const { stdout, stderr, exitCode } = await runShim(['--json', workspaceRoot]);
+
+  // stdout is exactly one line of JSON; all human/log output went to stderr.
+  const lines = stdout.trimEnd().split('\n');
+  assert.equal(lines.length, 1, `expected one JSON line on stdout, got:\n${stdout}`);
+  const report = JSON.parse(lines[0]);
+  assert.equal(report.schemaVersion, 1);
+  assert.equal(report.ok, true);
+  assert.equal(report.category, 'success');
+  assert.equal(report.exitCode, 0);
+  assert.equal(report.iteration, 1);
+  assert.equal(report.selectedTaskId, 'T1');
+  assert.equal(report.executionStatus, 'succeeded');
+  assert.equal(exitCode, 0);
+  // Preflight/log noise is on stderr, never polluting the JSON channel.
+  assert.match(stderr, /# Ralph Preflight/);
+});
+
+test('shim --json reports a validation-category failure with exit code 5', async (t) => {
+  const workspaceRoot = await createWorkspaceRoot();
+  t.after(async () => {
+    await fs.rm(workspaceRoot, { recursive: true, force: true });
+  });
+
+  await createFakeCodexExecScript(workspaceRoot);
+  await seedShimWorkspace(workspaceRoot, process.execPath);
+  // Force the validation command to fail deterministically.
+  const tasksPath = path.join(workspaceRoot, '.ralph', 'tasks.json');
+  const tasks = JSON.parse(await fs.readFile(tasksPath, 'utf8'));
+  tasks.tasks[0].validation = 'false';
+  await fs.writeFile(tasksPath, `${JSON.stringify(tasks, null, 2)}\n`, 'utf8');
+
+  const { stdout, exitCode } = await runShim(['--json', workspaceRoot]);
+  const report = JSON.parse(stdout.trim());
+  assert.equal(report.ok, false);
+  assert.equal(report.category, 'validation');
+  assert.equal(report.exitCode, 5);
+  assert.equal(report.verificationStatus, 'failed');
+  assert.equal(exitCode, 5);
+});
+
+test('shim --json reports a config-category failure (exit 2) for a missing workspace', async () => {
+  const { stdout, exitCode } = await runShim(['--json', path.join(os.tmpdir(), 'ralph-shim-does-not-exist-xyz')]);
+  const report = JSON.parse(stdout.trim());
+  assert.equal(report.ok, false);
+  assert.equal(report.category, 'config');
+  assert.equal(report.exitCode, 2);
+  assert.equal(exitCode, 2);
+});
+
+test('shim with no arguments exits with the config exit code (2)', async () => {
+  const { exitCode } = await runShim([]);
+  assert.equal(exitCode, 2);
+});
+
+test('shim rejects an unknown option with the config exit code (2)', async () => {
+  const { exitCode } = await runShim(['--nope', os.tmpdir()]);
+  assert.equal(exitCode, 2);
 });
