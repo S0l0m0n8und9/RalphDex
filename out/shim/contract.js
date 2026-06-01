@@ -4,6 +4,7 @@ exports.ShimError = exports.SHIM_EXIT_CODES = exports.SHIM_REPORT_SCHEMA_VERSION
 exports.exitCodeForCategory = exitCodeForCategory;
 exports.categoryForError = categoryForError;
 exports.categoryForIterationResult = categoryForIterationResult;
+exports.redactShimText = redactShimText;
 exports.buildIterationReport = buildIterationReport;
 exports.buildErrorReport = buildErrorReport;
 const transcriptSafety_1 = require("../codex/transcriptSafety");
@@ -78,6 +79,14 @@ function categoryForIterationResult(result) {
 }
 function redact(value) {
     return (0, transcriptSafety_1.redactSensitiveTranscriptData)(value);
+}
+/**
+ * Redacts secrets from free-text shim output. Exposed so the shim entrypoint can
+ * apply the same redaction guarantee to human/log output (e.g. on stderr in
+ * `--json` mode) that the JSON report fields already receive.
+ */
+function redactShimText(value) {
+    return redact(value);
 }
 /** Builds the machine-readable report for a completed iteration. All free text is redacted. */
 function buildIterationReport(result) {

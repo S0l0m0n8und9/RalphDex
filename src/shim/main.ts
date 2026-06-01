@@ -6,6 +6,7 @@ import type { IVSCodeHost } from './types';
 import {
   buildErrorReport,
   buildIterationReport,
+  redactShimText,
   ShimError,
   type ShimReport
 } from './contract';
@@ -44,12 +45,17 @@ interface ShimArgs {
 
 function parseArgs(argv: string[]): ShimArgs {
   let json = false;
+  // After a bare `--`, every remaining token is a positional regardless of its
+  // spelling (the conventional end-of-options contract).
+  let argsDone = false;
   const positionals: string[] = [];
   for (const arg of argv) {
-    if (arg === '--json') {
+    if (argsDone) {
+      positionals.push(arg);
+    } else if (arg === '--json') {
       json = true;
     } else if (arg === '--') {
-      continue;
+      argsDone = true;
     } else if (arg.startsWith('--')) {
       throw new ShimError(`Unknown option: ${arg}\n${usage()}`, 'config');
     } else {
@@ -78,9 +84,11 @@ async function runIteration(args: ShimArgs): Promise<ShimReport> {
   }
 
   // In --json mode stdout must contain only the JSON report, so route human/log
-  // output to stderr.
+  // output to stderr. Redact that stderr stream too, so the README's "free-text
+  // fields are redacted" guarantee also holds for log output an automation
+  // consumer might capture (e.g. into a CI log).
   const logSink: ShimLogSink = args.json
-    ? (text) => process.stderr.write(text)
+    ? (text) => process.stderr.write(redactShimText(text))
     : (text) => process.stdout.write(text);
 
   let host: IVSCodeHost;

@@ -62,13 +62,19 @@ function usage() {
 }
 function parseArgs(argv) {
     let json = false;
+    // After a bare `--`, every remaining token is a positional regardless of its
+    // spelling (the conventional end-of-options contract).
+    let argsDone = false;
     const positionals = [];
     for (const arg of argv) {
-        if (arg === '--json') {
+        if (argsDone) {
+            positionals.push(arg);
+        }
+        else if (arg === '--json') {
             json = true;
         }
         else if (arg === '--') {
-            continue;
+            argsDone = true;
         }
         else if (arg.startsWith('--')) {
             throw new contract_1.ShimError(`Unknown option: ${arg}\n${usage()}`, 'config');
@@ -92,9 +98,11 @@ async function runIteration(args) {
         throw new contract_1.ShimError(`Workspace path does not exist or is not a directory: ${workspaceRoot}`, 'config');
     }
     // In --json mode stdout must contain only the JSON report, so route human/log
-    // output to stderr.
+    // output to stderr. Redact that stderr stream too, so the README's "free-text
+    // fields are redacted" guarantee also holds for log output an automation
+    // consumer might capture (e.g. into a CI log).
     const logSink = args.json
-        ? (text) => process.stderr.write(text)
+        ? (text) => process.stderr.write((0, contract_1.redactShimText)(text))
         : (text) => process.stdout.write(text);
     let host;
     try {

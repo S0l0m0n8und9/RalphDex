@@ -6,6 +6,7 @@ import {
   categoryForError,
   categoryForIterationResult,
   exitCodeForCategory,
+  redactShimText,
   SHIM_EXIT_CODES,
   SHIM_REPORT_SCHEMA_VERSION,
   ShimError
@@ -144,4 +145,11 @@ test('error reports redact secrets in the message', () => {
   assert.equal(report.exitCode, 4);
   assert.doesNotMatch(report.error?.message ?? '', /sk-abcdefghijkl1234567890/);
   assert.match(report.error?.message ?? '', /\[redacted\]/);
+});
+
+test('redactShimText redacts free-text log output (used for stderr in --json mode)', () => {
+  const text = 'iteration finished: token sk-abcdefghijkl1234567890 leaked';
+  const redacted = redactShimText(text);
+  assert.doesNotMatch(redacted, /sk-abcdefghijkl1234567890/);
+  assert.match(redacted, /\[redacted\]/);
 });

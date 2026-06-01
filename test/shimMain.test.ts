@@ -204,3 +204,18 @@ test('shim rejects an unknown option with the config exit code (2)', async () =>
   const { exitCode } = await runShim(['--nope', os.tmpdir()]);
   assert.equal(exitCode, 2);
 });
+
+test('shim treats everything after `--` as a positional workspace path', async (t) => {
+  const workspaceRoot = await createWorkspaceRoot();
+  t.after(async () => {
+    await fs.rm(workspaceRoot, { recursive: true, force: true });
+  });
+
+  await createFakeCodexExecScript(workspaceRoot);
+  await seedShimWorkspace(workspaceRoot, process.execPath);
+
+  // `--` ends option parsing; the path is consumed as a positional even though
+  // option-like tokens could otherwise be rejected.
+  const { exitCode } = await runShim(['--json', '--', workspaceRoot]);
+  assert.equal(exitCode, 0);
+});

@@ -108,6 +108,15 @@ function redact(value: string): string {
   return redactSensitiveTranscriptData(value);
 }
 
+/**
+ * Redacts secrets from free-text shim output. Exposed so the shim entrypoint can
+ * apply the same redaction guarantee to human/log output (e.g. on stderr in
+ * `--json` mode) that the JSON report fields already receive.
+ */
+export function redactShimText(value: string): string {
+  return redact(value);
+}
+
 /** Builds the machine-readable report for a completed iteration. All free text is redacted. */
 export function buildIterationReport(result: RalphIterationResult): ShimReport {
   const category = categoryForIterationResult(result);
