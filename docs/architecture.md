@@ -52,7 +52,7 @@ The shipped dashboard and sidebar share one production host path:
 - `src/ui/dashboardPanel.ts` and `src/ui/sidebarViewProvider.ts` own the VS Code panel/sidebar adapters that mount the React shell on the shared `DashboardHost`. When the local `out/webview-ui/` bundle is missing (a build step did not run), `reactWebviewHtml.ts` serves a small static "UI failed to load" page — there is no second string-template renderer.
 - `test/ui/` and `test/webview/` own regression coverage for the React shell bootstrap, component behaviour, and shared host wiring.
 
-The React tree under `src/webview-ui/` is the single dashboard/sidebar renderer; no parallel string-template implementation is maintained.
+The React tree under `src/webview-ui/` is the single dashboard/sidebar renderer; no parallel string-template implementation is maintained. Reference-only or archived UI surfaces (e.g. the historic `UXrefresh/` tree) are not part of the production renderer and must not be imported by code under `src/`. `test/ui/reactUiOwnership.test.ts` enforces this React-first ownership in the default validation gate: it fails if a reference/archive UI tree is reintroduced as a directory or imported by production code.
 
 ## End-To-End Flow
 
