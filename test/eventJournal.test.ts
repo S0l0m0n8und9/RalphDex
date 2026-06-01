@@ -72,6 +72,41 @@ test('writer.open resumes the sequence after an existing journal', async (t) => 
   assert.deepEqual(events.map((e) => e.seq), [1, 2, 3]);
 });
 
+test('writer.open resumes past a partial/malformed trailing line (crash mid-write)', async (t) => {
+  const dir = await tmpArtifactsDir();
+  t.after(() => fs.rm(dir, { recursive: true, force: true }));
+
+  const first = await EventJournalWriter.open(dir, 'run-crash', { clock: fixedClock() });
+  await first.append({ type: 'run_started' });
+  await first.append({ type: 'task_selected', taskId: 'T1' });
+
+  // Simulate a crash mid-appendFile: a truncated, unparseable JSON tail line is
+  // left behind without a trailing newline.
+  const { journalPath } = resolveEventJournalPaths(dir, 'run-crash');
+  await fs.appendFile(journalPath, '{"type":"provider_invoked","seq":3,"runId":"run-crash"', 'utf8');
+
+  // Reopening must recover the valid prefix and continue after the last good
+  // seq rather than throwing and locking the journal.
+  const resumed = await EventJournalWriter.open(dir, 'run-crash', { clock: fixedClock() });
+  assert.equal(resumed.peekNextSeq, 3);
+  const recovered = await resumed.append({ type: 'provider_invoked', provider: 'codex', taskId: 'T1' });
+  assert.equal(recovered.seq, 3);
+});
+
+test('reduce reactivates a re-selected task from a terminal status', () => {
+  const base = { schemaVersion: RUNTIME_EVENT_SCHEMA_VERSION, runId: 'run-x', timestamp: '2026-01-01T00:00:00.000Z' };
+  const events = [
+    { ...base, seq: 1, type: 'task_selected', taskId: 'T1', title: 'X' },
+    { ...base, seq: 2, type: 'task_state_changed', taskId: 'T1', to: 'done' },
+    // Re-selection after completion: the task is being reopened/reworked.
+    { ...base, seq: 3, type: 'task_selected', taskId: 'T1' }
+  ] as RalphRuntimeEvent[];
+
+  const snapshot = reduceRunState(events);
+  assert.equal(snapshot.tasks.T1.status, 'in_progress');
+  assert.equal(snapshot.currentTaskId, 'T1');
+});
+
 test('serializeEvent round-trips through parseEventJournal', () => {
   const event: RalphRuntimeEvent = {
     schemaVersion: RUNTIME_EVENT_SCHEMA_VERSION,

@@ -239,6 +239,33 @@ export function parseEventJournal(body: string): RalphRuntimeEvent[] {
   return events;
 }
 
+/**
+ * Like {@link parseEventJournal} but tolerant of a malformed trailing line:
+ * returns every event up to (not including) the first line that fails to parse.
+ *
+ * A crash mid-`appendFile` (event larger than the OS atomic-write boundary, or
+ * power loss mid-syscall) can leave a partial, unparseable last line. Resume
+ * needs the valid prefix to continue the sequence monotonically rather than
+ * failing to reopen the journal at all — so this is used only by the writer's
+ * resume path. The public read path ({@link parseEventJournal}) stays strict so
+ * mid-journal corruption surfaces loudly instead of being silently truncated.
+ */
+export function parseEventJournalResumable(body: string): RalphRuntimeEvent[] {
+  const events: RalphRuntimeEvent[] = [];
+  for (const raw of body.split('\n')) {
+    const line = raw.trim();
+    if (!line) {
+      continue;
+    }
+    try {
+      events.push(JSON.parse(line) as RalphRuntimeEvent);
+    } catch {
+      break;
+    }
+  }
+  return events;
+}
+
 // ---------------------------------------------------------------------------
 // Writer
 // ---------------------------------------------------------------------------
@@ -274,7 +301,10 @@ export class EventJournalWriter {
     const paths = resolveEventJournalPaths(artifactsDir, runId);
     let startSeq = 1;
     try {
-      const existing = parseEventJournal(await fs.readFile(paths.journalPath, 'utf8'));
+      // Resume tolerantly: a crash mid-write can leave a partial last line, so
+      // recover the valid prefix and continue after the highest persisted seq
+      // rather than re-throwing and locking the journal shut.
+      const existing = parseEventJournalResumable(await fs.readFile(paths.journalPath, 'utf8'));
       const maxSeq = existing.reduce((max, event) => Math.max(max, event.seq), 0);
       startSeq = maxSeq + 1;
     } catch (err) {
@@ -282,6 +312,9 @@ export class EventJournalWriter {
         throw err;
       }
     }
+    // The run directory is established once here and never removed, so appends
+    // need not re-stat/mkdir it on every event.
+    await fs.mkdir(paths.directory, { recursive: true });
     return new EventJournalWriter(runId, paths, startSeq, options.clock ?? (() => new Date()));
   }
 
@@ -299,7 +332,6 @@ export class EventJournalWriter {
       seq: this.nextSeq,
       timestamp: this.clock().toISOString()
     } as RalphRuntimeEvent;
-    await fs.mkdir(this.paths.directory, { recursive: true });
     await fs.appendFile(this.paths.journalPath, `${serializeEvent(event)}\n`, 'utf8');
     this.nextSeq += 1;
     return event;
@@ -427,7 +459,12 @@ export function reduceRunState(events: readonly RalphRuntimeEvent[]): RunStateSn
         if (event.title !== undefined && event.title !== null) {
           task.title = event.title;
         }
-        if (task.status === null) {
+        // Selecting a task marks it active. `task_state_changed` remains the
+        // authoritative source for status transitions, so we don't clobber a
+        // live non-terminal status here. But a task re-selected after reaching
+        // a terminal state ('done'/'blocked') is being reopened — reflect that
+        // it is active again instead of leaving the stale terminal status.
+        if (task.status === null || task.status === 'done' || task.status === 'blocked') {
           task.status = 'in_progress';
         }
         break;
