@@ -41,6 +41,7 @@ const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 const workspaceScanner_1 = require("../services/workspaceScanner");
 const integrity_1 = require("./integrity");
+const artifactRegistry_1 = require("./artifactRegistry");
 const taskCreation_1 = require("./taskCreation");
 const projectGenerator_1 = require("./projectGenerator");
 const taskGenerationReview_1 = require("./taskGenerationReview");
@@ -207,6 +208,12 @@ async function writeTaskSeedingArtifact(artifactRootDir, artifact) {
     const compactTimestamp = artifact.createdAt.replace(/[:.]/g, '-');
     const artifactPath = path.join(targetDir, `task-seeding-${compactTimestamp}.json`);
     await fs.writeFile(artifactPath, (0, integrity_1.stableJson)(artifact), 'utf8');
+    await (0, artifactRegistry_1.registerArtifactsBestEffort)(artifactRootDir, [{
+            type: 'task-seeding',
+            path: artifactPath,
+            provider: artifact.provider.id,
+            retentionClass: 'durable'
+        }]);
     return artifactPath;
 }
 async function seedTasksFromRequest(input) {

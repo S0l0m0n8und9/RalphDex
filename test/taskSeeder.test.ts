@@ -5,6 +5,7 @@ import * as path from 'node:path';
 import test from 'node:test';
 import { DEFAULT_CONFIG } from '../src/config/defaults';
 import { setProcessRunnerOverride } from '../src/services/processRunner';
+import { queryArtifacts, readArtifactRegistry } from '../src/ralph/artifactRegistry';
 import {
   buildTaskSeedingPrompt,
   parseTaskSeedResponse,
@@ -154,6 +155,13 @@ test('seedTasksFromRequest writes a durable seeding artifact and returns append-
     assert.match(artifact.warnings[0] ?? '', /Remapped seeded task id "T1" to "T2"/);
     assert.ok(artifact.warnings.some((warning) => /Task T2 "Build the app/.test(warning) && /broad/i.test(warning)));
     assert.ok(artifact.warnings.some((warning) => /Task T2 "Build the app/.test(warning) && /greenfield/i.test(warning)));
+
+    const registry = await readArtifactRegistry(artifactRootDir);
+    const entries = queryArtifacts(registry, { type: 'task-seeding' });
+    assert.equal(entries.length, 1);
+    assert.equal(entries[0]?.path, path.relative(artifactRootDir, result.artifactPath).split(path.sep).join('/'));
+    assert.equal(entries[0]?.provider, 'claude');
+    assert.equal(entries[0]?.retentionClass, 'durable');
   } finally {
     setProcessRunnerOverride(null);
   }

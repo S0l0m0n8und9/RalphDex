@@ -9,6 +9,7 @@ import {
   renderPrdReconciliationMarkdown,
   significantTitleTokens
 } from '../src/ralph/prdReconciliation';
+import { queryArtifacts, readArtifactRegistry } from '../src/ralph/artifactRegistry';
 import { resolvePrdReconciliationPaths, writePrdReconciliationProposal } from '../src/ralph/artifactStore';
 import type { RalphTaskFile } from '../src/ralph/types';
 
@@ -143,6 +144,13 @@ test('writePrdReconciliationProposal writes json and markdown at the artifacts r
   assert.equal(persisted.kind, 'prdReconciliation');
   assert.equal(persisted.findingCount, 1);
   assert.match(await fs.readFile(paths.markdownPath, 'utf8'), /stale_prd_task_reference/);
+
+  const registry = await readArtifactRegistry(dir);
+  const entries = queryArtifacts(registry, { type: 'prd-reconciliation' });
+  assert.equal(entries.length, 1);
+  assert.equal(entries[0]?.path, 'prd-reconciliation.json');
+  assert.equal(entries[0]?.retentionClass, 'durable');
+  assert.equal(queryArtifacts(registry, { type: 'prd-reconciliation-summary' })[0]?.path, 'prd-reconciliation.md');
 });
 
 test('renders findings as advisory markdown', () => {

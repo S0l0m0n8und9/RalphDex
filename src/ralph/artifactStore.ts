@@ -6,6 +6,7 @@ import { renderPrdReconciliationMarkdown, type PrdReconciliationProposal } from 
 import { stableJson } from './integrity';
 import {
   registerArtifacts,
+  registerArtifactsBestEffort,
   type ArtifactRegistryEntryInput,
   type ArtifactRelationships,
   type ArtifactRetentionClass
@@ -372,6 +373,20 @@ export async function writeDoctrineProposalReviewArtifact(input: {
     fs.writeFile(reviewPaths.reviewJsonPath, stableJson(input.review), 'utf8'),
     fs.writeFile(reviewPaths.reviewMdPath, `${markdown.trimEnd()}\n`, 'utf8')
   ]);
+  await registerArtifactsBestEffort(input.artifactRootDir, [
+    {
+      type: 'doctrine-proposal-review',
+      path: reviewPaths.reviewJsonPath,
+      retentionClass: 'durable',
+      related: { reviewOf: toRegistryRelative(input.artifactRootDir, resolveDoctrineProposalCanonicalPaths(input.artifactRootDir, input.review.proposalId).jsonPath) }
+    },
+    {
+      type: 'doctrine-proposal-review-summary',
+      path: reviewPaths.reviewMdPath,
+      retentionClass: 'durable',
+      related: { generatedFrom: toRegistryRelative(input.artifactRootDir, reviewPaths.reviewJsonPath) }
+    }
+  ]);
 
   return { reviewJsonPath: reviewPaths.reviewJsonPath, reviewMdPath: reviewPaths.reviewMdPath };
 }
@@ -391,6 +406,12 @@ export async function writeUpdatedDoctrineProposalArtifact(input: {
     fs.writeFile(canonicalPaths.mdPath, `${markdown.trimEnd()}\n`, 'utf8'),
     fs.writeFile(latestPaths.latestDoctrineProposalPath, json, 'utf8'),
     fs.writeFile(latestPaths.latestDoctrineProposalMdPath, `${markdown.trimEnd()}\n`, 'utf8')
+  ]);
+  await registerArtifactsBestEffort(input.artifactRootDir, [
+    { type: 'doctrine-proposal', path: canonicalPaths.jsonPath, retentionClass: 'durable' },
+    { type: 'doctrine-proposal-summary', path: canonicalPaths.mdPath, retentionClass: 'durable' },
+    { type: 'latest-doctrine-proposal', path: latestPaths.latestDoctrineProposalPath, retentionClass: 'latest' },
+    { type: 'latest-doctrine-proposal-summary', path: latestPaths.latestDoctrineProposalMdPath, retentionClass: 'latest' }
   ]);
 }
 
@@ -538,6 +559,18 @@ export async function writeDoctrineProposalArtifact(input: {
     fs.writeFile(canonicalPaths.mdPath, `${markdown.trimEnd()}\n`, 'utf8'),
     fs.writeFile(latestPaths.latestDoctrineProposalPath, json, 'utf8'),
     fs.writeFile(latestPaths.latestDoctrineProposalMdPath, `${markdown.trimEnd()}\n`, 'utf8')
+  ]);
+  await registerArtifactsBestEffort(input.artifactRootDir, [
+    { type: 'doctrine-proposal-draft', path: input.paths.doctrineProposalPath, retentionClass: 'iteration' },
+    {
+      type: 'doctrine-proposal',
+      path: canonicalPaths.jsonPath,
+      retentionClass: 'durable',
+      related: { generatedFrom: toRegistryRelative(input.artifactRootDir, input.paths.doctrineProposalPath) }
+    },
+    { type: 'doctrine-proposal-summary', path: canonicalPaths.mdPath, retentionClass: 'durable' },
+    { type: 'latest-doctrine-proposal', path: latestPaths.latestDoctrineProposalPath, retentionClass: 'latest' },
+    { type: 'latest-doctrine-proposal-summary', path: latestPaths.latestDoctrineProposalMdPath, retentionClass: 'latest' }
   ]);
 
   return canonicalPaths.jsonPath;
@@ -960,6 +993,10 @@ export async function writeCleanupManifestArtifact(
     fs.writeFile(paths.jsonPath, stableJson(manifest), 'utf8'),
     fs.writeFile(paths.markdownPath, `${renderCleanupManifestMarkdown(manifest).trimEnd()}\n`, 'utf8')
   ]);
+  await registerArtifactsBestEffort(artifactRootDir, [
+    { type: 'cleanup-manifest', path: paths.jsonPath, retentionClass: 'durable' },
+    { type: 'cleanup-manifest-summary', path: paths.markdownPath, retentionClass: 'durable' }
+  ]);
   return paths;
 }
 
@@ -989,6 +1026,16 @@ export async function writeWatchdogDiagnosticArtifact(input: {
   };
 
   await fs.writeFile(filePath, stableJson(artifact), 'utf8');
+  await registerArtifactsBestEffort(input.artifactRootDir, [
+    {
+      type: 'watchdog-diagnostic',
+      path: filePath,
+      runId: input.provenanceId,
+      agentId: input.agentId,
+      iteration: input.iteration,
+      retentionClass: 'iteration'
+    }
+  ]);
   return filePath;
 }
 
@@ -1019,6 +1066,10 @@ export async function writePrdReconciliationProposal(
   await Promise.all([
     fs.writeFile(paths.jsonPath, stableJson(proposal), 'utf8'),
     fs.writeFile(paths.markdownPath, `${renderPrdReconciliationMarkdown(proposal).trimEnd()}\n`, 'utf8')
+  ]);
+  await registerArtifactsBestEffort(artifactRootDir, [
+    { type: 'prd-reconciliation', path: paths.jsonPath, retentionClass: 'durable' },
+    { type: 'prd-reconciliation-summary', path: paths.markdownPath, retentionClass: 'durable' }
   ]);
   return paths;
 }

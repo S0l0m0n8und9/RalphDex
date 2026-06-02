@@ -1,5 +1,6 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { registerArtifactsBestEffort } from './artifactRegistry';
 import { hashText, stableJson } from './integrity';
 
 export type PrdReadinessSeverity = 'pass' | 'warning' | 'blocker';
@@ -394,6 +395,10 @@ export async function persistLatestPrdReadinessArtifacts(
   const summaryPath = path.join(artifactDir, 'latest-prd-readiness-summary.md');
   await fs.writeFile(jsonPath, stableJson(result), 'utf8');
   await fs.writeFile(summaryPath, buildPrdReadinessSummaryMarkdown(result), 'utf8');
+  await registerArtifactsBestEffort(artifactDir, [
+    { type: 'latest-prd-readiness', path: jsonPath, retentionClass: 'latest' },
+    { type: 'latest-prd-readiness-summary', path: summaryPath, retentionClass: 'latest' }
+  ]);
   return { jsonPath, summaryPath };
 }
 
@@ -410,6 +415,10 @@ export async function persistTaskGenerationPlanArtifact(
   const payload = stableJson(plan);
   await fs.writeFile(latestPath, payload, 'utf8');
   await fs.writeFile(historyPath, payload, 'utf8');
+  await registerArtifactsBestEffort(artifactDir, [
+    { type: 'latest-task-generation-plan', path: latestPath, retentionClass: 'latest' },
+    { type: 'task-generation-plan', path: historyPath, retentionClass: 'durable' }
+  ]);
   return { latestPath, historyPath };
 }
 
@@ -428,4 +437,3 @@ export async function readLatestTaskGenerationPlan(
     return null;
   }
 }
-

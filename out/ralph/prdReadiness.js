@@ -39,6 +39,7 @@ exports.persistTaskGenerationPlanArtifact = persistTaskGenerationPlanArtifact;
 exports.readLatestTaskGenerationPlan = readLatestTaskGenerationPlan;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
+const artifactRegistry_1 = require("./artifactRegistry");
 const integrity_1 = require("./integrity");
 const PLACEHOLDER_PATTERN = /\b(?:todo|tbd|placeholder|lorem ipsum|coming soon|fill in|xxx)\b/i;
 const VAGUE_WORD_PATTERN = /\b(?:stuff|things|various|misc(?:ellaneous)?|somehow|maybe|soon|better|improve|optimize)\b/i;
@@ -263,6 +264,10 @@ async function persistLatestPrdReadinessArtifacts(artifactDir, result) {
     const summaryPath = path.join(artifactDir, 'latest-prd-readiness-summary.md');
     await fs.writeFile(jsonPath, (0, integrity_1.stableJson)(result), 'utf8');
     await fs.writeFile(summaryPath, buildPrdReadinessSummaryMarkdown(result), 'utf8');
+    await (0, artifactRegistry_1.registerArtifactsBestEffort)(artifactDir, [
+        { type: 'latest-prd-readiness', path: jsonPath, retentionClass: 'latest' },
+        { type: 'latest-prd-readiness-summary', path: summaryPath, retentionClass: 'latest' }
+    ]);
     return { jsonPath, summaryPath };
 }
 async function persistTaskGenerationPlanArtifact(artifactDir, plan) {
@@ -275,6 +280,10 @@ async function persistTaskGenerationPlanArtifact(artifactDir, plan) {
     const payload = (0, integrity_1.stableJson)(plan);
     await fs.writeFile(latestPath, payload, 'utf8');
     await fs.writeFile(historyPath, payload, 'utf8');
+    await (0, artifactRegistry_1.registerArtifactsBestEffort)(artifactDir, [
+        { type: 'latest-task-generation-plan', path: latestPath, retentionClass: 'latest' },
+        { type: 'task-generation-plan', path: historyPath, retentionClass: 'durable' }
+    ]);
     return { latestPath, historyPath };
 }
 async function readLatestTaskGenerationPlan(artifactDir) {
