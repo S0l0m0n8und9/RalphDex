@@ -32,6 +32,8 @@ const commandRegistrationSourceFiles = [
 const internalOnlyRegisteredCommands = new Set([
   'ralphCodex.initializeWorkspace',
   'ralphCodex.refreshDashboard',
+  'ralphCodex.__activationSmoke.awaitWebviewReady',
+  'ralphCodex.__activationSmoke.resetWebviewDiagnostics',
   'ralphCodex.statusBarQuickPick',
   'ralphCodex.testCurrentProviderConnection'
 ]);

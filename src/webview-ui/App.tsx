@@ -62,6 +62,15 @@ export function App({ mode, initialState }: AppProps) {
   const model = useMemo(() => state ? getWebviewUiModel(state) : null, [state]);
 
   useEffect(() => {
+    (vscodeApi() as { postMessage(message: unknown): void }).postMessage({
+      type: 'webview-ready',
+      mode,
+      mountedText: mode === 'prd-wizard' ? 'Ralphdex PRD wizard mounted' : `Ralphdex ${mode} dashboard mounted`,
+      timestamp: new Date().toISOString()
+    });
+  }, [mode]);
+
+  useEffect(() => {
     const onMessage = (event: MessageEvent<RalphWebviewMessage | WizardOutboundMessage>) => {
       const message = event.data;
       if (mode === 'prd-wizard') {

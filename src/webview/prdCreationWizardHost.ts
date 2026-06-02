@@ -1,6 +1,7 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { MessageBridge } from './MessageBridge';
+import { activationSmokeDiagnostics } from './webviewSmokeDiagnostics';
 import { ProjectGenerationError } from '../ralph/projectGenerator';
 import { reviewGeneratedTaskShapeDetailed } from '../ralph/taskGenerationReview';
 import { analyzePrdReadiness } from '../ralph/prdReadiness';
@@ -775,6 +776,11 @@ export class PrdCreationWizardHost implements vscode.Disposable {
   }
 
   private async handleMessage(message: WizardInboundMessage): Promise<void> {
+    if (message.type === 'webview-ready') {
+      activationSmokeDiagnostics.recordReady('prd-wizard', message);
+      return;
+    }
+
     switch (message.type) {
       case 'set-step':
         this.state = { ...this.state, step: message.step, warning: null, error: null };

@@ -39,6 +39,7 @@ exports.relativeWizardWriteSummary = relativeWizardWriteSummary;
 const path = __importStar(require("path"));
 const vscode = __importStar(require("vscode"));
 const MessageBridge_1 = require("./MessageBridge");
+const webviewSmokeDiagnostics_1 = require("./webviewSmokeDiagnostics");
 const projectGenerator_1 = require("../ralph/projectGenerator");
 const taskGenerationReview_1 = require("../ralph/taskGenerationReview");
 const prdReadiness_1 = require("../ralph/prdReadiness");
@@ -669,6 +670,10 @@ class PrdCreationWizardHost {
         });
     }
     async handleMessage(message) {
+        if (message.type === 'webview-ready') {
+            webviewSmokeDiagnostics_1.activationSmokeDiagnostics.recordReady('prd-wizard', message);
+            return;
+        }
         switch (message.type) {
             case 'set-step':
                 this.state = { ...this.state, step: message.step, warning: null, error: null };

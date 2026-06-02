@@ -479,6 +479,34 @@ test('DashboardHost: refresh failure preserves last successful snapshot and repo
   broadcaster.dispose();
 });
 
+test('DashboardHost: async snapshot completion does not render after dispose', async () => {
+  const wv = makeMockWebview();
+  const broadcaster = new IterationBroadcaster();
+  let resolveSnapshot!: (value: { workspaceName: string }) => void;
+  const snapshotLoaded = new Promise<{ workspaceName: string }>((resolve) => {
+    resolveSnapshot = resolve;
+  });
+  let renderCount = 0;
+
+  const host = new DashboardHost(
+    wv as unknown as import('vscode').Webview,
+    broadcaster,
+    (() => {
+      renderCount += 1;
+      return `<html>${renderCount}</html>`;
+    }) as never,
+    async () => snapshotLoaded as never
+  );
+
+  assert.equal(renderCount, 2, 'constructor and loading state should render before disposal');
+  host.dispose();
+  resolveSnapshot({ workspaceName: 'late-snapshot' });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.equal(renderCount, 2, 'late async snapshot completion should not render a disposed webview');
+  broadcaster.dispose();
+});
+
 test('DashboardHost: snapshot completion renders are not dropped inside the debounce window', async () => {
   const wv = makeMockWebview();
   const broadcaster = new IterationBroadcaster();

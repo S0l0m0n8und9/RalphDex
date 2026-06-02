@@ -25,6 +25,7 @@ import {
 import { MessageBridge } from './MessageBridge';
 import { WebviewConfigSync } from '../ui/webviewConfigSync';
 import type { DashboardSnapshotLoader } from './dashboardDataLoader';
+import { activationSmokeDiagnostics } from './webviewSmokeDiagnostics';
 
 export interface DashboardHostActions {
   seedTasks?: (requestText: string) => Promise<{
@@ -58,6 +59,7 @@ export class DashboardHost implements vscode.Disposable {
   private readonly broadcastDisposable: vscode.Disposable;
   private snapshotLoadGeneration = 0;
   private newSettingKeys: string[];
+  private isDisposed = false;
 
   constructor(
     private readonly webview: vscode.Webview,
@@ -84,6 +86,10 @@ export class DashboardHost implements vscode.Disposable {
     this.bridge = new MessageBridge<RalphWebviewMessage, RalphWebviewCommand>(webview);
 
     this.bridge.onMessage(async (msg) => {
+      if (msg.type === 'webview-ready') {
+        activationSmokeDiagnostics.recordReady(msg.mode, msg);
+        return;
+      }
       if (msg.type === 'command' && msg.command) {
         this.bridge.send({ type: 'command-ack', command: msg.command, status: 'started' });
         try {
@@ -308,7 +314,7 @@ export class DashboardHost implements vscode.Disposable {
 
     try {
       const snapshot = await this.loadSnapshot();
-      if (generation !== this.snapshotLoadGeneration) {
+      if (this.isDisposed || generation !== this.snapshotLoadGeneration) {
         return;
       }
       this.latestState = {
@@ -321,7 +327,7 @@ export class DashboardHost implements vscode.Disposable {
       };
       this.fullRender(true);
     } catch (error) {
-      if (generation !== this.snapshotLoadGeneration) {
+      if (this.isDisposed || generation !== this.snapshotLoadGeneration) {
         return;
       }
       this.latestState = {
@@ -430,6 +436,10 @@ export class DashboardHost implements vscode.Disposable {
   }
 
   private fullRender(force = false): void {
+    if (this.isDisposed) {
+      return;
+    }
+
     // Debounce most renders to avoid repaint churn, but allow critical phase
     // transitions to bypass the window so transient states do not get stuck.
     const now = Date.now();
@@ -494,6 +504,7 @@ export class DashboardHost implements vscode.Disposable {
   }
 
   dispose(): void {
+    this.isDisposed = true;
     this.broadcastDisposable.dispose();
     this.bridge.dispose();
   }

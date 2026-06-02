@@ -110,6 +110,7 @@ export interface WizardState {
 }
 
 export type WizardInboundMessage =
+  | { type: 'webview-ready'; mode: 'prd-wizard'; mountedText: string; timestamp: string }
   | { type: 'set-step'; step: PrdWizardStep }
   | { type: 'update-field'; field: StructuredField; value: string }
   | { type: 'update-draft-prd-text'; value: string }

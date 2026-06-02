@@ -50,6 +50,7 @@ const stateWatcher_1 = require("./ui/stateWatcher");
 const statusBarItem_1 = require("./ui/statusBarItem");
 const WebviewPanelManager_1 = require("./webview/WebviewPanelManager");
 const dashboardDataLoader_1 = require("./webview/dashboardDataLoader");
+const webviewSmokeDiagnostics_1 = require("./webview/webviewSmokeDiagnostics");
 const stateManager_1 = require("./ralph/stateManager");
 const taskSeeding_1 = require("./commands/taskSeeding");
 const prdReadinessGate_1 = require("./commands/prdReadinessGate");
@@ -159,6 +160,11 @@ function activate(context) {
     // panel to guarantee the operator sees current data rather than a cached view.
     context.subscriptions.push(vscode.commands.registerCommand('ralphCodex.refreshDashboard', () => {
         dashboardPanel_1.RalphDashboardPanel.currentPanel?.refreshSnapshot();
+    }));
+    context.subscriptions.push(vscode.commands.registerCommand('ralphCodex.__activationSmoke.awaitWebviewReady', async (surface) => {
+        return webviewSmokeDiagnostics_1.activationSmokeDiagnostics.waitForReady(surface, 10000);
+    }), vscode.commands.registerCommand('ralphCodex.__activationSmoke.resetWebviewDiagnostics', () => {
+        webviewSmokeDiagnostics_1.activationSmokeDiagnostics.reset();
     }));
     // Wire broadcaster events to the status bar.
     // DashboardHost owns its own broadcaster subscription, so the panel and

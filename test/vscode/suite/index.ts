@@ -9,8 +9,16 @@ const THEME_MATRIX = [
 
 function closeNotificationsSoon(): NodeJS.Timeout {
   return setTimeout(() => {
-    void vscode.commands.executeCommand('workbench.action.closeMessages');
+    void executeOptionalCommand('workbench.action.closeMessages');
   }, 750);
+}
+
+async function executeOptionalCommand(commandId: string): Promise<void> {
+  try {
+    await vscode.commands.executeCommand(commandId);
+  } catch {
+    // Best-effort cleanup only; command availability varies across VS Code builds.
+  }
 }
 
 async function invokeCommandWithTimeout(commandId: string, ...args: unknown[]): Promise<void> {
@@ -24,7 +32,22 @@ async function invokeCommandWithTimeout(commandId: string, ...args: unknown[]): 
     ]);
   } finally {
     clearTimeout(timer);
-    await vscode.commands.executeCommand('workbench.action.closeMessages');
+    await executeOptionalCommand('workbench.action.closeMessages');
+  }
+}
+
+async function invokeCommandForResultWithTimeout<T>(commandId: string, ...args: unknown[]): Promise<T> {
+  const timer = closeNotificationsSoon();
+  try {
+    return await Promise.race([
+      vscode.commands.executeCommand<T>(commandId, ...args),
+      new Promise<never>((_resolve, reject) => {
+        setTimeout(() => reject(new Error(`Timed out waiting for ${commandId} to finish.`)), 15000);
+      })
+    ]);
+  } finally {
+    clearTimeout(timer);
+    await executeOptionalCommand('workbench.action.closeMessages');
   }
 }
 
@@ -37,13 +60,31 @@ async function setColorTheme(themeName: string): Promise<void> {
 
 async function exerciseThemeSensitiveRalphSurfaces(themeName: string): Promise<void> {
   await setColorTheme(themeName);
+  await invokeCommandWithTimeout('ralphCodex.__activationSmoke.resetWebviewDiagnostics');
   await invokeCommandWithTimeout('ralphCodex.showDashboard', { activeTab: 'settings' });
+  const dashboardReady = await invokeCommandForResultWithTimeout<{ mode: string; mountedText: string }>(
+    'ralphCodex.__activationSmoke.awaitWebviewReady',
+    'dashboard'
+  );
+  assert.equal(dashboardReady.mode, 'dashboard');
+  assert.match(dashboardReady.mountedText, /dashboard/i);
+  await executeOptionalCommand('workbench.action.closeActiveEditor');
+
+  await invokeCommandWithTimeout('ralphCodex.__activationSmoke.resetWebviewDiagnostics');
   await invokeCommandWithTimeout('ralphCodex.openPrdWizard');
-  await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+  const wizardReady = await invokeCommandForResultWithTimeout<{ mode: string; mountedText: string }>(
+    'ralphCodex.__activationSmoke.awaitWebviewReady',
+    'prd-wizard'
+  );
+  assert.equal(wizardReady.mode, 'prd-wizard');
+  assert.match(wizardReady.mountedText, /wizard/i);
+
+  await executeOptionalCommand('workbench.action.closeActiveEditor');
 }
 
 export async function run(): Promise<void> {
-  const extension = vscode.extensions.getExtension('starter.ralph-codex-workbench');
+  const extension = vscode.extensions.getExtension('s0l0m0n8und9.ralphdex')
+    ?? vscode.extensions.all.find((candidate) => candidate.packageJSON?.name === 'ralphdex');
   assert.ok(extension, 'Extension should be discoverable in the Extension Development Host.');
 
   await extension.activate();
@@ -60,12 +101,17 @@ export async function run(): Promise<void> {
     'ralphCodex.showRalphStatus',
     'ralphCodex.openLatestRalphSummary',
     'ralphCodex.openLatestProvenanceBundle',
-    'ralphCodex.revealLatestProvenanceBundleDirectory'
+    'ralphCodex.revealLatestProvenanceBundleDirectory',
+    'ralphCodex.__activationSmoke.awaitWebviewReady',
+    'ralphCodex.__activationSmoke.resetWebviewDiagnostics'
   ]) {
     assert.ok(commands.includes(commandId), `Expected command ${commandId} to be registered.`);
   }
 
-  await invokeCommandWithTimeout('ralphCodex.showRalphStatus');
+  const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+  assert.ok(workspaceFolder, 'Activation smoke should run against a seeded workspace folder.');
+  const seededTasks = await vscode.workspace.fs.readFile(vscode.Uri.joinPath(workspaceFolder.uri, '.ralph', 'tasks.json'));
+  assert.match(Buffer.from(seededTasks).toString('utf8'), /Render seeded dashboard state/);
 
   const originalTheme = vscode.workspace
     .getConfiguration('workbench')
