@@ -634,6 +634,18 @@ class RalphIterationEngine {
                 parsed: completionReconciliation.artifact.status === 'applied',
                 needsHumanReview: completionReconciliation.artifact.report?.needsHumanReview ?? false
             });
+            if (prepared.config.agentRole === 'watchdog'
+                && completionReconciliation.artifact.status === 'applied'
+                && completionReconciliation.artifact.report?.watchdog_actions?.length) {
+                for (const action of completionReconciliation.artifact.report.watchdog_actions) {
+                    await this.appendRuntimeEvent(eventJournal, {
+                        type: 'recovery_applied',
+                        taskId: action.taskId,
+                        action: `watchdog:${action.action}`,
+                        severity: action.severity.toLowerCase()
+                    });
+                }
+            }
             const branchPerTask = await this.scmCoordinator.reconcileBranchPerTask({
                 prepared,
                 completionReconciliation,
