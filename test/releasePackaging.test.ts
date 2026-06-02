@@ -45,4 +45,19 @@ test('release packaging includes runtime dependencies and excludes local packagi
     /^\*\.vsix$/m,
     '.vscodeignore must exclude previously built VSIX files from the VSIX'
   );
+  assert.match(
+    vscodeIgnore,
+    /^\.github\/\*\*$/m,
+    '.vscodeignore must exclude GitHub workflow metadata from the VSIX'
+  );
+  assert.match(
+    vscodeIgnore,
+    /^AGENTS\.md$/m,
+    '.vscodeignore must exclude agent routing instructions from the VSIX'
+  );
+  assert.match(
+    vscodeIgnore,
+    /^\.ralph-config\.json$/m,
+    '.vscodeignore must exclude developer-loop shim config from the VSIX'
+  );
 });
