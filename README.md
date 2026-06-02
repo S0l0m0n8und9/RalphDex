@@ -384,6 +384,7 @@ Permissive provider modes (`dangerously-skip-permissions`, `allow-all`) are avai
 - [docs/release-workflow.md](docs/release-workflow.md): version bump, packaging, and VS Code Marketplace publish procedure
 - [docs/marketplace-dry-run-2026-06-02.md](docs/marketplace-dry-run-2026-06-02.md): current VSIX packaging and packaged activation dry-run record
 - [docs/dogfooding-runbook.md](docs/dogfooding-runbook.md): manual live-provider runbook, evidence contract, redaction rules, and pass/fail criteria
+- [docs/live-provider-dogfood-2026-06-02.md](docs/live-provider-dogfood-2026-06-02.md): current live-provider dogfood pass evidence and follow-up issue record
 - [docs/failure-recovery.md](docs/failure-recovery.md): failure category taxonomy, recovery playbooks, and diagnostic cost
 - [docs/ui-state-fixtures.md](docs/ui-state-fixtures.md): deterministic dashboard/sidebar fixture catalogue for UI review and regression checks
 - [docs/ui-evidence-checklist.md](docs/ui-evidence-checklist.md): required UI evidence checklist for user-facing UI changes

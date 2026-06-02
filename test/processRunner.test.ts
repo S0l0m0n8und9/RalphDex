@@ -78,6 +78,23 @@ test('runProcess completes without timeout when process finishes before deadline
   }
 });
 
+test('runProcess executes shell command strings when shell is true and no argv are supplied', async () => {
+  setProcessRunnerOverride(null);
+  try {
+    const quotedExecPath = `"${process.execPath.replace(/"/g, '\\"')}"`;
+    const shellCommand = `${quotedExecPath} -e "process.stdout.write('shell-ok')"`;
+    const result = await runProcess(shellCommand, [], {
+      cwd: os.tmpdir(),
+      shell: true,
+      timeoutMs: 5000
+    });
+    assert.equal(result.code, 0);
+    assert.equal(result.stdout, 'shell-ok');
+  } finally {
+    setProcessRunnerOverride(null);
+  }
+});
+
 test('runProcess preserves spaced Windows shell arguments as single argv values', async () => {
   if (process.platform !== 'win32') {
     return;
