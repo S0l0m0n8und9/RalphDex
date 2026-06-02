@@ -37,9 +37,11 @@ import {
   removeDeadLetterEntry
 } from '../ralph/deadLetter';
 import {
+  resolveCleanupManifestPaths,
   writeDoctrineProposalReviewArtifact,
   writeUpdatedDoctrineProposalArtifact
 } from '../ralph/artifactStore';
+import { totalDeletedCount } from '../ralph/cleanupManifest';
 import type { DoctrineProposalArtifact, DoctrineProposalReviewArtifact } from '../ralph/doctrineProposals';
 import { applyDoctrineProposal, detectProtectedTargets } from '../ralph/doctrineProposalApply';
 
@@ -828,9 +830,26 @@ export function registerArtifactAndMaintenanceCommands(
     label: 'Ralphdex: Clean Up Old Run Artifacts',
     handler: async (progress) => {
       const workspaceFolder = await withWorkspaceFolder();
+      const config = readConfig(workspaceFolder);
+
+      // Dry-run preview first so the operator sees exactly what will be deleted
+      // before confirming a destructive cleanup (issue #72).
+      progress.report({ message: 'Previewing Ralph runtime artifact cleanup' });
+      const preview = await stateManager.previewRuntimeArtifactCleanup(workspaceFolder.uri.fsPath, config);
+      const previewDetail = [
+        `Iteration directories: ${preview.deleted.iterationDirectories.length}`,
+        `Prompt files: ${preview.deleted.promptFiles.length}`,
+        `Run artifact sets: ${preview.deleted.runArtifactBaseNames.length}`,
+        `Provenance bundles: ${preview.provenanceBundles.deletedBundleIds.length}`,
+        `Handoff files: ${preview.deleted.handoffFiles.length}`,
+        `Watchdog files: ${preview.deleted.watchdogFiles.length}`,
+        `Log files: ${preview.deletedLogFiles.length}`
+      ].join('\n');
       const confirmed = await vscode.window.showWarningMessage(
-        'Cleanup Ralph runtime artifacts? This preserves .ralph/state.json, the PRD, progress log, task file, and latest Ralph evidence while pruning older generated prompts, runs, iteration artifacts, provenance bundles, and extension logs.',
-        { modal: true },
+        `Cleanup Ralph runtime artifacts? This will delete ${totalDeletedCount(preview)} artifact(s) `
+        + 'and preserve .ralph/state.json, the PRD, progress log, task file, and latest Ralph evidence. '
+        + 'A cleanup manifest will be written for audit.',
+        { modal: true, detail: previewDetail },
         'Cleanup'
       );
 
@@ -839,7 +858,6 @@ export function registerArtifactAndMaintenanceCommands(
       }
 
       progress.report({ message: 'Pruning generated Ralph runtime artifacts' });
-      const config = readConfig(workspaceFolder);
       const result = await stateManager.cleanupRuntimeArtifacts(workspaceFolder.uri.fsPath, config);
       await logger.setWorkspaceLogFile(result.snapshot.paths.logFilePath);
       logger.info('Pruned Ralph runtime artifacts.', {
@@ -878,8 +896,12 @@ export function registerArtifactAndMaintenanceCommands(
           'log files'
         )
       ].join(', ');
+      const manifestPaths = resolveCleanupManifestPaths(result.snapshot.paths.artifactDir);
+      const repairedCount = result.cleanup.manifest.pointerIntegrity.repairedLatestArtifactPaths.length;
+      const repairedNote = repairedCount > 0 ? ` Repaired ${repairedCount} latest-pointer surface(s).` : '';
       void vscode.window.showInformationMessage(
         `Ralph runtime artifacts cleaned up. Preserved durable state and latest evidence while pruning ${deletedArtifacts}.`
+        + `${repairedNote} Manifest written to ${path.basename(manifestPaths.markdownPath)}.`
       );
     }
   });

@@ -59,12 +59,15 @@ exports.writePreflightArtifacts = writePreflightArtifacts;
 exports.writeIterationArtifacts = writeIterationArtifacts;
 exports.writeProvenanceBundle = writeProvenanceBundle;
 exports.registerIterationArtifactSet = registerIterationArtifactSet;
+exports.resolveCleanupManifestPaths = resolveCleanupManifestPaths;
+exports.writeCleanupManifestArtifact = writeCleanupManifestArtifact;
 exports.writeWatchdogDiagnosticArtifact = writeWatchdogDiagnosticArtifact;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 const doctrineProposals_1 = require("./doctrineProposals");
 const integrity_1 = require("./integrity");
 const artifactRegistry_1 = require("./artifactRegistry");
+const cleanupManifest_1 = require("./cleanupManifest");
 const orchestrationSupervisor_1 = require("./orchestrationSupervisor");
 const artifactRendering_1 = require("./artifactRendering");
 const artifactRetention_1 = require("./artifactRetention");
@@ -648,6 +651,28 @@ async function registerIterationArtifactSet(input) {
         ...(candidate.related ? { related: candidate.related } : {})
     }));
     await (0, artifactRegistry_1.registerArtifacts)(input.artifactRootDir, entries, { warn: input.warn });
+}
+/** Resolves the cleanup-manifest artifact locations at the artifacts root. */
+function resolveCleanupManifestPaths(artifactRootDir) {
+    return {
+        jsonPath: path.join(artifactRootDir, 'cleanup-manifest.json'),
+        markdownPath: path.join(artifactRootDir, 'cleanup-manifest.md')
+    };
+}
+/**
+ * Persists a cleanup manifest (issue #72) at the artifacts root as JSON plus a
+ * human-readable markdown summary. Written after the cleanup it describes, so the
+ * manifest itself is never deleted by that cleanup (it is a root-level file, not
+ * an iteration directory or bundle).
+ */
+async function writeCleanupManifestArtifact(artifactRootDir, manifest) {
+    const paths = resolveCleanupManifestPaths(artifactRootDir);
+    await fs.mkdir(artifactRootDir, { recursive: true });
+    await Promise.all([
+        fs.writeFile(paths.jsonPath, (0, integrity_1.stableJson)(manifest), 'utf8'),
+        fs.writeFile(paths.markdownPath, `${(0, cleanupManifest_1.renderCleanupManifestMarkdown)(manifest).trimEnd()}\n`, 'utf8')
+    ]);
+    return paths;
 }
 async function writeWatchdogDiagnosticArtifact(input) {
     const watchdogDir = path.join(input.artifactRootDir, 'watchdog');

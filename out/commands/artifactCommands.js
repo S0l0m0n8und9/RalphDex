@@ -46,6 +46,7 @@ const statusSnapshot_1 = require("./statusSnapshot");
 const pipeline_1 = require("../ralph/pipeline");
 const deadLetter_1 = require("../ralph/deadLetter");
 const artifactStore_1 = require("../ralph/artifactStore");
+const cleanupManifest_1 = require("../ralph/cleanupManifest");
 const doctrineProposalApply_1 = require("../ralph/doctrineProposalApply");
 // ---------------------------------------------------------------------------
 // Small utilities duplicated from registerCommands.ts to avoid coupling
@@ -605,12 +606,27 @@ function registerArtifactAndMaintenanceCommands(context, logger, stateManager, r
         label: 'Ralphdex: Clean Up Old Run Artifacts',
         handler: async (progress) => {
             const workspaceFolder = await withWorkspaceFolder();
-            const confirmed = await vscode.window.showWarningMessage('Cleanup Ralph runtime artifacts? This preserves .ralph/state.json, the PRD, progress log, task file, and latest Ralph evidence while pruning older generated prompts, runs, iteration artifacts, provenance bundles, and extension logs.', { modal: true }, 'Cleanup');
+            const config = (0, readConfig_1.readConfig)(workspaceFolder);
+            // Dry-run preview first so the operator sees exactly what will be deleted
+            // before confirming a destructive cleanup (issue #72).
+            progress.report({ message: 'Previewing Ralph runtime artifact cleanup' });
+            const preview = await stateManager.previewRuntimeArtifactCleanup(workspaceFolder.uri.fsPath, config);
+            const previewDetail = [
+                `Iteration directories: ${preview.deleted.iterationDirectories.length}`,
+                `Prompt files: ${preview.deleted.promptFiles.length}`,
+                `Run artifact sets: ${preview.deleted.runArtifactBaseNames.length}`,
+                `Provenance bundles: ${preview.provenanceBundles.deletedBundleIds.length}`,
+                `Handoff files: ${preview.deleted.handoffFiles.length}`,
+                `Watchdog files: ${preview.deleted.watchdogFiles.length}`,
+                `Log files: ${preview.deletedLogFiles.length}`
+            ].join('\n');
+            const confirmed = await vscode.window.showWarningMessage(`Cleanup Ralph runtime artifacts? This will delete ${(0, cleanupManifest_1.totalDeletedCount)(preview)} artifact(s) `
+                + 'and preserve .ralph/state.json, the PRD, progress log, task file, and latest Ralph evidence. '
+                + 'A cleanup manifest will be written for audit.', { modal: true, detail: previewDetail }, 'Cleanup');
             if (confirmed !== 'Cleanup') {
                 return;
             }
             progress.report({ message: 'Pruning generated Ralph runtime artifacts' });
-            const config = (0, readConfig_1.readConfig)(workspaceFolder);
             const result = await stateManager.cleanupRuntimeArtifacts(workspaceFolder.uri.fsPath, config);
             await logger.setWorkspaceLogFile(result.snapshot.paths.logFilePath);
             logger.info('Pruned Ralph runtime artifacts.', {
@@ -628,7 +644,11 @@ function registerArtifactAndMaintenanceCommands(context, logger, stateManager, r
                 deletedCountSummary(result.cleanup.provenanceBundles.deletedBundleIds.length, 'bundle', 'bundles'),
                 deletedCountSummary(result.cleanup.deletedLogFiles.length, 'log file', 'log files')
             ].join(', ');
-            void vscode.window.showInformationMessage(`Ralph runtime artifacts cleaned up. Preserved durable state and latest evidence while pruning ${deletedArtifacts}.`);
+            const manifestPaths = (0, artifactStore_1.resolveCleanupManifestPaths)(result.snapshot.paths.artifactDir);
+            const repairedCount = result.cleanup.manifest.pointerIntegrity.repairedLatestArtifactPaths.length;
+            const repairedNote = repairedCount > 0 ? ` Repaired ${repairedCount} latest-pointer surface(s).` : '';
+            void vscode.window.showInformationMessage(`Ralph runtime artifacts cleaned up. Preserved durable state and latest evidence while pruning ${deletedArtifacts}.`
+                + `${repairedNote} Manifest written to ${path.basename(manifestPaths.markdownPath)}.`);
         }
     });
     registerCommand(context, logger, {
