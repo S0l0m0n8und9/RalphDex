@@ -537,9 +537,9 @@ function buildPrdReconciliationSection(snapshot: RalphStatusSnapshot): Dashboard
     proposalJsonPath: source.jsonPath,
     proposalMarkdownPath: source.markdownPath,
     generatedAt: proposal.generatedAt,
-    message: findingCount > 0
+    message: source.message ?? (findingCount > 0
       ? `${findingCount} reconciliation finding${findingCount === 1 ? '' : 's'} require review.`
-      : 'No drift detected between PRD and backlog.'
+      : 'No drift detected between PRD and backlog.')
   };
 }
 

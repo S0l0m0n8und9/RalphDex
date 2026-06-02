@@ -213,6 +213,35 @@ test('buildDashboardSnapshot projects PRD/backlog findings with severity and con
   assert.deepEqual(result.prdReconciliation.findings[1].taskIds, ['T12']);
 });
 
+test('buildDashboardSnapshot keeps analyzed findings visible when proposal persistence failed', () => {
+  const result = buildDashboardSnapshot(minimalSnapshot({
+    prdReconciliation: {
+      status: 'available',
+      proposal: {
+        schemaVersion: 1,
+        kind: 'prdReconciliation',
+        generatedAt: '2026-06-02T00:00:00.000Z',
+        findingCount: 1,
+        findings: [{
+          type: 'orphan_active_task',
+          severity: 'info',
+          message: 'Active task T12 is not traceable to any PRD scope.',
+          taskIds: ['T12']
+        }]
+      },
+      jsonPath: null,
+      markdownPath: null,
+      message: 'Unable to write PRD/backlog reconciliation proposal: disk full'
+    }
+  }));
+
+  assert.equal(result.prdReconciliation.status, 'findings');
+  assert.equal(result.prdReconciliation.findingCount, 1);
+  assert.equal(result.prdReconciliation.proposalJsonPath, null);
+  assert.equal(result.prdReconciliation.proposalMarkdownPath, null);
+  assert.match(result.prdReconciliation.message, /unable to write/i);
+});
+
 test('buildDashboardSnapshot projects missing, stale, and unreadable PRD/backlog reconciliation as actionable unavailable states', () => {
   const missing = buildDashboardSnapshot(minimalSnapshot({
     prdReconciliation: {

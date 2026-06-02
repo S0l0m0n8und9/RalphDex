@@ -184,6 +184,34 @@ test('Overview renders PRD/backlog reconciliation findings with severity, type, 
   assert.ok(html.includes('Open Proposal'));
 });
 
+test('Overview renders persisted-write failures without opening a missing PRD/backlog artifact', () => {
+  const state = makeState({
+    dashboardSnapshot: {
+      ...makeState().dashboardSnapshot!,
+      prdReconciliation: makePrdReconciliation({
+        status: 'findings',
+        availability: 'available',
+        findingCount: 1,
+        severityCounts: { info: 1, warning: 0 },
+        proposalJsonPath: null,
+        proposalMarkdownPath: null,
+        message: 'Unable to write PRD/backlog reconciliation proposal: disk full',
+        findings: [{
+          type: 'orphan_active_task',
+          severity: 'info',
+          summary: 'Active task T12 is not traceable to any PRD scope.',
+          taskIds: ['T12']
+        }]
+      })
+    }
+  });
+  const html = renderDashboard(state);
+
+  assert.ok(html.includes('Unable to write PRD/backlog reconciliation proposal'));
+  assert.ok(html.includes('Active task T12 is not traceable to any PRD scope.'));
+  assert.ok(!html.includes('Open Proposal'));
+});
+
 test('Overview renders missing, stale, and unreadable PRD/backlog reconciliation as actionable unavailable states', () => {
   const missing = renderDashboard(makeState({
     dashboardSnapshot: {

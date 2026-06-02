@@ -522,22 +522,9 @@ async function collectPrdReconciliationStatus(input: {
     input.logger.warn('Failed to persist PRD/backlog reconciliation proposal for dashboard.', {
       error: error instanceof Error ? error.message : String(error)
     });
-    const [jsonExists, markdownExists] = await Promise.all([
-      pathExists(paths.jsonPath),
-      pathExists(paths.markdownPath)
-    ]);
-    if (jsonExists || markdownExists) {
-      return {
-        status: 'stale',
-        proposal: null,
-        jsonPath: jsonExists ? paths.jsonPath : null,
-        markdownPath: markdownExists ? paths.markdownPath : null,
-        message: 'Latest reconciliation proposal is stale; refresh the dashboard or run Show Status.'
-      };
-    }
     return {
-      status: 'unreadable',
-      proposal: null,
+      status: 'available',
+      proposal,
       jsonPath: null,
       markdownPath: null,
       message: `Unable to write PRD/backlog reconciliation proposal: ${error instanceof Error ? error.message : String(error)}`
