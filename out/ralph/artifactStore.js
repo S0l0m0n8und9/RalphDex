@@ -58,11 +58,13 @@ exports.writeDoctrineProposalArtifact = writeDoctrineProposalArtifact;
 exports.writePreflightArtifacts = writePreflightArtifacts;
 exports.writeIterationArtifacts = writeIterationArtifacts;
 exports.writeProvenanceBundle = writeProvenanceBundle;
+exports.registerIterationArtifactSet = registerIterationArtifactSet;
 exports.writeWatchdogDiagnosticArtifact = writeWatchdogDiagnosticArtifact;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 const doctrineProposals_1 = require("./doctrineProposals");
 const integrity_1 = require("./integrity");
+const artifactRegistry_1 = require("./artifactRegistry");
 const orchestrationSupervisor_1 = require("./orchestrationSupervisor");
 const artifactRendering_1 = require("./artifactRendering");
 const artifactRetention_1 = require("./artifactRetention");
@@ -570,6 +572,82 @@ async function writeProvenanceBundle(input) {
         summary,
         retention
     };
+}
+function toRegistryRelative(artifactRootDir, target) {
+    return path.relative(artifactRootDir, target).split(path.sep).join('/');
+}
+/**
+ * Registers the artifacts produced by one iteration (plus its provenance bundle)
+ * in the canonical artifact registry (`index.json`), so the dashboard/sidebar and
+ * cleanup can query by run/task/type/provider/role without walking the tree
+ * (issue #69).
+ *
+ * Only paths that actually exist on disk are registered, so optional artifacts
+ * (cli-invocation, diff-summary, remediation, doctrine-proposal) are included
+ * exactly when they were written. The latest-pointer files stay authoritative
+ * for backward compatibility; the registry is an additive index.
+ */
+async function registerIterationArtifactSet(input) {
+    const iterationResultRelative = toRegistryRelative(input.artifactRootDir, input.iterationPaths.iterationResultPath);
+    const candidates = [
+        { path: input.iterationPaths.promptPath, type: 'prompt', retentionClass: 'iteration' },
+        { path: input.iterationPaths.promptEvidencePath, type: 'prompt-evidence', retentionClass: 'iteration' },
+        { path: input.iterationPaths.executionPlanPath, type: 'execution-plan', retentionClass: 'iteration' },
+        { path: input.iterationPaths.cliInvocationPath, type: 'cli-invocation', retentionClass: 'iteration' },
+        { path: input.iterationPaths.completionReportPath, type: 'completion-report', retentionClass: 'iteration' },
+        { path: input.iterationPaths.iterationResultPath, type: 'iteration-result', retentionClass: 'iteration' },
+        { path: input.iterationPaths.summaryPath, type: 'iteration-summary', retentionClass: 'iteration' },
+        { path: input.iterationPaths.verifierSummaryPath, type: 'verifier-summary', retentionClass: 'iteration' },
+        { path: input.iterationPaths.executionSummaryPath, type: 'execution-summary', retentionClass: 'iteration' },
+        { path: input.iterationPaths.diffSummaryPath, type: 'diff-summary', retentionClass: 'iteration' },
+        { path: input.iterationPaths.remediationPath, type: 'task-remediation', retentionClass: 'iteration' },
+        // The iteration directory holds a *draft* copy of the proposal; the canonical,
+        // operator-reviewable artifact lives under doctrine-proposals/<id>.json (below).
+        // Distinct types keep `queryArtifacts({ type: 'doctrine-proposal' })` returning
+        // only the canonical entry.
+        { path: input.iterationPaths.doctrineProposalPath, type: 'doctrine-proposal-draft', retentionClass: 'iteration' }
+    ];
+    if (input.provenancePaths) {
+        candidates.push(
+        // Provenance bundles are derived from the iteration result they wrap.
+        {
+            path: input.provenancePaths.bundlePath,
+            type: 'provenance-bundle',
+            retentionClass: 'durable',
+            related: { generatedFrom: iterationResultRelative }
+        }, { path: input.provenancePaths.summaryPath, type: 'provenance-summary', retentionClass: 'durable' });
+    }
+    if (input.doctrineProposalId) {
+        const canonical = resolveDoctrineProposalCanonicalPaths(input.artifactRootDir, input.doctrineProposalId);
+        candidates.push({
+            path: canonical.jsonPath,
+            type: 'doctrine-proposal',
+            retentionClass: 'durable',
+            related: { generatedFrom: toRegistryRelative(input.artifactRootDir, input.iterationPaths.doctrineProposalPath) }
+        });
+    }
+    const present = await Promise.all(candidates.map(async (candidate) => ({
+        candidate,
+        exists: await fs
+            .access(candidate.path)
+            .then(() => true)
+            .catch(() => false)
+    })));
+    const entries = present
+        .filter((item) => item.exists)
+        .map(({ candidate }) => ({
+        type: candidate.type,
+        path: candidate.path,
+        runId: input.metadata.runId,
+        taskId: input.metadata.taskId,
+        agentId: input.metadata.agentId,
+        agentRole: input.metadata.agentRole,
+        provider: input.metadata.provider,
+        iteration: input.metadata.iteration,
+        retentionClass: candidate.retentionClass,
+        ...(candidate.related ? { related: candidate.related } : {})
+    }));
+    await (0, artifactRegistry_1.registerArtifacts)(input.artifactRootDir, entries, { warn: input.warn });
 }
 async function writeWatchdogDiagnosticArtifact(input) {
     const watchdogDir = path.join(input.artifactRootDir, 'watchdog');

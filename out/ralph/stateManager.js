@@ -41,6 +41,7 @@ const fs_1 = require("../util/fs");
 const fileLock_1 = require("../util/fileLock");
 const pathResolver_1 = require("./pathResolver");
 const artifactStore_1 = require("./artifactStore");
+const artifactRegistry_1 = require("./artifactRegistry");
 const taskFile_1 = require("./taskFile");
 const types_1 = require("./types");
 const RUN_HISTORY_LIMIT = 20;
@@ -782,6 +783,25 @@ class RalphStateManager {
             retentionCount: 1
         });
         await fs.rm(paths.logDir, { recursive: true, force: true });
+        // Cleanup deletes iteration directories and provenance bundles, which leaves
+        // stale entries in the canonical artifact registry. Reconcile the index so it
+        // stays consistent with what remains on disk (issue #69). Best-effort: a
+        // failure here must not abort cleanup.
+        try {
+            const { removed } = await (0, artifactRegistry_1.reconcileArtifactRegistry)(paths.artifactDir, {
+                warn: (message) => this.logger.warn(message)
+            });
+            if (removed.length > 0) {
+                this.logger.info('Reconciled the artifact registry after cleanup.', {
+                    removedEntryCount: removed.length
+                });
+            }
+        }
+        catch (error) {
+            this.logger.warn('Failed to reconcile the artifact registry after cleanup.', {
+                error: error instanceof Error ? error.message : String(error)
+            });
+        }
         return {
             snapshot: await this.ensureWorkspace(rootPath, config),
             cleanup: {

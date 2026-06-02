@@ -272,6 +272,8 @@ Run-level provenance bundles are first-class artifacts, not optional debugging l
 - explicit model-claim versus verifier-evidence references when execution occurred, including the unverified `completion-report.json` path plus `execution-summary.json`, `verifier-summary.json`, and `iteration-result.json`
 - `provenance-failure.json` plus `provenance-failure-summary.md` when launch integrity blocks execution
 
+The canonical artifact registry at `.ralph/artifacts/index.json` is an **additive** index, never the source of truth for the artifacts themselves. Latest-pointer files remain authoritative for backward compatibility. Each registry entry stores artifact metadata (`type`, root-relative POSIX `path`, `createdAt`, `runId`, `taskId`, `agentId`, `agentRole`, `provider`, `retentionClass`, `pinned`, optional `related` cross-references) and is keyed by path so re-registration upserts rather than duplicates. Registry writes are lock-guarded (`index.json.lock`) so parallel agents cannot lose each other's entries. Cleanup must reconcile the registry against disk (`reconcileArtifactRegistry`) so entries for deleted artifacts are dropped; `resetRuntimeState` removes the whole artifacts directory, registry included.
+
 Stable latest pointers are part of the operator interface and must stay current:
 
 - `latest-summary.md` and `latest-result.json`
