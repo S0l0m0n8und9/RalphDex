@@ -43,6 +43,7 @@ exports.normalizeLatestRemediation = normalizeLatestRemediation;
 exports.normalizeTaskRemediationArtifact = normalizeTaskRemediationArtifact;
 exports.normalizeCompletionReportArtifact = normalizeCompletionReportArtifact;
 exports.normalizeDoctrineProposalArtifact = normalizeDoctrineProposalArtifact;
+exports.normalizePrdReconciliationProposal = normalizePrdReconciliationProposal;
 exports.collectStatusSnapshot = collectStatusSnapshot;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
@@ -408,6 +409,8 @@ function normalizePrdReconciliationProposal(candidate) {
         || record.schemaVersion !== 1
         || typeof record.generatedAt !== 'string'
         || typeof record.findingCount !== 'number'
+        || !Number.isFinite(record.findingCount)
+        || record.findingCount < 0
         || !Array.isArray(record.findings)) {
         return null;
     }

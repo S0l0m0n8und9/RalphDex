@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { normalizeDoctrineProposalArtifact } from '../src/commands/statusSnapshot';
+import { normalizeDoctrineProposalArtifact, normalizePrdReconciliationProposal } from '../src/commands/statusSnapshot';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -33,6 +33,22 @@ function validCandidate(overrides: Record<string, unknown> = {}): Record<string,
   };
 }
 
+function validPrdReconciliationCandidate(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    schemaVersion: 1,
+    kind: 'prdReconciliation',
+    generatedAt: '2026-06-02T00:00:00.000Z',
+    findingCount: 1,
+    findings: [{
+      type: 'orphan_active_task',
+      severity: 'info',
+      message: 'Active task T12 is not traceable to any PRD scope.',
+      taskIds: ['T12']
+    }],
+    ...overrides
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Sanity: a fully-valid candidate is accepted
 // ---------------------------------------------------------------------------
@@ -40,6 +56,25 @@ function validCandidate(overrides: Record<string, unknown> = {}): Record<string,
 test('normalizeDoctrineProposalArtifact accepts a valid candidate', () => {
   const result = normalizeDoctrineProposalArtifact(validCandidate());
   assert.ok(result !== null, 'valid candidate must be accepted');
+});
+
+test('normalizePrdReconciliationProposal accepts a valid candidate', () => {
+  const result = normalizePrdReconciliationProposal(validPrdReconciliationCandidate());
+  assert.ok(result !== null, 'valid PRD reconciliation candidate must be accepted');
+  assert.equal(result.findingCount, 1);
+});
+
+test('normalizePrdReconciliationProposal rejects non-finite and negative finding counts', () => {
+  assert.equal(
+    normalizePrdReconciliationProposal(validPrdReconciliationCandidate({ findingCount: Number.NaN })),
+    null,
+    'NaN findingCount must be rejected'
+  );
+  assert.equal(
+    normalizePrdReconciliationProposal(validPrdReconciliationCandidate({ findingCount: -1 })),
+    null,
+    'negative findingCount must be rejected'
+  );
 });
 
 // ---------------------------------------------------------------------------

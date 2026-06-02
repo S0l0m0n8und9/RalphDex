@@ -417,7 +417,7 @@ export function normalizeDoctrineProposalArtifact(candidate: unknown): DoctrineP
   };
 }
 
-function normalizePrdReconciliationProposal(candidate: unknown): PrdReconciliationProposal | null {
+export function normalizePrdReconciliationProposal(candidate: unknown): PrdReconciliationProposal | null {
   if (typeof candidate !== 'object' || candidate === null) {
     return null;
   }
@@ -426,6 +426,8 @@ function normalizePrdReconciliationProposal(candidate: unknown): PrdReconciliati
     || record.schemaVersion !== 1
     || typeof record.generatedAt !== 'string'
     || typeof record.findingCount !== 'number'
+    || !Number.isFinite(record.findingCount)
+    || record.findingCount < 0
     || !Array.isArray(record.findings)) {
     return null;
   }
