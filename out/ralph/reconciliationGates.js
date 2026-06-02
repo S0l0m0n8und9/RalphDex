@@ -68,12 +68,18 @@ const verificationGate = {
         const { report, selectedTask, prepared, validationCommandStatus, verificationStatus, acceptedHandoffs } = state;
         const validationGatePassed = validationCommandStatus === 'passed';
         const docMode = (0, taskFile_1.isDocumentationMode)(selectedTask);
+        const validationCommandEvidenceRequired = Boolean(prepared.validationCommand)
+            && prepared.config.verifierModes.includes('validationCommand')
+            && !docMode;
         const taskStateOnlyGate = prepared.config.verifierModes.includes('taskState')
             && !prepared.config.verifierModes.includes('validationCommand')
             && !prepared.config.verifierModes.includes('gitDiff')
             && prepared.config.gitCheckpointMode !== 'snapshotAndDiff';
         const localWarnings = [];
-        if (!validationGatePassed && verificationStatus !== 'passed' && !docMode && !taskStateOnlyGate) {
+        if (validationCommandEvidenceRequired && !validationGatePassed) {
+            localWarnings.push(`Completion report requested done, but verification status was ${verificationStatus}; configured validation-command verifier status was ${validationCommandStatus}.`);
+        }
+        else if (!validationGatePassed && verificationStatus !== 'passed' && !docMode && !taskStateOnlyGate) {
             localWarnings.push(`Completion report requested done, but verification status was ${verificationStatus}.`);
         }
         if (report.needsHumanReview) {
