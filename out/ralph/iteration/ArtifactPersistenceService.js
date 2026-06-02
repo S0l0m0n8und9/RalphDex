@@ -107,6 +107,31 @@ class ArtifactPersistenceService {
                 retentionCount: input.prepared.config.provenanceBundleRetentionCount
             });
         }
+        // Register the persisted artifacts in the canonical registry (issue #69).
+        // Best-effort: the registry is an additive convenience index, so a failure
+        // here (e.g. lock contention) must not fail the iteration. The index can be
+        // reconciled from disk later.
+        try {
+            await (0, artifactStore_1.registerIterationArtifactSet)({
+                artifactRootDir: input.prepared.paths.artifactDir,
+                iterationPaths: input.artifactPaths,
+                provenancePaths: input.prepared.provenanceBundlePaths,
+                metadata: {
+                    runId: input.prepared.provenanceId,
+                    taskId: input.prepared.selectedTask?.id ?? null,
+                    agentId: input.prepared.config.agentId ?? null,
+                    agentRole: input.prepared.config.agentRole ?? null,
+                    provider: input.prepared.config.cliProvider ?? null,
+                    iteration: input.prepared.iteration
+                },
+                doctrineProposalId: doctrineProposalArtifact?.proposalId ?? null
+            });
+        }
+        catch (error) {
+            this.logger.warn('Failed to register iteration artifacts in the canonical registry.', {
+                error: error instanceof Error ? error.message : String(error)
+            });
+        }
     }
     resolvePaths(artifactRootDir, iteration) {
         return (0, artifactStore_1.resolveIterationArtifactPaths)(artifactRootDir, iteration);

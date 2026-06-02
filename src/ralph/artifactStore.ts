@@ -4,6 +4,11 @@ import type { DoctrineProposalArtifact, DoctrineProposalReviewArtifact } from '.
 import { renderDoctrineProposalMarkdown, renderDoctrineProposalReviewMarkdown } from './doctrineProposals';
 import { stableJson } from './integrity';
 import {
+  registerArtifacts,
+  type ArtifactRegistryEntryInput,
+  type ArtifactRetentionClass
+} from './artifactRegistry';
+import {
   resolveOrchestrationPaths as resolveSupervisorOrchestrationPaths,
   type OrchestrationArtifactPaths as SupervisorOrchestrationArtifactPaths
 } from './orchestrationSupervisor';
@@ -810,6 +815,101 @@ export async function writeProvenanceBundle(input: {
     summary,
     retention
   };
+}
+
+/** Metadata stamped onto every registry entry produced for one iteration. */
+export interface IterationArtifactRegistryMetadata {
+  runId: string | null;
+  taskId: string | null;
+  agentId: string | null;
+  agentRole: string | null;
+  provider: string | null;
+  iteration: number | null;
+}
+
+interface RegistrableArtifact {
+  path: string;
+  type: string;
+  retentionClass: ArtifactRetentionClass;
+}
+
+/**
+ * Registers the artifacts produced by one iteration (plus its provenance bundle)
+ * in the canonical artifact registry (`index.json`), so the dashboard/sidebar and
+ * cleanup can query by run/task/type/provider/role without walking the tree
+ * (issue #69).
+ *
+ * Only paths that actually exist on disk are registered, so optional artifacts
+ * (cli-invocation, diff-summary, remediation, doctrine-proposal) are included
+ * exactly when they were written. The latest-pointer files stay authoritative
+ * for backward compatibility; the registry is an additive index.
+ */
+export async function registerIterationArtifactSet(input: {
+  artifactRootDir: string;
+  iterationPaths: RalphIterationArtifactPaths;
+  provenancePaths?: RalphProvenanceBundlePaths;
+  metadata: IterationArtifactRegistryMetadata;
+  doctrineProposalId?: string | null;
+}): Promise<void> {
+  const candidates: RegistrableArtifact[] = [
+    { path: input.iterationPaths.promptPath, type: 'prompt', retentionClass: 'iteration' },
+    { path: input.iterationPaths.promptEvidencePath, type: 'prompt-evidence', retentionClass: 'iteration' },
+    { path: input.iterationPaths.executionPlanPath, type: 'execution-plan', retentionClass: 'iteration' },
+    { path: input.iterationPaths.cliInvocationPath, type: 'cli-invocation', retentionClass: 'iteration' },
+    { path: input.iterationPaths.completionReportPath, type: 'completion-report', retentionClass: 'iteration' },
+    { path: input.iterationPaths.iterationResultPath, type: 'iteration-result', retentionClass: 'iteration' },
+    { path: input.iterationPaths.summaryPath, type: 'iteration-summary', retentionClass: 'iteration' },
+    { path: input.iterationPaths.verifierSummaryPath, type: 'verifier-summary', retentionClass: 'iteration' },
+    { path: input.iterationPaths.executionSummaryPath, type: 'execution-summary', retentionClass: 'iteration' },
+    { path: input.iterationPaths.diffSummaryPath, type: 'diff-summary', retentionClass: 'iteration' },
+    { path: input.iterationPaths.remediationPath, type: 'task-remediation', retentionClass: 'iteration' },
+    { path: input.iterationPaths.doctrineProposalPath, type: 'doctrine-proposal', retentionClass: 'iteration' }
+  ];
+  if (input.provenancePaths) {
+    candidates.push(
+      { path: input.provenancePaths.bundlePath, type: 'provenance-bundle', retentionClass: 'durable' },
+      { path: input.provenancePaths.summaryPath, type: 'provenance-summary', retentionClass: 'durable' }
+    );
+  }
+  if (input.doctrineProposalId) {
+    const canonical = resolveDoctrineProposalCanonicalPaths(input.artifactRootDir, input.doctrineProposalId);
+    candidates.push({ path: canonical.jsonPath, type: 'doctrine-proposal', retentionClass: 'durable' });
+  }
+
+  const iterationResultRelative = path
+    .relative(input.artifactRootDir, input.iterationPaths.iterationResultPath)
+    .split(path.sep)
+    .join('/');
+
+  const present = await Promise.all(
+    candidates.map(async (candidate) => ({
+      candidate,
+      exists: await fs
+        .access(candidate.path)
+        .then(() => true)
+        .catch(() => false)
+    }))
+  );
+
+  const entries: ArtifactRegistryEntryInput[] = present
+    .filter((item) => item.exists)
+    .map(({ candidate }) => ({
+      type: candidate.type,
+      path: candidate.path,
+      runId: input.metadata.runId,
+      taskId: input.metadata.taskId,
+      agentId: input.metadata.agentId,
+      agentRole: input.metadata.agentRole,
+      provider: input.metadata.provider,
+      iteration: input.metadata.iteration,
+      retentionClass: candidate.retentionClass,
+      // Provenance bundles are derived from the iteration result they wrap.
+      ...(candidate.type === 'provenance-bundle'
+        ? { related: { generatedFrom: iterationResultRelative } }
+        : {})
+    }));
+
+  await registerArtifacts(input.artifactRootDir, entries);
 }
 
 export async function writeWatchdogDiagnosticArtifact(input: {

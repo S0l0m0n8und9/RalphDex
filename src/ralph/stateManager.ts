@@ -12,6 +12,7 @@ import {
   RalphGeneratedArtifactRetentionSummary,
   RalphProvenanceRetentionSummary
 } from './artifactStore';
+import { reconcileArtifactRegistry } from './artifactRegistry';
 import {
   countTaskStatuses,
   createDefaultTaskFile,
@@ -934,6 +935,23 @@ export class RalphStateManager {
     });
 
     await fs.rm(paths.logDir, { recursive: true, force: true });
+
+    // Cleanup deletes iteration directories and provenance bundles, which leaves
+    // stale entries in the canonical artifact registry. Reconcile the index so it
+    // stays consistent with what remains on disk (issue #69). Best-effort: a
+    // failure here must not abort cleanup.
+    try {
+      const { removed } = await reconcileArtifactRegistry(paths.artifactDir);
+      if (removed.length > 0) {
+        this.logger.info('Reconciled the artifact registry after cleanup.', {
+          removedEntryCount: removed.length
+        });
+      }
+    } catch (error) {
+      this.logger.warn('Failed to reconcile the artifact registry after cleanup.', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
 
     return {
       snapshot: await this.ensureWorkspace(rootPath, config),
