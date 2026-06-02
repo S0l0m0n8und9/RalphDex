@@ -1184,6 +1184,78 @@ test('buildPreflightReport uses GitHub Copilot labels and config keys for Copilo
   ));
 });
 
+test('buildPreflightReport warns when Codex model may be unsupported for ChatGPT auth', () => {
+  const taskInspection = inspectTaskFileText(JSON.stringify({
+    version: 2,
+    tasks: [{ id: 'T1', title: 'Task one', status: 'todo' }]
+  }, null, 2));
+
+  const report = buildPreflightReport({
+    rootPath: '/workspace',
+    workspaceTrusted: true,
+    config: {
+      ...DEFAULT_CONFIG,
+      cliProvider: 'codex',
+      model: 'gpt-5-codex',
+      modelTiering: {
+        ...DEFAULT_CONFIG.modelTiering,
+        enabled: false
+      }
+    },
+    taskInspection,
+    taskCounts: { todo: 1, in_progress: 0, blocked: 0, done: 0 },
+    selectedTask: null,
+    claimGraph: null,
+    taskValidationHint: null,
+    validationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommandReadiness: { status: 'missing', command: null, executable: null },
+    fileStatus,
+    codexCliSupport: {
+      commandPath: 'codex',
+      configuredAs: 'pathLookup',
+      check: 'pathVerifiedExecutable',
+      confidence: 'verified',
+      provider: 'codex',
+      configKey: 'ralphCodex.codexCommandPath'
+    } as any
+  });
+
+  const diagnostic = report.diagnostics.find((item) => item.code === 'codex_model_chatgpt_auth_may_be_unsupported');
+  assert.ok(diagnostic, 'expected Codex model readiness warning');
+  assert.equal(diagnostic.severity, 'warning');
+  assert.match(diagnostic.message, /gpt-5-codex/);
+  assert.match(diagnostic.message, /ralphCodex\.model/);
+  assert.match(diagnostic.message, /ChatGPT account/);
+});
+
+test('collectProviderReadinessDiagnostics checks Codex model-tier overrides', () => {
+  const diagnostics = collectProviderReadinessDiagnostics({
+    config: {
+      ...DEFAULT_CONFIG,
+      cliProvider: 'claude',
+      modelTiering: {
+        ...DEFAULT_CONFIG.modelTiering,
+        enabled: true,
+        simple: {
+          provider: 'codex',
+          model: 'gpt-5'
+        },
+        medium: {
+          provider: 'codex',
+          model: 'gpt-5'
+        }
+      }
+    }
+  });
+
+  const matchingDiagnostics = diagnostics.filter((item) => item.code === 'codex_model_chatgpt_auth_may_be_unsupported');
+  assert.equal(matchingDiagnostics.length, 1);
+  const diagnostic = matchingDiagnostics[0];
+  assert.ok(diagnostic, 'expected Codex tier-model readiness warning');
+  assert.match(diagnostic.message, /ralphCodex\.modelTiering\.simple\.model/);
+});
+
 test('buildPreflightReport reports verified PATH lookup resolution for Copilot Foundry', () => {
   const taskInspection = inspectTaskFileText(JSON.stringify({
     version: 2,

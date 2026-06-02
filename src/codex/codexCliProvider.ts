@@ -68,8 +68,9 @@ export class CodexCliProvider implements CliProvider {
     }
 
     const detail = this.extractFailureDetail(input.stderr, input.lastMessage);
+    const readinessGuidance = detail ? this.codexReadinessGuidance(detail) : null;
     return detail
-      ? `codex exec exited with code ${input.exitCode}: ${detail}`
+      ? `codex exec exited with code ${input.exitCode}: ${detail}${readinessGuidance ? ` ${readinessGuidance}` : ''}`
       : `codex exec exited with code ${input.exitCode}.`;
   }
 
@@ -156,6 +157,16 @@ export class CodexCliProvider implements CliProvider {
     }
 
     return null;
+  }
+
+  private codexReadinessGuidance(detail: string): string | null {
+    if (!/model is not supported when using Codex with a ChatGPT account/i.test(detail)) {
+      return null;
+    }
+
+    const modelMatch = detail.match(/The '([^']+)' model is not supported/i);
+    const model = modelMatch?.[1] ? ` "${modelMatch[1]}"` : '';
+    return `Update the configured Codex model${model} or authenticate Codex with an account that supports it before retrying.`;
   }
 }
 

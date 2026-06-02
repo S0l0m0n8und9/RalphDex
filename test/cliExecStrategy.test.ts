@@ -221,6 +221,17 @@ test('summarizeResult surfaces the root failure detail from stderr', () => {
   );
 });
 
+test('summarizeResult adds Codex model/auth readiness guidance for ChatGPT account failures', () => {
+  assert.equal(
+    codexProvider.summarizeResult({
+      exitCode: 1,
+      stderr: "ERROR: The 'gpt-5-codex' model is not supported when using Codex with a ChatGPT account.",
+      lastMessage: ''
+    }),
+    'codex exec exited with code 1: The \'gpt-5-codex\' model is not supported when using Codex with a ChatGPT account. Update the configured Codex model "gpt-5-codex" or authenticate Codex with an account that supports it before retrying.'
+  );
+});
+
 test('CliExecCodexStrategy fails before launch when the stdin payload hash diverges from the plan', async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-cli-integrity-'));
   const strategy = new CliExecCodexStrategy(createLogger());
