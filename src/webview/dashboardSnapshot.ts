@@ -512,6 +512,7 @@ function buildPrdReconciliationSection(snapshot: RalphStatusSnapshot): Dashboard
   );
   const findingCount = proposal?.findingCount ?? findings.length;
   const available = source.status === 'available' && proposal !== null;
+  const hasOpenableProposal = available || source.status === 'stale';
 
   if (!available) {
     return {
@@ -520,8 +521,8 @@ function buildPrdReconciliationSection(snapshot: RalphStatusSnapshot): Dashboard
       findingCount: 0,
       severityCounts: { info: 0, warning: 0 },
       findings: [],
-      proposalJsonPath: source.jsonPath,
-      proposalMarkdownPath: source.markdownPath,
+      proposalJsonPath: hasOpenableProposal ? source.jsonPath : null,
+      proposalMarkdownPath: hasOpenableProposal ? source.markdownPath : null,
       generatedAt: null,
       message: source.message ?? 'PRD/backlog reconciliation proposal is unavailable.'
     };

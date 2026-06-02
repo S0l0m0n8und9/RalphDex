@@ -251,6 +251,8 @@ test('buildDashboardSnapshot projects missing, stale, and unreadable PRD/backlog
   }));
   assert.equal(unreadable.prdReconciliation.status, 'unavailable');
   assert.equal(unreadable.prdReconciliation.availability, 'unreadable');
+  assert.equal(unreadable.prdReconciliation.proposalJsonPath, null);
+  assert.equal(unreadable.prdReconciliation.proposalMarkdownPath, null);
   assert.match(unreadable.prdReconciliation.message, /unable to write/i);
 });
 

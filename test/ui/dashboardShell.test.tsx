@@ -226,6 +226,7 @@ test('Overview renders missing, stale, and unreadable PRD/backlog reconciliation
   }));
   assert.ok(unreadable.includes('proposal unavailable: unreadable'));
   assert.ok(unreadable.includes('Unable to write PRD/backlog reconciliation proposal'));
+  assert.ok(!unreadable.includes('Open Proposal'));
 });
 
 test('Doctrine tab renders full doctrine card and doctrine proposal review panel', () => {

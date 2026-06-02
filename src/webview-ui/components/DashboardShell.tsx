@@ -232,7 +232,8 @@ function PrdReconciliationCard({
 }) {
   const hasFindings = reconciliation.status === 'findings';
   const unavailable = reconciliation.status === 'unavailable';
-  const proposalPath = reconciliation.proposalMarkdownPath ?? reconciliation.proposalJsonPath;
+  const canOpenProposal = reconciliation.availability === 'available' || reconciliation.availability === 'stale';
+  const proposalPath = canOpenProposal ? reconciliation.proposalMarkdownPath ?? reconciliation.proposalJsonPath : null;
   const statusKind = unavailable ? 'warn' : hasFindings ? 'warn' : 'ok';
   const subtitle = unavailable
     ? `proposal unavailable: ${reconciliation.availability}`
