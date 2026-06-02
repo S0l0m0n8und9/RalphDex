@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildRunTimelineSection, DASHBOARD_TIMELINE_ENTRY_CAP } from '../src/webview/dashboardSnapshot';
+import { buildRunTimelineSection, DASHBOARD_FILE_CHANGE_CAP, DASHBOARD_TIMELINE_ENTRY_CAP } from '../src/webview/dashboardSnapshot';
 import type { ExecutionIntentPreview, RunTrustTimeline, TrustTimelineEntry } from '../src/ralph/runTimeline';
 
 const INTENT: ExecutionIntentPreview = {
@@ -25,6 +25,7 @@ function timeline(entries: TrustTimelineEntry[]): RunTrustTimeline {
     entries,
     remediationAudit: [{ seq: 5, timestamp: '2026-01-01T00:00:05Z', taskId: 'T1', action: 'mark_blocked', applied: true }],
     artifactsWritten: ['iteration-001/iteration-result.json'],
+    fileChanges: null,
     totals: { taskStateChanges: 1, providerInvocations: 1, remediationsApplied: 1, recoveryActionsApplied: 0, artifactsWritten: 1, scmActions: 1 }
   };
 }
@@ -47,6 +48,7 @@ test('buildRunTimelineSection projects intent + timeline and sorts entries newes
   // Newest-first by seq.
   assert.deepEqual(section?.entries.map((e) => e.seq), [3, 2, 1]);
   assert.equal(section?.remediationAudit.length, 1);
+  assert.equal(section?.fileChanges.status, 'missing');
 });
 
 test('buildRunTimelineSection caps entries at DASHBOARD_TIMELINE_ENTRY_CAP', () => {
@@ -77,11 +79,82 @@ test('buildRunTimelineSection caps remediationAudit at DASHBOARD_TIMELINE_ENTRY_
   }));
   const t: RunTrustTimeline = {
     runId: 'run-1', startedAt: null, completedAt: null, stopReason: null,
-    entries: [], remediationAudit: audits, artifactsWritten: [],
+    entries: [], remediationAudit: audits, artifactsWritten: [], fileChanges: null,
     totals: { taskStateChanges: 0, providerInvocations: 0, remediationsApplied: audits.length, recoveryActionsApplied: 0, artifactsWritten: 0, scmActions: 0 }
   };
   const section = buildRunTimelineSection({ intent: null, timeline: t });
   assert.equal(section?.remediationAudit.length, DASHBOARD_TIMELINE_ENTRY_CAP);
   // Keeps the most recent (last) entries.
   assert.equal(section?.remediationAudit[section.remediationAudit.length - 1].seq, DASHBOARD_TIMELINE_ENTRY_CAP + 5);
+});
+
+test('buildRunTimelineSection projects one changed file from durable diff evidence', () => {
+  const section = buildRunTimelineSection({
+    intent: null,
+    timeline: {
+      ...timeline([]),
+      fileChanges: {
+        status: 'available',
+        artifactPath: '/workspace/.ralph/artifacts/iteration-001/diff-summary.json',
+        summary: 'Detected 1 relevant changed file(s) out of 1 total changes.',
+        changedFileCount: 1,
+        relevantChangedFileCount: 1,
+        files: [{ path: 'src/ralph/runTimeline.ts', changeType: 'modified', relevant: true }],
+        message: 'Detected 1 relevant changed file(s) out of 1 total changes.'
+      }
+    }
+  });
+
+  assert.equal(section?.fileChanges.status, 'available');
+  assert.equal(section?.fileChanges.changedFileCount, 1);
+  assert.equal(section?.fileChanges.files[0]?.path, 'src/ralph/runTimeline.ts');
+  assert.equal(section?.fileChanges.files[0]?.changeType, 'modified');
+});
+
+test('buildRunTimelineSection caps multiple changed files from durable diff evidence', () => {
+  const files = Array.from({ length: DASHBOARD_FILE_CHANGE_CAP + 3 }, (_unused, index) => ({
+    path: `src/file-${index + 1}.ts`,
+    changeType: 'modified' as const,
+    relevant: index % 2 === 0
+  }));
+  const section = buildRunTimelineSection({
+    intent: null,
+    timeline: {
+      ...timeline([]),
+      fileChanges: {
+        status: 'available',
+        artifactPath: '/workspace/.ralph/artifacts/iteration-001/diff-summary.json',
+        summary: 'Detected multiple relevant changed files.',
+        changedFileCount: files.length,
+        relevantChangedFileCount: files.filter((file) => file.relevant).length,
+        files,
+        message: 'Detected multiple relevant changed files.'
+      }
+    }
+  });
+
+  assert.equal(section?.fileChanges.files.length, DASHBOARD_FILE_CHANGE_CAP);
+  assert.equal(section?.fileChanges.changedFileCount, DASHBOARD_FILE_CHANGE_CAP + 3);
+});
+
+test('buildRunTimelineSection preserves unreadable diff artifact status without file rows', () => {
+  const section = buildRunTimelineSection({
+    intent: null,
+    timeline: {
+      ...timeline([]),
+      fileChanges: {
+        status: 'unreadable',
+        artifactPath: '/workspace/.ralph/artifacts/iteration-001/diff-summary.json',
+        summary: 'Unable to read latest run diff summary: ENOENT',
+        changedFileCount: 0,
+        relevantChangedFileCount: 0,
+        files: [],
+        message: 'Unable to read latest run diff summary: ENOENT'
+      }
+    }
+  });
+
+  assert.equal(section?.fileChanges.status, 'unreadable');
+  assert.match(section?.fileChanges.message ?? '', /unable to read/i);
+  assert.deepEqual(section?.fileChanges.files, []);
 });

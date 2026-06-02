@@ -48,6 +48,45 @@ const dashboardSnapshot_1 = require("./dashboardSnapshot");
  * Prefers the current provenance id, then falls back to the newest run dir that
  * has an `events.jsonl`. Returns null when no journal exists yet.
  */
+async function loadRunFileChanges(artifactsDir, events) {
+    const diffEvent = [...events]
+        .reverse()
+        .find((event) => event.type === 'artifact_written'
+        && (event.artifactType === 'diff-summary' || event.relativePath.endsWith('/diff-summary.json')));
+    if (!diffEvent || diffEvent.type !== 'artifact_written') {
+        return (0, runTimeline_1.buildUnavailableRunFileChangeSummary)({
+            status: 'missing',
+            message: 'No durable diff summary was recorded for the latest run.'
+        });
+    }
+    const artifactRoot = path.resolve(artifactsDir);
+    const artifactPath = path.resolve(artifactRoot, diffEvent.relativePath);
+    if (artifactPath !== artifactRoot && !artifactPath.startsWith(`${artifactRoot}${path.sep}`)) {
+        return (0, runTimeline_1.buildUnavailableRunFileChangeSummary)({
+            status: 'unreadable',
+            artifactPath,
+            message: 'The latest run diff summary path is outside the artifact root.'
+        });
+    }
+    try {
+        const parsed = (0, runTimeline_1.normalizeRunDiffSummary)(JSON.parse(await fs.readFile(artifactPath, 'utf8')));
+        if (!parsed) {
+            return (0, runTimeline_1.buildUnavailableRunFileChangeSummary)({
+                status: 'unreadable',
+                artifactPath,
+                message: 'The latest run diff summary is present but unreadable.'
+            });
+        }
+        return (0, runTimeline_1.buildRunFileChangeSummary)({ diffSummary: parsed, artifactPath });
+    }
+    catch (error) {
+        return (0, runTimeline_1.buildUnavailableRunFileChangeSummary)({
+            status: 'unreadable',
+            artifactPath,
+            message: `Unable to read latest run diff summary: ${error instanceof Error ? error.message : String(error)}`
+        });
+    }
+}
 async function loadLatestRunTimeline(artifactsDir, currentProvenanceId) {
     const candidateRunIds = [];
     if (currentProvenanceId) {
@@ -76,7 +115,8 @@ async function loadLatestRunTimeline(artifactsDir, currentProvenanceId) {
         // favour of an older run's stale timeline. ENOENT yields [] -> next candidate.
         const events = await (0, eventJournal_1.readEventJournalResumable)(artifactsDir, runId);
         if (events.length > 0) {
-            return (0, runTimeline_1.buildRunTrustTimeline)(events);
+            const timeline = (0, runTimeline_1.buildRunTrustTimeline)(events);
+            return { ...timeline, fileChanges: await loadRunFileChanges(artifactsDir, events) };
         }
     }
     return null;

@@ -1,6 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.buildExecutionIntentPreview = buildExecutionIntentPreview;
+exports.normalizeRunDiffSummary = normalizeRunDiffSummary;
+exports.buildUnavailableRunFileChangeSummary = buildUnavailableRunFileChangeSummary;
+exports.buildRunFileChangeSummary = buildRunFileChangeSummary;
 exports.buildRunTrustTimeline = buildRunTrustTimeline;
 exports.renderExecutionIntentPreviewMarkdown = renderExecutionIntentPreviewMarkdown;
 exports.renderRunTrustTimelineMarkdown = renderRunTrustTimelineMarkdown;
@@ -39,6 +42,96 @@ function buildExecutionIntentPreview(input) {
         selectedTaskId: selectedTask?.id ?? null,
         selectedTaskTitle: selectedTask?.title ?? null,
         notes
+    };
+}
+function normalizeRunDiffSummary(candidate) {
+    if (typeof candidate !== 'object' || candidate === null) {
+        return null;
+    }
+    const record = candidate;
+    if (typeof record.available !== 'boolean' || typeof record.summary !== 'string') {
+        return null;
+    }
+    const changedFiles = Array.isArray(record.changedFiles)
+        ? record.changedFiles.filter((item) => typeof item === 'string')
+        : [];
+    const relevantChangedFiles = Array.isArray(record.relevantChangedFiles)
+        ? record.relevantChangedFiles.filter((item) => typeof item === 'string')
+        : [];
+    const statusTransitions = Array.isArray(record.statusTransitions)
+        ? record.statusTransitions.filter((item) => typeof item === 'string')
+        : [];
+    return {
+        available: record.available,
+        gitAvailable: typeof record.gitAvailable === 'boolean' ? record.gitAvailable : record.available,
+        summary: record.summary,
+        changedFileCount: typeof record.changedFileCount === 'number' && Number.isFinite(record.changedFileCount)
+            ? Math.max(0, Math.floor(record.changedFileCount))
+            : changedFiles.length,
+        relevantChangedFileCount: typeof record.relevantChangedFileCount === 'number' && Number.isFinite(record.relevantChangedFileCount)
+            ? Math.max(0, Math.floor(record.relevantChangedFileCount))
+            : relevantChangedFiles.length,
+        changedFiles,
+        relevantChangedFiles,
+        statusTransitions,
+        suggestedCheckpointRef: typeof record.suggestedCheckpointRef === 'string' ? record.suggestedCheckpointRef : undefined,
+        beforeStatusPath: typeof record.beforeStatusPath === 'string' ? record.beforeStatusPath : undefined,
+        afterStatusPath: typeof record.afterStatusPath === 'string' ? record.afterStatusPath : undefined
+    };
+}
+function buildUnavailableRunFileChangeSummary(input) {
+    return {
+        status: input.status,
+        artifactPath: input.artifactPath ?? null,
+        summary: input.message,
+        changedFileCount: 0,
+        relevantChangedFileCount: 0,
+        files: [],
+        message: input.message
+    };
+}
+function changeTypeFromTransition(transition) {
+    const delimiter = transition?.lastIndexOf(': ') ?? -1;
+    const statusPart = transition && delimiter >= 0 ? transition.slice(delimiter + 2) : transition;
+    const match = statusPart?.match(/^(.*?)\s*->\s*(.*?)$/);
+    const before = match?.[1]?.trim() ?? '';
+    const after = match?.[2]?.trim() ?? '';
+    if (!before && !after) {
+        return 'changed';
+    }
+    if (after === 'clean' || after.includes('D')) {
+        return 'deleted';
+    }
+    if (before === 'clean' && (after.includes('A') || after.includes('??'))) {
+        return 'added';
+    }
+    if (after.includes('M') || before !== after) {
+        return 'modified';
+    }
+    return 'changed';
+}
+function buildRunFileChangeSummary(input) {
+    const relevant = new Set(input.diffSummary.relevantChangedFiles);
+    const transitionByPath = new Map();
+    for (const transition of input.diffSummary.statusTransitions) {
+        const delimiter = transition.lastIndexOf(': ');
+        if (delimiter > 0) {
+            transitionByPath.set(transition.slice(0, delimiter), transition);
+        }
+    }
+    const files = input.diffSummary.changedFiles.map((filePath) => ({
+        path: filePath,
+        changeType: changeTypeFromTransition(transitionByPath.get(filePath)),
+        relevant: relevant.has(filePath)
+    }));
+    return {
+        status: 'available',
+        artifactPath: input.artifactPath,
+        summary: input.diffSummary.summary,
+        changedFileCount: input.diffSummary.changedFileCount,
+        relevantChangedFileCount: input.diffSummary.relevantChangedFileCount,
+        files,
+        message: input.diffSummary.summary
     };
 }
 // Kinds that represent operator-meaningful timeline entries (others fold into totals only).
@@ -144,7 +237,7 @@ function buildRunTrustTimeline(events) {
             entries.push({ seq: event.seq, timestamp: event.timestamp, ...described });
         }
     }
-    return { runId, startedAt, completedAt, stopReason, entries, remediationAudit, artifactsWritten, totals };
+    return { runId, startedAt, completedAt, stopReason, entries, remediationAudit, artifactsWritten, fileChanges: null, totals };
 }
 // ---------------------------------------------------------------------------
 // Renderers
