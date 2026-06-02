@@ -2251,6 +2251,17 @@ test('runCliIteration lets watchdog agents reconcile cross-task recovery actions
     'Watchdog escalation (CRITICAL) for builder-4: The evidence does not support a safe automated recovery.'
   );
   assert.match(progressText, /\[watchdog\]\[CRITICAL\]\[escalate_to_human\] task=T4 agent=builder-4/);
+
+  const events = await readEventJournal(path.join(rootPath, '.ralph', 'artifacts'), summary.prepared.provenanceId);
+  const recoveryEvents = events.filter((event) => event.type === 'recovery_applied');
+  assert.deepEqual(
+    recoveryEvents.map((event) => ({ taskId: event.taskId, action: event.action, severity: event.severity })),
+    [
+      { taskId: 'T2', action: 'watchdog:resolve_stale_claim', severity: 'high' },
+      { taskId: 'T3', action: 'watchdog:decompose_task', severity: 'high' },
+      { taskId: 'T4', action: 'watchdog:escalate_to_human', severity: 'critical' }
+    ]
+  );
 });
 
 test('runCliIteration auto-completes aggregate parents after the final child slice reports done', async () => {

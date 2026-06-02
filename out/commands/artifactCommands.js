@@ -49,6 +49,7 @@ const artifactStore_1 = require("../ralph/artifactStore");
 const cleanupManifest_1 = require("../ralph/cleanupManifest");
 const prdReconciliation_1 = require("../ralph/prdReconciliation");
 const doctrineProposalApply_1 = require("../ralph/doctrineProposalApply");
+const eventJournal_1 = require("../ralph/eventJournal");
 // ---------------------------------------------------------------------------
 // Small utilities duplicated from registerCommands.ts to avoid coupling
 // ---------------------------------------------------------------------------
@@ -58,6 +59,28 @@ async function withWorkspaceFolder() {
         throw new Error('Open a workspace folder before using Ralphdex.');
     }
     return folder;
+}
+async function appendLatestRecoveryEvent(input) {
+    if (!input.provenanceId) {
+        return;
+    }
+    try {
+        const writer = await eventJournal_1.EventJournalWriter.open(input.artifactDir, input.provenanceId);
+        await writer.append({
+            type: 'recovery_applied',
+            taskId: input.taskId,
+            action: input.action,
+            severity: input.severity
+        });
+    }
+    catch (error) {
+        input.logger.warn('Failed to append recovery event to latest Ralph run journal.', {
+            taskId: input.taskId,
+            action: input.action,
+            provenanceId: input.provenanceId,
+            error: error instanceof Error ? error.message : String(error)
+        });
+    }
 }
 async function openTextFile(target) {
     const document = await vscode.workspace.openTextDocument(vscode.Uri.file(target));
@@ -292,6 +315,14 @@ async function resolveStaleTaskClaim(workspaceFolder, stateManager, logger) {
         status: resolved.resolvedClaim.claim.status,
         resolvedAt: resolved.resolvedClaim.claim.resolvedAt,
         resolutionReason: resolved.resolvedClaim.claim.resolutionReason
+    });
+    await appendLatestRecoveryEvent({
+        artifactDir: inspection.paths.artifactDir,
+        provenanceId: inspection.state.lastIteration?.provenanceId ?? inspection.state.lastRun?.provenanceId,
+        taskId: resolved.resolvedClaim.claim.taskId,
+        action: 'operator:resolve_stale_claim',
+        severity: 'medium',
+        logger
     });
     void vscode.window.showInformationMessage(`Marked stale claim for ${resolved.resolvedClaim.claim.taskId} held by ${resolved.resolvedClaim.claim.agentId}/${resolved.resolvedClaim.claim.provenanceId} as ${resolved.resolvedClaim.claim.status}.`);
     return true;
@@ -767,6 +798,14 @@ function registerArtifactAndMaintenanceCommands(context, logger, stateManager, r
                 throw new Error(`Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s). Task ${taskId} has been re-added to the dead-letter queue.`);
             }
             logger.info('Requeued dead-letter task.', { taskId });
+            await appendLatestRecoveryEvent({
+                artifactDir: inspection.paths.artifactDir,
+                provenanceId: inspection.state.lastIteration?.provenanceId ?? inspection.state.lastRun?.provenanceId,
+                taskId,
+                action: 'operator:requeue_recovery_task',
+                severity: 'medium',
+                logger
+            });
             void vscode.window.showInformationMessage(`Task ${taskId} has been removed from the dead-letter queue and reset to todo.`);
         }
     });

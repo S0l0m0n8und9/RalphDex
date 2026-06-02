@@ -8,6 +8,7 @@ import { DEFAULT_CONFIG } from '../src/config/defaults';
 import { activate } from '../src/extension';
 import { setAzureCredentialFactoryOverride } from '../src/codex/azureAuthResolver';
 import { RalphIterationEngine } from '../src/ralph/iterationEngine';
+import { EventJournalWriter, readEventJournal } from '../src/ralph/eventJournal';
 import { setProcessRunnerOverride } from '../src/services/processRunner';
 import { vscodeTestHarness } from './support/vscodeTestHarness';
 import { hashText } from '../src/ralph/integrity';
@@ -1355,6 +1356,64 @@ test('Resolve Stale Task Claim marks the canonical stale claim and surfaces the 
       }
     ]
   }, null, 2), 'utf8');
+  const artifactDir = path.join(rootPath, '.ralph', 'artifacts');
+  const promptDir = path.join(rootPath, '.ralph', 'prompts');
+  const provenanceId = 'run-i001-cli-20260307T000000Z';
+  const promptPath = path.join(promptDir, 'iteration-001.prompt.md');
+  await fs.mkdir(promptDir, { recursive: true });
+  await fs.writeFile(promptPath, 'prompt\n', 'utf8');
+  await EventJournalWriter.open(artifactDir, provenanceId);
+  await fs.writeFile(path.join(rootPath, '.ralph', 'state.json'), JSON.stringify({
+    version: 2,
+    objectivePreview: 'Resolve stale claim.',
+    nextIteration: 2,
+    lastPromptKind: 'iteration',
+    lastPromptPath: promptPath,
+    lastRun: {
+      provenanceId,
+      iteration: 1,
+      mode: 'singleExec',
+      promptKind: 'iteration',
+      startedAt: '2026-03-07T00:00:00.000Z',
+      finishedAt: '2026-03-07T00:01:00.000Z',
+      status: 'succeeded',
+      exitCode: 0,
+      promptPath: path.join(rootPath, '.ralph', 'prompts', 'iteration-001.prompt.md'),
+      summary: 'initial'
+    },
+    runHistory: [],
+    lastIteration: {
+      schemaVersion: 1,
+      provenanceId,
+      iteration: 1,
+      selectedTaskId: 'T1',
+      selectedTaskTitle: 'Initial task',
+      promptKind: 'iteration',
+      promptPath,
+      artifactDir: path.join(artifactDir, 'iteration-001'),
+      adapterUsed: 'cliExec',
+      executionIntegrity: null,
+      executionStatus: 'succeeded',
+      verificationStatus: 'passed',
+      completionClassification: 'partial_progress',
+      followUpAction: 'continue_same_task',
+      startedAt: '2026-03-07T00:00:00.000Z',
+      finishedAt: '2026-03-07T00:01:00.000Z',
+      phaseTimestamps: {},
+      summary: 'initial',
+      warnings: [],
+      errors: [],
+      execution: { exitCode: 0 },
+      verification: { verifiers: [] },
+      backlog: { remainingTaskCount: 1, actionableTaskAvailable: true },
+      diffSummary: null,
+      noProgressSignals: [],
+      remediation: null,
+      stopReason: null
+    },
+    iterationHistory: [],
+    updatedAt: '2026-03-07T00:01:00.000Z'
+  }, null, 2), 'utf8');
 
   const harness = vscodeTestHarness();
   harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
@@ -1385,6 +1444,12 @@ test('Resolve Stale Task Claim marks the canonical stale claim and surfaces the 
   const output = harness.getOutputLines('Ralphdex').join('\n');
   assert.match(output, /Latest claim resolution: T1 default\/run-i001-cli-20260307T000000Z -> stale/);
   assert.match(output, /stale_claim_resolved/);
+
+  const events = await readEventJournal(artifactDir, provenanceId);
+  const recoveryEvent = events.find((event) => event.type === 'recovery_applied');
+  assert.ok(recoveryEvent, 'expected operator stale-claim recovery to be journaled');
+  assert.equal(recoveryEvent.taskId, 'T1');
+  assert.equal(recoveryEvent.action, 'operator:resolve_stale_claim');
 });
 
 test('Resolve Stale Task Claim refuses to resolve while codex exec still appears active', async () => {
@@ -2476,6 +2541,94 @@ test('Cleanup Runtime Artifacts leaves files untouched when confirmation is dism
     harness.state.warningMessages[0]?.message ?? '',
     /Cleanup Ralph runtime artifacts/
   );
+});
+
+test('Requeue Recovery Task appends recovery event to the latest run journal', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+  await fs.writeFile(path.join(rootPath, '.ralph', 'tasks.json'), JSON.stringify({
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Initial task', status: 'blocked', blocker: 'Recovery queue' }
+    ]
+  }, null, 2), 'utf8');
+
+  const artifactDir = path.join(rootPath, '.ralph', 'artifacts');
+  const provenanceId = 'run-i001-cli-20260307T000000Z';
+  await EventJournalWriter.open(artifactDir, provenanceId);
+  await fs.writeFile(path.join(rootPath, '.ralph', 'dead-letter.json'), JSON.stringify({
+    schemaVersion: 1,
+    kind: 'deadLetterQueue',
+    entries: [
+      {
+        schemaVersion: 1,
+        kind: 'deadLetterEntry',
+        taskId: 'T1',
+        taskTitle: 'Initial task',
+        deadLetteredAt: '2026-03-07T00:01:00.000Z',
+        diagnosticHistory: [
+          {
+            schemaVersion: 1,
+            kind: 'failureAnalysis',
+            taskId: 'T1',
+            createdAt: '2026-03-07T00:00:00.000Z',
+            rootCauseCategory: 'validation_mismatch',
+            confidence: 'high',
+            summary: 'Validation failed.',
+            suggestedAction: 'Requeue after operator review.'
+          }
+        ],
+        recoveryAttemptCount: 3
+      }
+    ]
+  }, null, 2), 'utf8');
+  await fs.writeFile(path.join(rootPath, '.ralph', 'state.json'), JSON.stringify({
+    version: 2,
+    objectivePreview: 'Requeue recovery task.',
+    nextIteration: 2,
+    lastPromptKind: 'iteration',
+    lastPromptPath: null,
+    lastRun: {
+      provenanceId,
+      iteration: 1,
+      mode: 'singleExec',
+      promptKind: 'iteration',
+      startedAt: '2026-03-07T00:00:00.000Z',
+      finishedAt: '2026-03-07T00:01:00.000Z',
+      status: 'succeeded',
+      exitCode: 0,
+      promptPath: path.join(rootPath, '.ralph', 'prompts', 'iteration-001.prompt.md'),
+      summary: 'initial'
+    },
+    runHistory: [],
+    lastIteration: null,
+    iterationHistory: [],
+    updatedAt: '2026-03-07T00:01:00.000Z'
+  }, null, 2), 'utf8');
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setQuickPickSelections([{ label: 'T1', description: 'Initial task' }]);
+  harness.setMessageChoice('Requeue');
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.requeueDeadLetterTask');
+
+  const taskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as {
+    tasks: Array<{ id: string; status: string; blocker?: string }>;
+  };
+  assert.equal(taskFile.tasks[0]?.status, 'todo');
+  assert.equal(taskFile.tasks[0]?.blocker, undefined);
+  const deadLetter = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'dead-letter.json'), 'utf8')) as {
+    entries: unknown[];
+  };
+  assert.equal(deadLetter.entries.length, 0);
+
+  const events = await readEventJournal(artifactDir, provenanceId);
+  const recoveryEvent = events.find((event) => event.type === 'recovery_applied');
+  assert.ok(recoveryEvent, 'expected requeue recovery to be journaled');
+  assert.equal(recoveryEvent.taskId, 'T1');
+  assert.equal(recoveryEvent.action, 'operator:requeue_recovery_task');
 });
 
 test('Run Pipeline runs review agent and SCM agent after the multi-agent loop succeeds', async () => {

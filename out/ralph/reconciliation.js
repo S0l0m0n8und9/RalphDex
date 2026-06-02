@@ -77,6 +77,7 @@ function buildRejectedOutcome(state, artifactBase, reason, warnings, needsHumanR
         progressChanged: false,
         taskFileChanged: false,
         claimContested: reason === 'claim_contested',
+        appliedWatchdogActions: [],
         warnings: warningList
     };
 }
@@ -103,6 +104,7 @@ async function buildReconciliationPrelude(input) {
                 progressChanged: false,
                 taskFileChanged: false,
                 claimContested: false,
+                appliedWatchdogActions: [],
                 warnings: []
             }
         };
@@ -122,6 +124,7 @@ async function buildReconciliationPrelude(input) {
                 progressChanged: false,
                 taskFileChanged: false,
                 claimContested: false,
+                appliedWatchdogActions: [],
                 warnings
             }
         };
@@ -180,6 +183,7 @@ async function reconcileCompletionReport(input) {
         progressChanged: post.progressChanged,
         taskFileChanged: post.taskFileChanged,
         claimContested: false,
+        appliedWatchdogActions: post.appliedWatchdogActions,
         warnings
     };
 }
@@ -216,11 +220,13 @@ async function applyMutationUnderLock(input, state, plan) {
 async function runPostWriteStages(input, state, plan, applied, warnings) {
     let taskFileChanged = applied.taskFileChanged;
     let progressChanged = applied.verificationResult.progressChanged;
+    const appliedWatchdogActions = [];
     const report = state.report;
     if (state.prepared.config.agentRole === 'watchdog' && report.watchdog_actions?.length) {
         const watchdogOutcome = await processWatchdogActions(input, report.watchdog_actions);
         taskFileChanged = taskFileChanged || watchdogOutcome.taskFileChanged;
         progressChanged = progressChanged || watchdogOutcome.progressChanged;
+        appliedWatchdogActions.push(...watchdogOutcome.appliedActions);
         warnings.push(...watchdogOutcome.warnings);
     }
     // Gap 7: Detect completed_parent_with_incomplete_descendants drift immediately
@@ -268,7 +274,7 @@ async function runPostWriteStages(input, state, plan, applied, warnings) {
         warnings.push(`Completion report requested done, but the selected task ended as ${selectedTask?.status ?? 'missing'} after reconciliation.`);
     }
     selectedTask = (0, taskFile_1.findTaskById)((0, taskFile_1.parseTaskFile)(await fs.readFile(input.taskFilePath, 'utf8')), state.selectedTask.id);
-    return { taskFileChanged, progressChanged, selectedTask };
+    return { taskFileChanged, progressChanged, selectedTask, appliedWatchdogActions };
 }
 // Acquires the task-file lock once and, inside that critical section, writes both
 // tasks.json and the progress bullet.  Used by the watchdog escalate_to_human path so
@@ -326,6 +332,7 @@ async function updateTaskFileWithVerification(taskFilePath, claimFilePath, taskI
 async function processWatchdogActions(input, watchdogActions) {
     let taskFileChanged = false;
     let progressChanged = false;
+    const appliedActions = [];
     const warnings = [];
     await (0, artifactStore_1.writeWatchdogDiagnosticArtifact)({
         artifactRootDir: input.prepared.paths.artifactDir,
@@ -349,6 +356,9 @@ async function processWatchdogActions(input, watchdogActions) {
             else if (resolved.outcome !== 'resolved') {
                 warnings.push(`Watchdog action resolve_stale_claim was not eligible for ${action.taskId} held by ${action.agentId}.`);
             }
+            else {
+                appliedActions.push(action);
+            }
             continue;
         }
         if (action.action === 'decompose_task') {
@@ -362,6 +372,7 @@ async function processWatchdogActions(input, watchdogActions) {
             }
             await (0, taskCreation_1.applySuggestedChildTasksToFile)(input.taskFilePath, action.taskId, action.suggestedChildTasks);
             taskFileChanged = true;
+            appliedActions.push(action);
             continue;
         }
         if (!(await taskExists(input.taskFilePath, action.taskId))) {
@@ -382,10 +393,12 @@ async function processWatchdogActions(input, watchdogActions) {
         }));
         progressChanged = true;
         taskFileChanged = true;
+        appliedActions.push(action);
     }
     return {
         taskFileChanged,
         progressChanged,
+        appliedActions,
         warnings
     };
 }

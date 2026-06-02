@@ -46,6 +46,7 @@ import { totalDeletedCount } from '../ralph/cleanupManifest';
 import { analyzePrdBacklogReconciliation } from '../ralph/prdReconciliation';
 import type { DoctrineProposalArtifact, DoctrineProposalReviewArtifact } from '../ralph/doctrineProposals';
 import { applyDoctrineProposal, detectProtectedTargets } from '../ralph/doctrineProposalApply';
+import { EventJournalWriter } from '../ralph/eventJournal';
 
 // ---------------------------------------------------------------------------
 // Shared types (kept local to avoid circular re-exports)
@@ -69,6 +70,36 @@ async function withWorkspaceFolder(): Promise<vscode.WorkspaceFolder> {
   }
 
   return folder;
+}
+
+async function appendLatestRecoveryEvent(input: {
+  artifactDir: string;
+  provenanceId?: string;
+  taskId: string;
+  action: string;
+  severity?: string;
+  logger: Logger;
+}): Promise<void> {
+  if (!input.provenanceId) {
+    return;
+  }
+
+  try {
+    const writer = await EventJournalWriter.open(input.artifactDir, input.provenanceId);
+    await writer.append({
+      type: 'recovery_applied',
+      taskId: input.taskId,
+      action: input.action,
+      severity: input.severity
+    });
+  } catch (error) {
+    input.logger.warn('Failed to append recovery event to latest Ralph run journal.', {
+      taskId: input.taskId,
+      action: input.action,
+      provenanceId: input.provenanceId,
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
 }
 
 async function openTextFile(target: string): Promise<void> {
@@ -430,6 +461,14 @@ async function resolveStaleTaskClaim(
     status: resolved.resolvedClaim.claim.status,
     resolvedAt: resolved.resolvedClaim.claim.resolvedAt,
     resolutionReason: resolved.resolvedClaim.claim.resolutionReason
+  });
+  await appendLatestRecoveryEvent({
+    artifactDir: inspection.paths.artifactDir,
+    provenanceId: inspection.state.lastIteration?.provenanceId ?? inspection.state.lastRun?.provenanceId,
+    taskId: resolved.resolvedClaim.claim.taskId,
+    action: 'operator:resolve_stale_claim',
+    severity: 'medium',
+    logger
   });
 
   void vscode.window.showInformationMessage(
@@ -1048,6 +1087,14 @@ export function registerArtifactAndMaintenanceCommands(
       }
 
       logger.info('Requeued dead-letter task.', { taskId });
+      await appendLatestRecoveryEvent({
+        artifactDir: inspection.paths.artifactDir,
+        provenanceId: inspection.state.lastIteration?.provenanceId ?? inspection.state.lastRun?.provenanceId,
+        taskId,
+        action: 'operator:requeue_recovery_task',
+        severity: 'medium',
+        logger
+      });
       void vscode.window.showInformationMessage(
         `Task ${taskId} has been removed from the dead-letter queue and reset to todo.`
       );
