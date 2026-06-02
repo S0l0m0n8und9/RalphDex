@@ -18,6 +18,7 @@ import { RalphStateWatcher } from './ui/stateWatcher';
 import { RalphStatusBar, showStatusBarQuickPick } from './ui/statusBarItem';
 import { WebviewPanelManager } from './webview/WebviewPanelManager';
 import { createDashboardSnapshotLoader } from './webview/dashboardDataLoader';
+import { activationSmokeDiagnostics, type WebviewSmokeSurface } from './webview/webviewSmokeDiagnostics';
 import { RalphStateManager } from './ralph/stateManager';
 import { seedTasksFromFeatureRequest } from './commands/taskSeeding';
 import { evaluatePrdReadinessGate } from './commands/prdReadinessGate';
@@ -156,6 +157,15 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.commands.registerCommand('ralphCodex.refreshDashboard', () => {
       RalphDashboardPanel.currentPanel?.refreshSnapshot();
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('ralphCodex.__activationSmoke.awaitWebviewReady', async (surface: WebviewSmokeSurface) => {
+      return activationSmokeDiagnostics.waitForReady(surface, 10000);
+    }),
+    vscode.commands.registerCommand('ralphCodex.__activationSmoke.resetWebviewDiagnostics', () => {
+      activationSmokeDiagnostics.reset();
     })
   );
 

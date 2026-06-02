@@ -199,6 +199,7 @@ export type RalphWebviewMessage =
 /** Messages sent from webview to extension. */
 export type RalphWebviewCommand =
   | { type: 'command'; command: string }
+  | { type: 'webview-ready'; mode: 'dashboard' | 'sidebar'; mountedText: string; timestamp: string }
   | { type: 'expand-task'; taskId: string }
   | { type: 'active-tab-changed'; activeTab: NonNullable<RalphDashboardViewIntent['activeTab']> }
   | { type: 'update-setting'; key: string; value: unknown }

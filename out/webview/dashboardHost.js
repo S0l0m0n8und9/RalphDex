@@ -42,6 +42,7 @@ const readConfig_1 = require("../config/readConfig");
 const sidebarViewProvider_1 = require("../ui/sidebarViewProvider");
 const MessageBridge_1 = require("./MessageBridge");
 const webviewConfigSync_1 = require("../ui/webviewConfigSync");
+const webviewSmokeDiagnostics_1 = require("./webviewSmokeDiagnostics");
 /**
  * Shared dashboard controller used by both the editor-panel and the sidebar.
  *
@@ -64,6 +65,7 @@ class DashboardHost {
     broadcastDisposable;
     snapshotLoadGeneration = 0;
     newSettingKeys;
+    isDisposed = false;
     constructor(webview, broadcaster, renderFn, loadSnapshot, initialViewIntent = null, actions = {}) {
         this.webview = webview;
         this.renderFn = renderFn;
@@ -83,6 +85,10 @@ class DashboardHost {
         }
         this.bridge = new MessageBridge_1.MessageBridge(webview);
         this.bridge.onMessage(async (msg) => {
+            if (msg.type === 'webview-ready') {
+                webviewSmokeDiagnostics_1.activationSmokeDiagnostics.recordReady(msg.mode, msg);
+                return;
+            }
             if (msg.type === 'command' && msg.command) {
                 this.bridge.send({ type: 'command-ack', command: msg.command, status: 'started' });
                 try {
@@ -293,7 +299,7 @@ class DashboardHost {
         this.fullRender(true);
         try {
             const snapshot = await this.loadSnapshot();
-            if (generation !== this.snapshotLoadGeneration) {
+            if (this.isDisposed || generation !== this.snapshotLoadGeneration) {
                 return;
             }
             this.latestState = {
@@ -307,7 +313,7 @@ class DashboardHost {
             this.fullRender(true);
         }
         catch (error) {
-            if (generation !== this.snapshotLoadGeneration) {
+            if (this.isDisposed || generation !== this.snapshotLoadGeneration) {
                 return;
             }
             this.latestState = {
@@ -411,6 +417,9 @@ class DashboardHost {
         }
     }
     fullRender(force = false) {
+        if (this.isDisposed) {
+            return;
+        }
         // Debounce most renders to avoid repaint churn, but allow critical phase
         // transitions to bypass the window so transient states do not get stuck.
         const now = Date.now();
@@ -471,6 +480,7 @@ class DashboardHost {
         }
     }
     dispose() {
+        this.isDisposed = true;
         this.broadcastDisposable.dispose();
         this.bridge.dispose();
     }
