@@ -62,9 +62,12 @@ exports.registerIterationArtifactSet = registerIterationArtifactSet;
 exports.resolveCleanupManifestPaths = resolveCleanupManifestPaths;
 exports.writeCleanupManifestArtifact = writeCleanupManifestArtifact;
 exports.writeWatchdogDiagnosticArtifact = writeWatchdogDiagnosticArtifact;
+exports.resolvePrdReconciliationPaths = resolvePrdReconciliationPaths;
+exports.writePrdReconciliationProposal = writePrdReconciliationProposal;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 const doctrineProposals_1 = require("./doctrineProposals");
+const prdReconciliation_1 = require("./prdReconciliation");
 const integrity_1 = require("./integrity");
 const artifactRegistry_1 = require("./artifactRegistry");
 const cleanupManifest_1 = require("./cleanupManifest");
@@ -692,5 +695,26 @@ async function writeWatchdogDiagnosticArtifact(input) {
     };
     await fs.writeFile(filePath, (0, integrity_1.stableJson)(artifact), 'utf8');
     return filePath;
+}
+/** Resolves the PRD/backlog reconciliation proposal artifact locations (issue #71). */
+function resolvePrdReconciliationPaths(artifactRootDir) {
+    return {
+        jsonPath: path.join(artifactRootDir, 'prd-reconciliation.json'),
+        markdownPath: path.join(artifactRootDir, 'prd-reconciliation.md')
+    };
+}
+/**
+ * Persists a PRD/backlog reconciliation proposal (issue #71) as JSON plus a
+ * human-readable markdown summary at the artifacts root. Review-only — Ralph
+ * never mutates `tasks.json` from this proposal.
+ */
+async function writePrdReconciliationProposal(artifactRootDir, proposal) {
+    const paths = resolvePrdReconciliationPaths(artifactRootDir);
+    await fs.mkdir(artifactRootDir, { recursive: true });
+    await Promise.all([
+        fs.writeFile(paths.jsonPath, (0, integrity_1.stableJson)(proposal), 'utf8'),
+        fs.writeFile(paths.markdownPath, `${(0, prdReconciliation_1.renderPrdReconciliationMarkdown)(proposal).trimEnd()}\n`, 'utf8')
+    ]);
+    return paths;
 }
 //# sourceMappingURL=artifactStore.js.map

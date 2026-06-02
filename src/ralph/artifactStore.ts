@@ -2,6 +2,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import type { DoctrineProposalArtifact, DoctrineProposalReviewArtifact } from './doctrineProposals';
 import { renderDoctrineProposalMarkdown, renderDoctrineProposalReviewMarkdown } from './doctrineProposals';
+import { renderPrdReconciliationMarkdown, type PrdReconciliationProposal } from './prdReconciliation';
 import { stableJson } from './integrity';
 import {
   registerArtifacts,
@@ -989,4 +990,35 @@ export async function writeWatchdogDiagnosticArtifact(input: {
 
   await fs.writeFile(filePath, stableJson(artifact), 'utf8');
   return filePath;
+}
+
+export interface RalphPrdReconciliationPaths {
+  jsonPath: string;
+  markdownPath: string;
+}
+
+/** Resolves the PRD/backlog reconciliation proposal artifact locations (issue #71). */
+export function resolvePrdReconciliationPaths(artifactRootDir: string): RalphPrdReconciliationPaths {
+  return {
+    jsonPath: path.join(artifactRootDir, 'prd-reconciliation.json'),
+    markdownPath: path.join(artifactRootDir, 'prd-reconciliation.md')
+  };
+}
+
+/**
+ * Persists a PRD/backlog reconciliation proposal (issue #71) as JSON plus a
+ * human-readable markdown summary at the artifacts root. Review-only — Ralph
+ * never mutates `tasks.json` from this proposal.
+ */
+export async function writePrdReconciliationProposal(
+  artifactRootDir: string,
+  proposal: PrdReconciliationProposal
+): Promise<RalphPrdReconciliationPaths> {
+  const paths = resolvePrdReconciliationPaths(artifactRootDir);
+  await fs.mkdir(artifactRootDir, { recursive: true });
+  await Promise.all([
+    fs.writeFile(paths.jsonPath, stableJson(proposal), 'utf8'),
+    fs.writeFile(paths.markdownPath, `${renderPrdReconciliationMarkdown(proposal).trimEnd()}\n`, 'utf8')
+  ]);
+  return paths;
 }
