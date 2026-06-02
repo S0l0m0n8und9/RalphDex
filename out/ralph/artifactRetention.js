@@ -593,24 +593,24 @@ async function collectGeneratedArtifactRetentionInspection(input) {
         }
     };
 }
+/**
+ * Pure selection of the provenance bundle ids beyond `retentionCount` that are
+ * not retained (`[]` when `retentionCount <= 0`). Shared by the live cleanup and
+ * the dry-run preview so the two can never drift.
+ */
+function selectDeletableBundleIds(inspection, retentionCount) {
+    if (retentionCount <= 0) {
+        return [];
+    }
+    const retainedIds = new Set(inspection.retainedBundleIds);
+    return inspection.bundleIds.slice(retentionCount).filter((bundleId) => !retainedIds.has(bundleId));
+}
 async function cleanupProvenanceBundles(input) {
     const inspection = await collectProvenanceBundleRetentionInspection(input);
-    if (input.retentionCount <= 0) {
-        return {
-            deletedBundleIds: [],
-            retainedBundleIds: inspection.retainedBundleIds,
-            protectedBundleIds: inspection.protectedBundleIds
-        };
-    }
+    const deletedBundleIds = selectDeletableBundleIds(inspection, input.retentionCount);
     const runsDir = path.join(input.artifactRootDir, 'runs');
-    const retainedIds = new Set(inspection.retainedBundleIds);
-    const deletedBundleIds = [];
-    for (const bundleId of inspection.bundleIds.slice(input.retentionCount)) {
-        if (retainedIds.has(bundleId)) {
-            continue;
-        }
+    for (const bundleId of deletedBundleIds) {
         await fs.rm(path.join(runsDir, bundleId), { recursive: true, force: true });
-        deletedBundleIds.push(bundleId);
     }
     return {
         deletedBundleIds,
@@ -742,16 +742,8 @@ async function previewGeneratedArtifactCleanup(input) {
  */
 async function previewProvenanceBundleCleanup(input) {
     const inspection = await collectProvenanceBundleRetentionInspection(input);
-    if (input.retentionCount <= 0) {
-        return {
-            deletedBundleIds: [],
-            retainedBundleIds: inspection.retainedBundleIds,
-            protectedBundleIds: inspection.protectedBundleIds
-        };
-    }
-    const retainedIds = new Set(inspection.retainedBundleIds);
     return {
-        deletedBundleIds: inspection.bundleIds.slice(input.retentionCount).filter((bundleId) => !retainedIds.has(bundleId)),
+        deletedBundleIds: selectDeletableBundleIds(inspection, input.retentionCount),
         retainedBundleIds: inspection.retainedBundleIds,
         protectedBundleIds: inspection.protectedBundleIds
     };
