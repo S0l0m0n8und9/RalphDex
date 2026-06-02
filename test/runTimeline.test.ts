@@ -87,3 +87,15 @@ test('buildRunTrustTimeline handles an empty journal', () => {
   assert.equal(timeline.entries.length, 0);
   assert.match(renderRunTrustTimelineMarkdown(timeline), /No timeline events/);
 });
+
+test('buildRunTrustTimeline surfaces recovery_applied events in totals and the timeline', () => {
+  const timeline = buildRunTrustTimeline(events(
+    { seq: 1, timestamp: '2026-01-01T00:00:01Z', type: 'run_started', mode: 'loop' },
+    { seq: 2, timestamp: '2026-01-01T00:00:02Z', type: 'recovery_applied', taskId: 'T1', action: 'retry_with_context', severity: 'medium' },
+    { seq: 3, timestamp: '2026-01-01T00:00:03Z', type: 'run_completed', stopReason: 'no_actionable_task' }
+  ));
+  assert.equal(timeline.totals.recoveryActionsApplied, 1);
+  const recoveryEntry = timeline.entries.find((e) => e.kind === 'recovery_applied');
+  assert.ok(recoveryEntry, 'expected a recovery_applied timeline entry');
+  assert.match(recoveryEntry!.summary, /Recovery retry_with_context applied \(severity medium\)/);
+});

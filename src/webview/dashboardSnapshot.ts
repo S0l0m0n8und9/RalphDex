@@ -339,6 +339,7 @@ export interface DashboardRunTimelineSection {
     taskStateChanges: number;
     providerInvocations: number;
     remediationsApplied: number;
+    recoveryActionsApplied: number;
     artifactsWritten: number;
     scmActions: number;
   };
@@ -405,6 +406,7 @@ export function buildRunTimelineSection(input: {
       taskStateChanges: 0,
       providerInvocations: 0,
       remediationsApplied: 0,
+      recoveryActionsApplied: 0,
       artifactsWritten: 0,
       scmActions: 0
     },

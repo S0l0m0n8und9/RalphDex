@@ -35,8 +35,8 @@ export function RunTimelinePanel({ runTimeline }: RunTimelinePanelProps) {
               {intent.autoAppliedRemediations.length > 0 && <Pill label={`auto-remediation: ${intent.autoAppliedRemediations.join(', ')}`} />}
             </div>
             <div style={{ display: 'grid', gap: 2 }}>
-              {intent.notes.map((note, i) => (
-                <div key={i} style={{ fontSize: 11, color: 'var(--dim)' }}>{note}</div>
+              {intent.notes.map((note) => (
+                <div key={note} style={{ fontSize: 11, color: 'var(--dim)' }}>{note}</div>
               ))}
             </div>
           </div>

@@ -55,6 +55,7 @@ function buildRunTimelineSection(input) {
             taskStateChanges: 0,
             providerInvocations: 0,
             remediationsApplied: 0,
+            recoveryActionsApplied: 0,
             artifactsWritten: 0,
             scmActions: 0
         },

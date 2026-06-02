@@ -22,7 +22,7 @@ function section(overrides: Partial<DashboardRunTimelineSection> = {}): Dashboar
     startedAt: '2026-01-01T00:00:00Z',
     completedAt: '2026-01-01T00:01:00Z',
     stopReason: 'no_actionable_task',
-    totals: { taskStateChanges: 2, providerInvocations: 1, remediationsApplied: 1, artifactsWritten: 3, scmActions: 1 },
+    totals: { taskStateChanges: 2, providerInvocations: 1, remediationsApplied: 1, recoveryActionsApplied: 1, artifactsWritten: 3, scmActions: 1 },
     entries: [
       { seq: 4, timestamp: 't4', kind: 'task_state_changed', summary: 'T1: in_progress -> done.', taskId: 'T1' },
       { seq: 1, timestamp: 't1', kind: 'run_started', summary: 'Run started (loop).', taskId: null }
