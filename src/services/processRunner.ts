@@ -336,6 +336,10 @@ function buildProcessLaunch(
     return { command, args, shell };
   }
 
+  if (args.length === 0) {
+    return { command, args, shell };
+  }
+
   return {
     command: buildWindowsShellCommand(command, args),
     args: [],

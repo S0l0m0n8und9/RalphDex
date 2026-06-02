@@ -267,6 +267,9 @@ function buildProcessLaunch(command, args, options) {
     if (process.platform !== 'win32' || !shell) {
         return { command, args, shell };
     }
+    if (args.length === 0) {
+        return { command, args, shell };
+    }
     return {
         command: buildWindowsShellCommand(command, args),
         args: [],
