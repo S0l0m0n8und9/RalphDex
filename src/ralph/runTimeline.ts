@@ -6,7 +6,7 @@ import type {
   RalphVerifierMode,
   AutoApplyRemediationAction
 } from '../config/types';
-import type { RalphAgentRole, RalphStopReason } from './types';
+import type { RalphAgentRole, RalphDiffSummary, RalphStopReason } from './types';
 import type { RalphRuntimeEvent } from './eventJournal';
 
 /**
@@ -134,6 +134,23 @@ export interface RemediationAuditEntry {
   applied: boolean;
 }
 
+export type RunFileChangeSummaryStatus = 'available' | 'missing' | 'unreadable';
+
+export interface RunFileChangeEntry {
+  path: string;
+  changeType: 'added' | 'modified' | 'deleted' | 'changed';
+  relevant: boolean;
+}
+
+export interface RunFileChangeSummary {
+  status: RunFileChangeSummaryStatus;
+  artifactPath: string | null;
+  changedFileCount: number;
+  relevantChangedFileCount: number;
+  files: RunFileChangeEntry[];
+  message: string;
+}
+
 export interface RunTrustTimeline {
   runId: string | null;
   startedAt: string | null;
@@ -145,6 +162,8 @@ export interface RunTrustTimeline {
   remediationAudit: RemediationAuditEntry[];
   /** Relative paths of artifacts written during the run. */
   artifactsWritten: string[];
+  /** File-level repository changes loaded from the run's durable diff summary. */
+  fileChanges: RunFileChangeSummary | null;
   totals: {
     taskStateChanges: number;
     providerInvocations: number;
@@ -152,6 +171,105 @@ export interface RunTrustTimeline {
     recoveryActionsApplied: number;
     artifactsWritten: number;
     scmActions: number;
+  };
+}
+
+export function normalizeRunDiffSummary(candidate: unknown): RalphDiffSummary | null {
+  if (typeof candidate !== 'object' || candidate === null) {
+    return null;
+  }
+  const record = candidate as Record<string, unknown>;
+  if (typeof record.available !== 'boolean' || typeof record.summary !== 'string') {
+    return null;
+  }
+  const changedFiles = Array.isArray(record.changedFiles)
+    ? record.changedFiles.filter((item): item is string => typeof item === 'string')
+    : [];
+  const relevantChangedFiles = Array.isArray(record.relevantChangedFiles)
+    ? record.relevantChangedFiles.filter((item): item is string => typeof item === 'string')
+    : [];
+  const statusTransitions = Array.isArray(record.statusTransitions)
+    ? record.statusTransitions.filter((item): item is string => typeof item === 'string')
+    : [];
+  return {
+    available: record.available,
+    gitAvailable: typeof record.gitAvailable === 'boolean' ? record.gitAvailable : record.available,
+    summary: record.summary,
+    changedFileCount: typeof record.changedFileCount === 'number' && Number.isFinite(record.changedFileCount)
+      ? Math.max(0, Math.floor(record.changedFileCount))
+      : changedFiles.length,
+    relevantChangedFileCount: typeof record.relevantChangedFileCount === 'number' && Number.isFinite(record.relevantChangedFileCount)
+      ? Math.max(0, Math.floor(record.relevantChangedFileCount))
+      : relevantChangedFiles.length,
+    changedFiles,
+    relevantChangedFiles,
+    statusTransitions,
+    suggestedCheckpointRef: typeof record.suggestedCheckpointRef === 'string' ? record.suggestedCheckpointRef : undefined,
+    beforeStatusPath: typeof record.beforeStatusPath === 'string' ? record.beforeStatusPath : undefined,
+    afterStatusPath: typeof record.afterStatusPath === 'string' ? record.afterStatusPath : undefined
+  };
+}
+
+export function buildUnavailableRunFileChangeSummary(input: {
+  status: Exclude<RunFileChangeSummaryStatus, 'available'>;
+  artifactPath?: string | null;
+  message: string;
+}): RunFileChangeSummary {
+  return {
+    status: input.status,
+    artifactPath: input.artifactPath ?? null,
+    changedFileCount: 0,
+    relevantChangedFileCount: 0,
+    files: [],
+    message: input.message
+  };
+}
+
+function changeTypeFromTransition(transition: string | undefined): RunFileChangeEntry['changeType'] {
+  const delimiter = transition?.lastIndexOf(': ') ?? -1;
+  const statusPart = transition && delimiter >= 0 ? transition.slice(delimiter + 2) : transition;
+  const match = statusPart?.match(/^(.*?)\s*->\s*(.*?)$/);
+  const before = match?.[1]?.trim() ?? '';
+  const after = match?.[2]?.trim() ?? '';
+  if (!before && !after) {
+    return 'changed';
+  }
+  if (after === 'clean' || after.includes('D')) {
+    return 'deleted';
+  }
+  if (before === 'clean' && (after.includes('A') || after.includes('??'))) {
+    return 'added';
+  }
+  if (after.includes('M') || before !== after) {
+    return 'modified';
+  }
+  return 'changed';
+}
+
+export function buildRunFileChangeSummary(input: {
+  diffSummary: RalphDiffSummary;
+  artifactPath: string;
+}): RunFileChangeSummary {
+  const relevant = new Set(input.diffSummary.relevantChangedFiles);
+  const transitionByPath = new Map<string, string>();
+  for (const transition of input.diffSummary.statusTransitions) {
+    const delimiter = transition.lastIndexOf(': ');
+    if (delimiter > 0) {
+      transitionByPath.set(transition.slice(0, delimiter), transition);
+    }
+  }
+  const files = input.diffSummary.changedFiles.map((filePath) => ({
+    path: filePath,
+    changeType: changeTypeFromTransition(transitionByPath.get(filePath)),
+    relevant: relevant.has(filePath)
+  }));
+  return {
+    status: 'available',
+    artifactPath: input.artifactPath,
+    changedFileCount: input.diffSummary.changedFileCount,
+    relevantChangedFileCount: input.diffSummary.relevantChangedFileCount,
+    files,
+    message: input.diffSummary.summary
   };
 }
 
@@ -264,7 +382,7 @@ export function buildRunTrustTimeline(events: readonly RalphRuntimeEvent[]): Run
     }
   }
 
-  return { runId, startedAt, completedAt, stopReason, entries, remediationAudit, artifactsWritten, totals };
+  return { runId, startedAt, completedAt, stopReason, entries, remediationAudit, artifactsWritten, fileChanges: null, totals };
 }
 
 // ---------------------------------------------------------------------------

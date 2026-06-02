@@ -22,6 +22,15 @@ function Pill({ label }: { label: string }) {
  */
 export function RunTimelinePanel({ runTimeline }: RunTimelinePanelProps) {
   const { intent, entries, remediationAudit, totals, stopReason, runId } = runTimeline;
+  const fileChanges = runTimeline.fileChanges ?? {
+    status: 'missing' as const,
+    artifactPath: null,
+    changedFileCount: 0,
+    relevantChangedFileCount: 0,
+    files: [],
+    message: 'No durable diff summary was recorded for the latest run.'
+  };
+  const hiddenFileCount = Math.max(0, fileChanges.changedFileCount - fileChanges.files.length);
   return (
     <Card title="Run Trust Timeline" subtitle="Execution intent + what the latest run changed">
       <div style={{ display: 'grid', gap: 12 }}>
@@ -47,6 +56,31 @@ export function RunTimelinePanel({ runTimeline }: RunTimelinePanelProps) {
             ? `Latest run ${runId}${stopReason ? ` · stop: ${stopReason}` : ''} · ${totals.taskStateChanges} task changes, ${totals.remediationsApplied} remediations applied, ${totals.scmActions} SCM actions, ${totals.artifactsWritten} artifacts`
             : 'No run has been recorded yet.'}
         </div>
+
+        {runId && (
+          <div style={{ display: 'grid', gap: 4, borderTop: '1px solid var(--border)', paddingTop: 8 }}>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ fontSize: 11, color: 'var(--dim)', fontWeight: 600 }}>Repository file changes</span>
+              <Pill label={fileChanges.status} />
+              <Pill label={`${fileChanges.relevantChangedFileCount}/${fileChanges.changedFileCount} relevant`} />
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--dim)' }}>{fileChanges.message}</div>
+            {fileChanges.files.length > 0 && (
+              <div style={{ display: 'grid', gap: 3 }}>
+                {fileChanges.files.map((file) => (
+                  <div key={file.path} style={{ display: 'grid', gridTemplateColumns: '72px minmax(0, 1fr) auto', gap: 8, alignItems: 'baseline', fontSize: 11 }}>
+                    <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--dim)' }}>{file.changeType}</span>
+                    <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--fg)', overflowWrap: 'anywhere' }}>{file.path}</span>
+                    <span style={{ color: file.relevant ? 'var(--ok)' : 'var(--dim)' }}>{file.relevant ? 'relevant' : 'managed'}</span>
+                  </div>
+                ))}
+                {hiddenFileCount > 0 && (
+                  <div style={{ fontSize: 11, color: 'var(--dim)' }}>+{hiddenFileCount} more file{hiddenFileCount === 1 ? '' : 's'}</div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {entries.length > 0 && (
           <div style={{ display: 'grid', gap: 4 }}>

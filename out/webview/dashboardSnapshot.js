@@ -11,13 +11,14 @@
  * so callers can always render a valid (possibly empty) dashboard.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DASHBOARD_TIMELINE_ENTRY_CAP = void 0;
+exports.DASHBOARD_FILE_CHANGE_CAP = exports.DASHBOARD_TIMELINE_ENTRY_CAP = void 0;
 exports.buildRunTimelineSection = buildRunTimelineSection;
 exports.buildDashboardSnapshot = buildDashboardSnapshot;
 const multiAgentStatus_1 = require("../ralph/multiAgentStatus");
 const doctrine_1 = require("../ralph/doctrine");
 /** Max timeline entries surfaced in the dashboard (most recent first). */
 exports.DASHBOARD_TIMELINE_ENTRY_CAP = 40;
+exports.DASHBOARD_FILE_CHANGE_CAP = 12;
 /**
  * Projects the pre-run intent + post-run trust timeline (issue #73) into a
  * dashboard section. Returns null when neither is available.
@@ -62,7 +63,32 @@ function buildRunTimelineSection(input) {
         entries,
         // Cap like `entries` so a long run with many remediations can't produce an
         // unbounded dashboard payload; keep the most recent.
-        remediationAudit: (timeline?.remediationAudit ?? []).slice(-exports.DASHBOARD_TIMELINE_ENTRY_CAP)
+        remediationAudit: (timeline?.remediationAudit ?? []).slice(-exports.DASHBOARD_TIMELINE_ENTRY_CAP),
+        fileChanges: buildRunFileChangeSection(timeline?.fileChanges ?? null)
+    };
+}
+function buildRunFileChangeSection(fileChanges) {
+    if (!fileChanges) {
+        return {
+            status: 'missing',
+            artifactPath: null,
+            changedFileCount: 0,
+            relevantChangedFileCount: 0,
+            files: [],
+            message: 'No durable diff summary was recorded for the latest run.'
+        };
+    }
+    return {
+        status: fileChanges.status,
+        artifactPath: fileChanges.artifactPath,
+        changedFileCount: fileChanges.changedFileCount,
+        relevantChangedFileCount: fileChanges.relevantChangedFileCount,
+        files: fileChanges.files.slice(0, exports.DASHBOARD_FILE_CHANGE_CAP).map((file) => ({
+            path: file.path,
+            changeType: file.changeType,
+            relevant: file.relevant
+        })),
+        message: fileChanges.message
     };
 }
 // ---------------------------------------------------------------------------

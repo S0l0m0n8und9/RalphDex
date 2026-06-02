@@ -20,7 +20,7 @@ import type { DeadLetterEntry } from '../ralph/deadLetter';
 import type { FailureCategoryId, PromptCacheStats, RalphTaskCounts } from '../ralph/types';
 import type { PipelineRunStatus, PipelinePhase } from '../ralph/pipeline';
 import { DOCTRINE_ROOT_RELATIVE } from '../ralph/doctrine';
-import type { ExecutionIntentPreview, RunTrustTimeline } from '../ralph/runTimeline';
+import type { ExecutionIntentPreview, RunFileChangeEntry, RunFileChangeSummary, RunTrustTimeline } from '../ralph/runTimeline';
 
 // ---------------------------------------------------------------------------
 // Task board
@@ -353,6 +353,21 @@ export interface DashboardRemediationAuditEntry {
   applied: boolean;
 }
 
+export interface DashboardRunFileChangeEntry {
+  path: string;
+  changeType: RunFileChangeEntry['changeType'];
+  relevant: boolean;
+}
+
+export interface DashboardRunFileChangeSection {
+  status: 'available' | 'missing' | 'unreadable';
+  artifactPath: string | null;
+  changedFileCount: number;
+  relevantChangedFileCount: number;
+  files: DashboardRunFileChangeEntry[];
+  message: string;
+}
+
 export interface DashboardRunTimelineSection {
   /** Pre-run intent: what Ralph may change before an autonomous/full-workflow run. */
   intent: DashboardExecutionIntent | null;
@@ -372,10 +387,12 @@ export interface DashboardRunTimelineSection {
   /** Most-recent-first, capped for display. */
   entries: DashboardTimelineEntry[];
   remediationAudit: DashboardRemediationAuditEntry[];
+  fileChanges?: DashboardRunFileChangeSection;
 }
 
 /** Max timeline entries surfaced in the dashboard (most recent first). */
 export const DASHBOARD_TIMELINE_ENTRY_CAP = 40;
+export const DASHBOARD_FILE_CHANGE_CAP = 12;
 
 export interface DashboardSnapshot {
   workspaceName: string;
@@ -440,7 +457,33 @@ export function buildRunTimelineSection(input: {
     entries,
     // Cap like `entries` so a long run with many remediations can't produce an
     // unbounded dashboard payload; keep the most recent.
-    remediationAudit: (timeline?.remediationAudit ?? []).slice(-DASHBOARD_TIMELINE_ENTRY_CAP)
+    remediationAudit: (timeline?.remediationAudit ?? []).slice(-DASHBOARD_TIMELINE_ENTRY_CAP),
+    fileChanges: buildRunFileChangeSection(timeline?.fileChanges ?? null)
+  };
+}
+
+function buildRunFileChangeSection(fileChanges: RunFileChangeSummary | null): DashboardRunFileChangeSection {
+  if (!fileChanges) {
+    return {
+      status: 'missing',
+      artifactPath: null,
+      changedFileCount: 0,
+      relevantChangedFileCount: 0,
+      files: [],
+      message: 'No durable diff summary was recorded for the latest run.'
+    };
+  }
+  return {
+    status: fileChanges.status,
+    artifactPath: fileChanges.artifactPath,
+    changedFileCount: fileChanges.changedFileCount,
+    relevantChangedFileCount: fileChanges.relevantChangedFileCount,
+    files: fileChanges.files.slice(0, DASHBOARD_FILE_CHANGE_CAP).map((file) => ({
+      path: file.path,
+      changeType: file.changeType,
+      relevant: file.relevant
+    })),
+    message: fileChanges.message
   };
 }
 

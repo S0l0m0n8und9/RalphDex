@@ -2,7 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   buildExecutionIntentPreview,
+  buildRunFileChangeSummary,
   buildRunTrustTimeline,
+  buildUnavailableRunFileChangeSummary,
+  normalizeRunDiffSummary,
   renderExecutionIntentPreviewMarkdown,
   renderRunTrustTimelineMarkdown,
   type ExecutionIntentConfig
@@ -68,6 +71,7 @@ test('buildRunTrustTimeline folds the journal into entries, totals, and remediat
   assert.equal(timeline.totals.scmActions, 1);
   assert.equal(timeline.totals.artifactsWritten, 1);
   assert.deepEqual(timeline.artifactsWritten, ['iteration-001/iteration-result.json']);
+  assert.equal(timeline.fileChanges, null);
 
   // artifact_written is folded into totals only (not a timeline entry); the rest are entries.
   assert.ok(!timeline.entries.some((e) => e.kind === 'artifact_written'));
@@ -98,4 +102,53 @@ test('buildRunTrustTimeline surfaces recovery_applied events in totals and the t
   const recoveryEntry = timeline.entries.find((e) => e.kind === 'recovery_applied');
   assert.ok(recoveryEntry, 'expected a recovery_applied timeline entry');
   assert.match(recoveryEntry!.summary, /Recovery retry_with_context applied \(severity medium\)/);
+});
+
+test('normalizeRunDiffSummary rejects malformed durable diff artifacts', () => {
+  assert.equal(normalizeRunDiffSummary(null), null);
+  assert.equal(normalizeRunDiffSummary({ available: true, summary: 7 }), null);
+});
+
+test('buildRunFileChangeSummary labels changed files by durable status transition', () => {
+  const summary = buildRunFileChangeSummary({
+    artifactPath: '/workspace/.ralph/artifacts/iteration-001/diff-summary.json',
+    diffSummary: {
+      available: true,
+      gitAvailable: true,
+      summary: 'Detected 3 relevant changed file(s) out of 4 total changes.',
+      changedFileCount: 4,
+      relevantChangedFileCount: 3,
+      changedFiles: ['src/new.ts', 'src/old.ts', 'src/edit.ts', '.ralph/tasks.json'],
+      relevantChangedFiles: ['src/new.ts', 'src/old.ts', 'src/edit.ts'],
+      statusTransitions: [
+        'src/new.ts: clean -> ??',
+        'src/old.ts: M -> clean',
+        'src/edit.ts: clean -> M',
+        '.ralph/tasks.json: clean -> M'
+      ]
+    }
+  });
+
+  assert.equal(summary.status, 'available');
+  assert.equal(summary.files.find((file) => file.path === 'src/new.ts')?.changeType, 'added');
+  assert.equal(summary.files.find((file) => file.path === 'src/old.ts')?.changeType, 'deleted');
+  assert.equal(summary.files.find((file) => file.path === 'src/edit.ts')?.changeType, 'modified');
+  assert.equal(summary.files.find((file) => file.path === '.ralph/tasks.json')?.relevant, false);
+});
+
+test('buildUnavailableRunFileChangeSummary records missing and unreadable states', () => {
+  const missing = buildUnavailableRunFileChangeSummary({
+    status: 'missing',
+    message: 'No durable diff summary was recorded for the latest run.'
+  });
+  assert.equal(missing.status, 'missing');
+  assert.equal(missing.artifactPath, null);
+
+  const unreadable = buildUnavailableRunFileChangeSummary({
+    status: 'unreadable',
+    artifactPath: '/workspace/.ralph/artifacts/iteration-001/diff-summary.json',
+    message: 'Unable to read latest run diff summary: ENOENT'
+  });
+  assert.equal(unreadable.status, 'unreadable');
+  assert.match(unreadable.message, /ENOENT/);
 });
