@@ -9,10 +9,21 @@ import { resolveRalphPaths, RalphPaths } from './pathResolver';
 import {
   cleanupGeneratedArtifacts,
   cleanupProvenanceBundles,
+  previewGeneratedArtifactCleanup,
+  previewProvenanceBundleCleanup,
+  repairLatestArtifactSurfaces,
+  writeCleanupManifestArtifact,
   RalphGeneratedArtifactRetentionSummary,
+  RalphLatestArtifactRepairSummary,
   RalphProvenanceRetentionSummary
 } from './artifactStore';
-import { reconcileArtifactRegistry } from './artifactRegistry';
+import { reconcileArtifactRegistry, resolveArtifactRegistryPath } from './artifactRegistry';
+import {
+  CLEANUP_MANIFEST_SCHEMA_VERSION,
+  type CleanupManifestMode,
+  type CleanupRegistryStatus,
+  type RalphCleanupManifest
+} from './cleanupManifest';
 import {
   countTaskStatuses,
   createDefaultTaskFile,
@@ -585,11 +596,64 @@ export interface RalphRuntimeArtifactCleanupSummary {
   generatedArtifacts: RalphGeneratedArtifactRetentionSummary;
   provenanceBundles: RalphProvenanceRetentionSummary;
   deletedLogFiles: string[];
+  /** Audit manifest of what was deleted/retained/protected/repaired (issue #72). */
+  manifest: RalphCleanupManifest;
 }
 
 export interface RalphRuntimeArtifactCleanupResult {
   snapshot: RalphWorkspaceSnapshot;
   cleanup: RalphRuntimeArtifactCleanupSummary;
+}
+
+/** Retention window kept by "Clean Up Old Run Artifacts" (newest N per category). */
+const RUNTIME_CLEANUP_RETENTION_COUNT = 1;
+
+/** Maps retention summaries + integrity/registry results into a cleanup manifest (issue #72). */
+function buildCleanupManifest(input: {
+  mode: CleanupManifestMode;
+  retentionCount: number;
+  createdAt: string;
+  generated: RalphGeneratedArtifactRetentionSummary;
+  provenance: RalphProvenanceRetentionSummary;
+  deletedLogFiles: string[];
+  pointerIntegrity: RalphLatestArtifactRepairSummary;
+  registryStatus: CleanupRegistryStatus;
+  registryReconciledEntryCount: number;
+}): RalphCleanupManifest {
+  return {
+    schemaVersion: CLEANUP_MANIFEST_SCHEMA_VERSION,
+    kind: 'cleanupManifest',
+    mode: input.mode,
+    createdAt: input.createdAt,
+    retentionCount: input.retentionCount,
+    deleted: {
+      iterationDirectories: input.generated.deletedIterationDirectories,
+      promptFiles: input.generated.deletedPromptFiles,
+      runArtifactBaseNames: input.generated.deletedRunArtifactBaseNames,
+      handoffFiles: input.generated.deletedHandoffFiles ?? [],
+      watchdogFiles: input.generated.deletedWatchdogFiles ?? []
+    },
+    retained: {
+      iterationDirectories: input.generated.retainedIterationDirectories,
+      promptFiles: input.generated.retainedPromptFiles,
+      runArtifactBaseNames: input.generated.retainedRunArtifactBaseNames,
+      protectedIterationDirectories: input.generated.protectedRetainedIterationDirectories,
+      protectedPromptFiles: input.generated.protectedRetainedPromptFiles,
+      protectedRunArtifactBaseNames: input.generated.protectedRetainedRunArtifactBaseNames
+    },
+    provenanceBundles: {
+      deletedBundleIds: input.provenance.deletedBundleIds,
+      retainedBundleIds: input.provenance.retainedBundleIds,
+      protectedBundleIds: input.provenance.protectedBundleIds
+    },
+    deletedLogFiles: input.deletedLogFiles,
+    pointerIntegrity: {
+      repairedLatestArtifactPaths: input.pointerIntegrity.repairedLatestArtifactPaths,
+      staleLatestArtifactPaths: input.pointerIntegrity.staleLatestArtifactPaths
+    },
+    registryStatus: input.registryStatus,
+    registryReconciledEntryCount: input.registryReconciledEntryCount
+  };
 }
 
 export class RalphStateManager {
@@ -936,14 +1000,18 @@ export class RalphStateManager {
 
     await fs.rm(paths.logDir, { recursive: true, force: true });
 
+    const registryExisted = await pathExists(resolveArtifactRegistryPath(paths.artifactDir));
+
     // Cleanup deletes iteration directories and provenance bundles, which leaves
     // stale entries in the canonical artifact registry. Reconcile the index so it
     // stays consistent with what remains on disk (issue #69). Best-effort: a
     // failure here must not abort cleanup.
+    let registryReconciledEntryCount = 0;
     try {
       const { removed } = await reconcileArtifactRegistry(paths.artifactDir, {
         warn: (message) => this.logger.warn(message)
       });
+      registryReconciledEntryCount = removed.length;
       if (removed.length > 0) {
         this.logger.info('Reconciled the artifact registry after cleanup.', {
           removedEntryCount: removed.length
@@ -955,14 +1023,92 @@ export class RalphStateManager {
       });
     }
 
+    // Repair latest-pointer surfaces so navigational evidence (latest-summary,
+    // preflight, provenance) is regenerated or flagged stale after pruning (issue #72).
+    let pointerIntegrity: RalphLatestArtifactRepairSummary = {
+      repairedLatestArtifactPaths: [],
+      staleLatestArtifactPaths: []
+    };
+    try {
+      pointerIntegrity = await repairLatestArtifactSurfaces(paths.artifactDir);
+    } catch (error) {
+      this.logger.warn('Failed to repair latest-artifact pointers after cleanup.', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+
+    const manifest = buildCleanupManifest({
+      mode: 'applied',
+      retentionCount: RUNTIME_CLEANUP_RETENTION_COUNT,
+      createdAt: new Date().toISOString(),
+      generated: generatedArtifacts,
+      provenance: provenanceBundles,
+      deletedLogFiles,
+      pointerIntegrity,
+      registryStatus: registryExisted ? 'present' : 'absent',
+      registryReconciledEntryCount
+    });
+
+    // Persist the manifest as durable audit evidence. Best-effort: a write failure
+    // must not abort cleanup, which already completed above.
+    try {
+      await writeCleanupManifestArtifact(paths.artifactDir, manifest);
+    } catch (error) {
+      this.logger.warn('Failed to write the cleanup manifest artifact.', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+
     return {
       snapshot: await this.ensureWorkspace(rootPath, config),
       cleanup: {
         generatedArtifacts,
         provenanceBundles,
-        deletedLogFiles
+        deletedLogFiles,
+        manifest
       }
     };
+  }
+
+  /**
+   * Dry-run of {@link cleanupRuntimeArtifacts}: returns the manifest of what
+   * *would* be deleted/retained/protected without touching disk (issue #72).
+   * Pointer integrity is left empty because preview performs no writes.
+   */
+  public async previewRuntimeArtifactCleanup(
+    rootPath: string,
+    config: RalphCodexConfig
+  ): Promise<RalphCleanupManifest> {
+    const paths = this.resolvePaths(rootPath, config);
+    const [deletedLogFiles, generatedArtifacts, provenanceBundles, registryExisted] = await Promise.all([
+      fs.readdir(paths.logDir).catch(() => []),
+      previewGeneratedArtifactCleanup({
+        artifactRootDir: paths.artifactDir,
+        promptDir: paths.promptDir,
+        runDir: paths.runDir,
+        handoffDir: paths.handoffDir,
+        stateFilePath: paths.stateFilePath,
+        retentionCount: RUNTIME_CLEANUP_RETENTION_COUNT,
+        protectionScope: 'currentAndLatest'
+      }),
+      previewProvenanceBundleCleanup({
+        artifactRootDir: paths.artifactDir,
+        retentionCount: RUNTIME_CLEANUP_RETENTION_COUNT
+      }),
+      pathExists(resolveArtifactRegistryPath(paths.artifactDir))
+    ]);
+
+    return buildCleanupManifest({
+      mode: 'preview',
+      retentionCount: RUNTIME_CLEANUP_RETENTION_COUNT,
+      createdAt: new Date().toISOString(),
+      generated: generatedArtifacts,
+      provenance: provenanceBundles,
+      deletedLogFiles,
+      pointerIntegrity: { repairedLatestArtifactPaths: [], staleLatestArtifactPaths: [] },
+      registryStatus: registryExisted ? 'present' : 'absent',
+      registryReconciledEntryCount: 0
+    });
   }
 
   public isDefaultObjective(text: string): boolean {

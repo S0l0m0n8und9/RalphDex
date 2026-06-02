@@ -9,6 +9,7 @@ import {
   type ArtifactRelationships,
   type ArtifactRetentionClass
 } from './artifactRegistry';
+import { renderCleanupManifestMarkdown, type RalphCleanupManifest } from './cleanupManifest';
 import {
   resolveOrchestrationPaths as resolveSupervisorOrchestrationPaths,
   type OrchestrationArtifactPaths as SupervisorOrchestrationArtifactPaths
@@ -927,6 +928,38 @@ export async function registerIterationArtifactSet(input: {
     }));
 
   await registerArtifacts(input.artifactRootDir, entries, { warn: input.warn });
+}
+
+export interface RalphCleanupManifestPaths {
+  jsonPath: string;
+  markdownPath: string;
+}
+
+/** Resolves the cleanup-manifest artifact locations at the artifacts root. */
+export function resolveCleanupManifestPaths(artifactRootDir: string): RalphCleanupManifestPaths {
+  return {
+    jsonPath: path.join(artifactRootDir, 'cleanup-manifest.json'),
+    markdownPath: path.join(artifactRootDir, 'cleanup-manifest.md')
+  };
+}
+
+/**
+ * Persists a cleanup manifest (issue #72) at the artifacts root as JSON plus a
+ * human-readable markdown summary. Written after the cleanup it describes, so the
+ * manifest itself is never deleted by that cleanup (it is a root-level file, not
+ * an iteration directory or bundle).
+ */
+export async function writeCleanupManifestArtifact(
+  artifactRootDir: string,
+  manifest: RalphCleanupManifest
+): Promise<RalphCleanupManifestPaths> {
+  const paths = resolveCleanupManifestPaths(artifactRootDir);
+  await fs.mkdir(artifactRootDir, { recursive: true });
+  await Promise.all([
+    fs.writeFile(paths.jsonPath, stableJson(manifest), 'utf8'),
+    fs.writeFile(paths.markdownPath, `${renderCleanupManifestMarkdown(manifest).trimEnd()}\n`, 'utf8')
+  ]);
+  return paths;
 }
 
 export async function writeWatchdogDiagnosticArtifact(input: {

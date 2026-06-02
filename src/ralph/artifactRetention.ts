@@ -871,6 +871,97 @@ export async function inspectProvenanceBundleRetention(input: {
   };
 }
 
+/**
+ * Pure selection: of `ordered` (newest-first), the entries beyond `retentionCount`
+ * that are not retained and pass the optional `guard`. Returns `[]` when
+ * `retentionCount <= 0` (retain everything). Shared by the live cleanup and the
+ * dry-run preview so the two can never drift.
+ */
+function selectDeletableEntries<T>(
+  ordered: readonly T[],
+  retentionCount: number,
+  retained: ReadonlySet<string>,
+  nameOf: (entry: T) => string,
+  guard?: (entry: T) => boolean
+): T[] {
+  if (retentionCount <= 0) {
+    return [];
+  }
+  return ordered
+    .slice(retentionCount)
+    .filter((entry) => !retained.has(nameOf(entry)) && (!guard || guard(entry)));
+}
+
+/**
+ * Computes the generated-artifact cleanup plan (what would be deleted/retained/
+ * protected) from an inspection, without touching disk. `cleanupGeneratedArtifacts`
+ * executes this exact plan; `previewGeneratedArtifactCleanup` returns it unexecuted.
+ */
+function buildGeneratedArtifactCleanupPlan(
+  inspection: RalphGeneratedArtifactRetentionInspection,
+  retentionCount: number,
+  includeHandoff: boolean
+): RalphGeneratedArtifactRetentionSummary {
+  const summary: RalphGeneratedArtifactRetentionSummary = {
+    // Iteration directories carry the iteration-NNN guard so non-iteration
+    // directories (parentTaskId/, runs/, watchdog/, orchestration/) are never deleted.
+    deletedIterationDirectories: selectDeletableEntries(
+      inspection.iterationDirectories,
+      retentionCount,
+      inspection.iterationDirectoryDecision.retainedNames,
+      (entry) => entry.name,
+      (entry) => parseIterationDirectoryName(entry.name) !== null
+    ).map((entry) => entry.name),
+    retainedIterationDirectories: inspection.iterationDirectories
+      .filter((entry) => inspection.iterationDirectoryDecision.retainedNames.has(entry.name))
+      .map((entry) => entry.name),
+    protectedRetainedIterationDirectories: inspection.iterationDirectoryDecision.protectedRetainedNames,
+    deletedPromptFiles: selectDeletableEntries(
+      inspection.promptFiles,
+      retentionCount,
+      inspection.promptFileDecision.retainedNames,
+      (entry) => entry.name
+    ).map((entry) => entry.name),
+    retainedPromptFiles: inspection.promptFiles
+      .filter((entry) => inspection.promptFileDecision.retainedNames.has(entry.name))
+      .map((entry) => entry.name),
+    protectedRetainedPromptFiles: inspection.promptFileDecision.protectedRetainedNames,
+    deletedRunArtifactBaseNames: selectDeletableEntries(
+      inspection.runArtifacts,
+      retentionCount,
+      inspection.runArtifactDecision.retainedNames,
+      (entry) => entry.baseName
+    ).map((entry) => entry.baseName),
+    retainedRunArtifactBaseNames: inspection.runArtifacts
+      .filter((entry) => inspection.runArtifactDecision.retainedNames.has(entry.baseName))
+      .map((entry) => entry.baseName),
+    protectedRetainedRunArtifactBaseNames: inspection.runArtifactDecision.protectedRetainedNames,
+    deletedWatchdogFiles: selectDeletableEntries(
+      inspection.watchdogFiles,
+      retentionCount,
+      inspection.watchdogFileDecision.retainedNames,
+      (entry) => entry.name
+    ).map((entry) => entry.name),
+    retainedWatchdogFiles: inspection.watchdogFiles
+      .filter((entry) => inspection.watchdogFileDecision.retainedNames.has(entry.name))
+      .map((entry) => entry.name)
+  };
+
+  if (includeHandoff) {
+    summary.deletedHandoffFiles = selectDeletableEntries(
+      inspection.handoffFiles,
+      retentionCount,
+      inspection.handoffFileDecision.retainedNames,
+      (entry) => entry.name
+    ).map((entry) => entry.name);
+    summary.retainedHandoffFiles = inspection.handoffFiles
+      .filter((entry) => inspection.handoffFileDecision.retainedNames.has(entry.name))
+      .map((entry) => entry.name);
+  }
+
+  return summary;
+}
+
 export async function cleanupGeneratedArtifacts(input: {
   artifactRootDir: string;
   promptDir: string;
@@ -902,96 +993,77 @@ export async function cleanupGeneratedArtifacts(input: {
     return summary;
   }
   const inspection = await collectGeneratedArtifactRetentionInspection(input);
+  const plan = buildGeneratedArtifactCleanupPlan(inspection, input.retentionCount, Boolean(input.handoffDir));
 
-  const retainedIterationDirectories = inspection.iterationDirectoryDecision.retainedNames;
-  const deletedIterationDirectories: string[] = [];
-  for (const entry of inspection.iterationDirectories.slice(input.retentionCount)) {
-    if (retainedIterationDirectories.has(entry.name)) {
-      continue;
-    }
-    // Safety guard: only delete directories that match the iteration-NNN pattern.
-    // Non-iteration directories (e.g. parentTaskId/, runs/, watchdog/, orchestration/)
-    // are never present in iterationDirectories, but this check makes the invariant explicit.
-    if (!parseIterationDirectoryName(entry.name)) {
-      continue;
-    }
-    await fs.rm(path.join(input.artifactRootDir, entry.name), { recursive: true, force: true });
-    deletedIterationDirectories.push(entry.name);
+  // Execute the plan. Each loop deletes exactly the entries the plan selected, so
+  // the returned summary == the plan a preview would have reported.
+  for (const name of plan.deletedIterationDirectories) {
+    await fs.rm(path.join(input.artifactRootDir, name), { recursive: true, force: true });
   }
-
-  const retainedPromptFiles = inspection.promptFileDecision.retainedNames;
-  const deletedPromptFiles: string[] = [];
-  for (const entry of inspection.promptFiles.slice(input.retentionCount)) {
-    if (retainedPromptFiles.has(entry.name)) {
-      continue;
-    }
-    await fs.rm(path.join(input.promptDir, entry.name), { force: true });
-    deletedPromptFiles.push(entry.name);
+  for (const name of plan.deletedPromptFiles) {
+    await fs.rm(path.join(input.promptDir, name), { force: true });
   }
-
-  const retainedRunArtifactBaseNames = inspection.runArtifactDecision.retainedNames;
-  const deletedRunArtifactBaseNames: string[] = [];
-  for (const entry of inspection.runArtifacts.slice(input.retentionCount)) {
-    if (retainedRunArtifactBaseNames.has(entry.baseName)) {
-      continue;
+  const runArtifactsByBaseName = new Map(inspection.runArtifacts.map((entry) => [entry.baseName, entry]));
+  for (const baseName of plan.deletedRunArtifactBaseNames) {
+    const entry = runArtifactsByBaseName.get(baseName);
+    if (entry) {
+      await Promise.all(entry.fileNames.map((fileName) => fs.rm(path.join(input.runDir, fileName), { force: true })));
     }
-    await Promise.all(entry.fileNames.map((fileName) => fs.rm(path.join(input.runDir, fileName), { force: true })));
-    deletedRunArtifactBaseNames.push(entry.baseName);
   }
-
-  const summary: RalphGeneratedArtifactRetentionSummary = {
-    deletedIterationDirectories,
-    retainedIterationDirectories: inspection.iterationDirectories
-      .filter((entry) => inspection.iterationDirectoryDecision.retainedNames.has(entry.name))
-      .map((entry) => entry.name),
-    protectedRetainedIterationDirectories: inspection.iterationDirectoryDecision.protectedRetainedNames,
-    deletedPromptFiles,
-    retainedPromptFiles: inspection.promptFiles
-      .filter((entry) => inspection.promptFileDecision.retainedNames.has(entry.name))
-      .map((entry) => entry.name),
-    protectedRetainedPromptFiles: inspection.promptFileDecision.protectedRetainedNames,
-    deletedRunArtifactBaseNames,
-    retainedRunArtifactBaseNames: inspection.runArtifacts
-      .filter((entry) => inspection.runArtifactDecision.retainedNames.has(entry.baseName))
-      .map((entry) => entry.baseName),
-    protectedRetainedRunArtifactBaseNames: inspection.runArtifactDecision.protectedRetainedNames
-  };
-
   if (input.handoffDir) {
-    const retainedHandoffFiles = inspection.handoffFileDecision.retainedNames;
-    const deletedHandoffFiles: string[] = [];
-    for (const entry of inspection.handoffFiles.slice(input.retentionCount)) {
-      if (retainedHandoffFiles.has(entry.name)) {
-        continue;
-      }
-      await fs.rm(path.join(input.handoffDir, entry.name), { force: true });
-      deletedHandoffFiles.push(entry.name);
+    for (const name of plan.deletedHandoffFiles ?? []) {
+      await fs.rm(path.join(input.handoffDir, name), { force: true });
     }
-
-    summary.deletedHandoffFiles = deletedHandoffFiles;
-    summary.retainedHandoffFiles = inspection.handoffFiles
-      .filter((entry) => retainedHandoffFiles.has(entry.name))
-      .map((entry) => entry.name);
   }
-
   const watchdogDir = path.join(input.artifactRootDir, 'watchdog');
-  const retainedWatchdogFiles = inspection.watchdogFileDecision.retainedNames;
-  const deletedWatchdogFiles: string[] = [];
-  for (const entry of inspection.watchdogFiles.slice(input.retentionCount)) {
-    if (retainedWatchdogFiles.has(entry.name)) {
-      continue;
-    }
-    await fs.rm(path.join(watchdogDir, entry.name), { force: true });
-    deletedWatchdogFiles.push(entry.name);
+  for (const name of plan.deletedWatchdogFiles ?? []) {
+    await fs.rm(path.join(watchdogDir, name), { force: true });
   }
-  summary.deletedWatchdogFiles = deletedWatchdogFiles;
-  summary.retainedWatchdogFiles = inspection.watchdogFiles
-    .filter((entry) => retainedWatchdogFiles.has(entry.name))
-    .map((entry) => entry.name);
 
   await cleanupStaleLatestProvenanceFailurePointer(input.artifactRootDir);
 
-  return summary;
+  return plan;
+}
+
+/**
+ * Dry-run of {@link cleanupGeneratedArtifacts}: returns the same summary shape
+ * with `deleted*` populated with what *would* be deleted, without touching disk.
+ */
+export async function previewGeneratedArtifactCleanup(input: {
+  artifactRootDir: string;
+  promptDir: string;
+  runDir: string;
+  handoffDir?: string;
+  stateFilePath: string;
+  retentionCount: number;
+  protectionScope?: RalphGeneratedArtifactProtectionScope;
+}): Promise<RalphGeneratedArtifactRetentionSummary> {
+  const inspection = await collectGeneratedArtifactRetentionInspection(input);
+  return buildGeneratedArtifactCleanupPlan(inspection, input.retentionCount, Boolean(input.handoffDir));
+}
+
+/**
+ * Dry-run of {@link cleanupProvenanceBundles}: returns the bundle ids that would
+ * be deleted (mirroring the cleanup selection) without touching disk.
+ */
+export async function previewProvenanceBundleCleanup(input: {
+  artifactRootDir: string;
+  retentionCount: number;
+}): Promise<RalphProvenanceRetentionSummary> {
+  const inspection = await collectProvenanceBundleRetentionInspection(input);
+  if (input.retentionCount <= 0) {
+    return {
+      deletedBundleIds: [],
+      retainedBundleIds: inspection.retainedBundleIds,
+      protectedBundleIds: inspection.protectedBundleIds
+    };
+  }
+  const retainedIds = new Set(inspection.retainedBundleIds);
+  return {
+    deletedBundleIds: inspection.bundleIds.slice(input.retentionCount).filter((bundleId) => !retainedIds.has(bundleId)),
+    retainedBundleIds: inspection.retainedBundleIds,
+    protectedBundleIds: inspection.protectedBundleIds
+  };
 }
 
 export async function inspectGeneratedArtifactRetention(input: {
