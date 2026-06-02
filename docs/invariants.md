@@ -276,6 +276,8 @@ The canonical artifact registry at `.ralph/artifacts/index.json` is an **additiv
 
 "Clean Up Old Run Artifacts" must be explainable and auditable (issue #72). Its destructive selection is computed once by a shared deletion-plan helper, so the dry-run preview (`previewRuntimeArtifactCleanup`) reports exactly what the apply path (`cleanupRuntimeArtifacts`) will delete — the two cannot drift. Every applied cleanup writes a durable `cleanup-manifest.json`/`.md` recording deleted/retained/protected artifacts, deleted logs, latest-pointer repairs, and registry reconciliation; the manifest is written after deletion and is never itself pruned. Cleanup also repairs latest-pointer surfaces (`repairLatestArtifactSurfaces`) so navigational evidence stays valid, while preserving durable state, the PRD/progress/task files, and the latest evidence pointers.
 
+PRD ↔ backlog reconciliation (issue #71) is **proposal-only**: it detects drift between `.ralph/prd.md` and `.ralph/tasks.json` and writes a reviewable `prd-reconciliation.json`/`.md` artifact, but it must never mutate `.ralph/tasks.json`. The checks are conservative so a healthy workspace produces zero findings; it deliberately does not flag done tasks the PRD acknowledges as closed (that needs prose understanding the deterministic engine does not attempt).
+
 Stable latest pointers are part of the operator interface and must stay current:
 
 - `latest-summary.md` and `latest-result.json`

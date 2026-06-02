@@ -39,9 +39,11 @@ import {
 import {
   resolveCleanupManifestPaths,
   writeDoctrineProposalReviewArtifact,
+  writePrdReconciliationProposal,
   writeUpdatedDoctrineProposalArtifact
 } from '../ralph/artifactStore';
 import { totalDeletedCount } from '../ralph/cleanupManifest';
+import { analyzePrdBacklogReconciliation } from '../ralph/prdReconciliation';
 import type { DoctrineProposalArtifact, DoctrineProposalReviewArtifact } from '../ralph/doctrineProposals';
 import { applyDoctrineProposal, detectProtectedTargets } from '../ralph/doctrineProposalApply';
 
@@ -674,7 +676,39 @@ export function registerArtifactAndMaintenanceCommands(
       progress.report({ message: 'Collecting workspace and Ralph status' });
       const workspaceFolder = await withWorkspaceFolder();
       const status = await collectStatusSnapshot(workspaceFolder, stateManager, logger);
-      const report = buildStatusReport(status);
+      let report = buildStatusReport(status);
+
+      // PRD/backlog reconciliation (issue #71): detect drift between .ralph/prd.md
+      // and .ralph/tasks.json, write a review-only proposal artifact, and append a
+      // compact section to the status report. Best-effort: never block status.
+      try {
+        const prdPath = path.join(path.dirname(status.taskFilePath), 'prd.md');
+        const [prdText, taskFileText] = await Promise.all([
+          fs.readFile(prdPath, 'utf8').catch(() => ''),
+          fs.readFile(status.taskFilePath, 'utf8').catch(() => '')
+        ]);
+        if (prdText && taskFileText) {
+          const proposal = analyzePrdBacklogReconciliation({
+            prdText,
+            taskFile: parseTaskFile(taskFileText),
+            generatedAt: new Date().toISOString()
+          });
+          const reconciliationPaths = await writePrdReconciliationProposal(status.artifactDir, proposal);
+          const findingLines = proposal.findings.map((finding) => `- ${finding.severity} [${finding.type}]: ${finding.message}`);
+          report += [
+            '',
+            'PRD / backlog reconciliation',
+            proposal.findingCount === 0
+              ? '- No drift detected between .ralph/prd.md and .ralph/tasks.json.'
+              : `- ${proposal.findingCount} finding(s) — review-only, see ${path.basename(reconciliationPaths.markdownPath)} (Ralph does not auto-mutate tasks.json):`,
+            ...findingLines
+          ].join('\n');
+        }
+      } catch (error) {
+        logger.warn('PRD/backlog reconciliation failed during status.', {
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
 
       logger.appendText(report);
       logger.info('Ralph status snapshot generated.', {
