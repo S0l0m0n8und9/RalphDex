@@ -88,8 +88,9 @@ class CodexCliProvider {
             return (0, text_1.truncateSummary)((0, text_1.firstNonEmptyLine)(input.lastMessage) ?? 'codex exec completed successfully.');
         }
         const detail = this.extractFailureDetail(input.stderr, input.lastMessage);
+        const readinessGuidance = detail ? this.codexReadinessGuidance(detail) : null;
         return detail
-            ? `codex exec exited with code ${input.exitCode}: ${detail}`
+            ? `codex exec exited with code ${input.exitCode}: ${detail}${readinessGuidance ? ` ${readinessGuidance}` : ''}`
             : `codex exec exited with code ${input.exitCode}.`;
     }
     describeLaunchError(commandPath, error) {
@@ -166,6 +167,14 @@ class CodexCliProvider {
             }
         }
         return null;
+    }
+    codexReadinessGuidance(detail) {
+        if (!/model is not supported when using Codex with a ChatGPT account/i.test(detail)) {
+            return null;
+        }
+        const modelMatch = detail.match(/The '([^']+)' model is not supported/i);
+        const model = modelMatch?.[1] ? ` "${modelMatch[1]}"` : '';
+        return `Update the configured Codex model${model} or authenticate Codex with an account that supports it before retrying.`;
     }
 }
 exports.CodexCliProvider = CodexCliProvider;

@@ -4,6 +4,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import test from 'node:test';
 import * as vscode from 'vscode';
+import { DEFAULT_CONFIG } from '../src/config/defaults';
 import { activate } from '../src/extension';
 import { setAzureCredentialFactoryOverride } from '../src/codex/azureAuthResolver';
 import { RalphIterationEngine } from '../src/ralph/iterationEngine';
@@ -748,6 +749,31 @@ test('Test Current Provider Connection reports the active provider readiness usi
     readinessMessage,
     /GitHub Copilot CLI (will be resolved from PATH at runtime: copilot|was resolved from PATH and verified:|command could not be resolved from PATH: copilot)/
   );
+});
+
+test('Test Current Provider Connection warns about ChatGPT-auth-sensitive Codex models', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setConfiguration({
+    cliProvider: 'codex',
+    codexCommandPath: process.execPath,
+    model: 'gpt-5',
+    modelTiering: {
+      ...DEFAULT_CONFIG.modelTiering,
+      enabled: false
+    }
+  });
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.testCurrentProviderConnection');
+
+  const message = harness.state.warningMessages.at(-1)?.message ?? '';
+  assert.match(message, /gpt-5/);
+  assert.match(message, /ChatGPT account/);
+  assert.match(message, /supported Codex model/);
 });
 
 test('Test Current Provider Connection blocks azure-foundry when required auth or endpoint settings are missing', async () => {

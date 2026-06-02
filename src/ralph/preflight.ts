@@ -274,6 +274,60 @@ function readTimestampMs(value: unknown): number | null {
   return Number.isNaN(timestampMs) ? null : timestampMs;
 }
 
+const CHATGPT_ACCOUNT_SENSITIVE_CODEX_MODELS = new Set(['gpt-5', 'gpt-5-codex']);
+
+function collectCodexModelReadinessDiagnostics(config: RalphCodexConfig): RalphPreflightDiagnostic[] {
+  const diagnostics: RalphPreflightDiagnostic[] = [];
+  const candidates = config.modelTiering.enabled
+    ? [
+        {
+          source: 'ralphCodex.modelTiering.simple.model',
+          provider: config.modelTiering.simple.provider ?? config.cliProvider,
+          model: config.modelTiering.simple.model
+        },
+        {
+          source: 'ralphCodex.modelTiering.medium.model',
+          provider: config.modelTiering.medium.provider ?? config.cliProvider,
+          model: config.modelTiering.medium.model
+        },
+        {
+          source: 'ralphCodex.modelTiering.complex.model',
+          provider: config.modelTiering.complex.provider ?? config.cliProvider,
+          model: config.modelTiering.complex.model
+        }
+      ]
+    : [
+        {
+          source: 'ralphCodex.model',
+          provider: config.cliProvider,
+          model: config.model
+        }
+      ];
+
+  const seenModels = new Set<string>();
+  for (const candidate of candidates) {
+    const model = candidate.model.trim();
+    const normalizedModel = model.toLowerCase();
+    if (
+      candidate.provider !== 'codex'
+      || !CHATGPT_ACCOUNT_SENSITIVE_CODEX_MODELS.has(normalizedModel)
+      || seenModels.has(normalizedModel)
+    ) {
+      continue;
+    }
+
+    seenModels.add(normalizedModel);
+    diagnostics.push(createDiagnostic(
+      'codexAdapter',
+      'warning',
+      'codex_model_chatgpt_auth_may_be_unsupported',
+      `Codex model ${model} from ${candidate.source} may be unsupported when the Codex CLI is authenticated with a ChatGPT account. Confirm the account supports this model or choose a supported Codex model before starting a live iteration.`
+    ));
+  }
+
+  return diagnostics;
+}
+
 export function collectProviderReadinessDiagnostics(input: RalphProviderReadinessInput): RalphPreflightDiagnostic[] {
   const diagnostics: RalphPreflightDiagnostic[] = [];
   const authFailureSeverity = input.authFailureSeverity ?? 'warning';
@@ -316,6 +370,8 @@ export function collectProviderReadinessDiagnostics(input: RalphProviderReadines
       ));
     }
   }
+
+  diagnostics.push(...collectCodexModelReadinessDiagnostics(input.config));
 
   if (input.ideCommandSupport?.status === 'unavailable') {
     const missingCommands = input.ideCommandSupport.missingCommandIds

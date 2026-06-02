@@ -282,6 +282,8 @@ When quota pressure matters, inspect `latest-prompt-evidence.json` first. The `p
 
 For CLI runs, quota control also includes reasoning effort. `ralphCodex.reasoningEffort` defaults to `medium`; raise it to `high` only as an explicit escalation for architecture-heavy work, hard debugging, or remediation-heavy retries where the additional token cost is justified. When model tiering is enabled, each tier may optionally override this via `ralphCodex.modelTiering.<tier>.reasoningEffort`; tiers that omit it keep the global fallback.
 
+For the Codex CLI provider, model availability depends on the account currently authenticated by the CLI. Ralph emits a warning when `codex` routing selects model IDs known to be sensitive to ChatGPT-account auth, such as `gpt-5` and `gpt-5-codex`. Treat that warning as a readiness check: confirm the account supports the selected model or switch `ralphCodex.model` / `ralphCodex.modelTiering.<tier>.model` before starting a live iteration.
+
 ## Run The Ralph Loop
 
 1. Run `Ralphdex: Run Loop`.
