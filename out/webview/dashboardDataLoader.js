@@ -34,11 +34,48 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createDashboardSnapshotLoader = createDashboardSnapshotLoader;
+const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 const vscode = __importStar(require("vscode"));
 const statusSnapshot_1 = require("../commands/statusSnapshot");
+const readConfig_1 = require("../config/readConfig");
 const multiAgentStatusSnapshot_1 = require("../ralph/multiAgentStatusSnapshot");
+const eventJournal_1 = require("../ralph/eventJournal");
+const runTimeline_1 = require("../ralph/runTimeline");
 const dashboardSnapshot_1 = require("./dashboardSnapshot");
+/**
+ * Reads the most recent run's event journal for the trust timeline (#73).
+ * Prefers the current provenance id, then falls back to the newest run dir that
+ * has an `events.jsonl`. Returns null when no journal exists yet.
+ */
+async function loadLatestRunTimeline(artifactsDir, currentProvenanceId) {
+    const candidateRunIds = [];
+    if (currentProvenanceId) {
+        candidateRunIds.push(currentProvenanceId);
+    }
+    try {
+        const runDirs = await fs.readdir(path.join(artifactsDir, 'runs'), { withFileTypes: true });
+        const names = runDirs
+            .filter((entry) => entry.isDirectory())
+            .map((entry) => entry.name)
+            .sort((a, b) => b.localeCompare(a));
+        for (const name of names) {
+            if (!candidateRunIds.includes(name)) {
+                candidateRunIds.push(name);
+            }
+        }
+    }
+    catch {
+        // No runs directory yet.
+    }
+    for (const runId of candidateRunIds) {
+        const events = await (0, eventJournal_1.readEventJournal)(artifactsDir, runId).catch(() => []);
+        if (events.length > 0) {
+            return (0, runTimeline_1.buildRunTrustTimeline)(events);
+        }
+    }
+    return null;
+}
 function createDashboardSnapshotLoader(stateManager, logger) {
     return async () => {
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
@@ -49,7 +86,24 @@ function createDashboardSnapshotLoader(stateManager, logger) {
         const ralphDir = path.join(workspaceFolder.uri.fsPath, '.ralph');
         const claimFilePath = path.join(ralphDir, 'claims.json');
         const agentSummaries = await (0, multiAgentStatusSnapshot_1.readMultiAgentStatusSummaries)(ralphDir, claimFilePath);
-        return (0, dashboardSnapshot_1.buildDashboardSnapshot)(status, agentSummaries);
+        // Operator trust timeline (#73): pre-run intent from the effective config +
+        // selected task, post-run timeline from the latest run's event journal.
+        let runTimelineInput = null;
+        try {
+            const config = (0, readConfig_1.readConfig)(workspaceFolder);
+            const intent = (0, runTimeline_1.buildExecutionIntentPreview)({
+                config,
+                selectedTask: status.selectedTask ? { id: status.selectedTask.id, title: status.selectedTask.title } : null
+            });
+            const timeline = await loadLatestRunTimeline(status.artifactDir, status.currentProvenanceId);
+            runTimelineInput = { intent, timeline };
+        }
+        catch (error) {
+            logger.warn('Failed to build the operator trust timeline for the dashboard.', {
+                error: error instanceof Error ? error.message : String(error)
+            });
+        }
+        return (0, dashboardSnapshot_1.buildDashboardSnapshot)(status, agentSummaries, runTimelineInput);
     };
 }
 //# sourceMappingURL=dashboardDataLoader.js.map

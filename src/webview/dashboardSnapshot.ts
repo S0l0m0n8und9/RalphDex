@@ -20,6 +20,7 @@ import type { DeadLetterEntry } from '../ralph/deadLetter';
 import type { FailureCategoryId, PromptCacheStats, RalphTaskCounts } from '../ralph/types';
 import type { PipelineRunStatus, PipelinePhase } from '../ralph/pipeline';
 import { DOCTRINE_ROOT_RELATIVE } from '../ralph/doctrine';
+import type { ExecutionIntentPreview, RunTrustTimeline } from '../ralph/runTimeline';
 
 // ---------------------------------------------------------------------------
 // Task board
@@ -293,6 +294,62 @@ export interface DashboardDoctrineSection {
 // Top-level dashboard snapshot
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Operator trust timeline (issue #73)
+// ---------------------------------------------------------------------------
+
+export interface DashboardExecutionIntent {
+  provider: string;
+  autonomyMode: string;
+  agentRole: string;
+  verifierStack: string[];
+  gitCheckpointMode: string;
+  scmStrategy: string;
+  autoAppliedRemediations: string[];
+  selectedTaskId: string | null;
+  selectedTaskTitle: string | null;
+  notes: string[];
+}
+
+export interface DashboardTimelineEntry {
+  seq: number;
+  timestamp: string;
+  kind: string;
+  summary: string;
+  taskId: string | null;
+}
+
+export interface DashboardRemediationAuditEntry {
+  seq: number;
+  timestamp: string;
+  taskId: string | null;
+  action: string;
+  applied: boolean;
+}
+
+export interface DashboardRunTimelineSection {
+  /** Pre-run intent: what Ralph may change before an autonomous/full-workflow run. */
+  intent: DashboardExecutionIntent | null;
+  /** Post-run trust timeline projected from the latest run's event journal (#68). */
+  runId: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  stopReason: string | null;
+  totals: {
+    taskStateChanges: number;
+    providerInvocations: number;
+    remediationsApplied: number;
+    artifactsWritten: number;
+    scmActions: number;
+  };
+  /** Most-recent-first, capped for display. */
+  entries: DashboardTimelineEntry[];
+  remediationAudit: DashboardRemediationAuditEntry[];
+}
+
+/** Max timeline entries surfaced in the dashboard (most recent first). */
+export const DASHBOARD_TIMELINE_ENTRY_CAP = 40;
+
 export interface DashboardSnapshot {
   workspaceName: string;
   taskBoard: TaskBoardSection;
@@ -305,6 +362,55 @@ export interface DashboardSnapshot {
   preflight?: DashboardPreflightSection;
   pipeline?: DashboardPipelineSection;
   doctrine?: DashboardDoctrineSection;
+  runTimeline?: DashboardRunTimelineSection;
+}
+
+/**
+ * Projects the pre-run intent + post-run trust timeline (issue #73) into a
+ * dashboard section. Returns null when neither is available.
+ */
+export function buildRunTimelineSection(input: {
+  intent: ExecutionIntentPreview | null;
+  timeline: RunTrustTimeline | null;
+}): DashboardRunTimelineSection | null {
+  const { intent, timeline } = input;
+  if (!intent && !timeline) {
+    return null;
+  }
+  const entries = (timeline?.entries ?? [])
+    .slice()
+    .sort((a, b) => b.seq - a.seq)
+    .slice(0, DASHBOARD_TIMELINE_ENTRY_CAP)
+    .map((entry) => ({ seq: entry.seq, timestamp: entry.timestamp, kind: entry.kind, summary: entry.summary, taskId: entry.taskId }));
+  return {
+    intent: intent
+      ? {
+        provider: intent.provider,
+        autonomyMode: intent.autonomyMode,
+        agentRole: intent.agentRole,
+        verifierStack: intent.verifierStack,
+        gitCheckpointMode: intent.gitCheckpointMode,
+        scmStrategy: intent.scmStrategy,
+        autoAppliedRemediations: intent.autoAppliedRemediations,
+        selectedTaskId: intent.selectedTaskId,
+        selectedTaskTitle: intent.selectedTaskTitle,
+        notes: intent.notes
+      }
+      : null,
+    runId: timeline?.runId ?? null,
+    startedAt: timeline?.startedAt ?? null,
+    completedAt: timeline?.completedAt ?? null,
+    stopReason: timeline?.stopReason ?? null,
+    totals: timeline?.totals ?? {
+      taskStateChanges: 0,
+      providerInvocations: 0,
+      remediationsApplied: 0,
+      artifactsWritten: 0,
+      scmActions: 0
+    },
+    entries,
+    remediationAudit: timeline?.remediationAudit ?? []
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -325,8 +431,10 @@ export interface DashboardSnapshot {
  */
 export function buildDashboardSnapshot(
   snapshot: RalphStatusSnapshot,
-  agentSummaries: AgentStatusSummary[] | null = null
+  agentSummaries: AgentStatusSummary[] | null = null,
+  runTimelineInput: { intent: ExecutionIntentPreview | null; timeline: RunTrustTimeline | null } | null = null
 ): DashboardSnapshot {
+  const runTimeline = runTimelineInput ? buildRunTimelineSection(runTimelineInput) : null;
   return {
     workspaceName: snapshot.workspaceName,
     taskBoard: buildTaskBoard(snapshot),
@@ -339,6 +447,7 @@ export function buildDashboardSnapshot(
     preflight: buildPreflightSection(snapshot),
     pipeline: buildPipelineSection(snapshot),
     doctrine: buildDoctrineSection(snapshot),
+    ...(runTimeline ? { runTimeline } : {}),
   };
 }
 

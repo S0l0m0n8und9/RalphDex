@@ -278,6 +278,8 @@ The canonical artifact registry at `.ralph/artifacts/index.json` is an **additiv
 
 PRD ↔ backlog reconciliation (issue #71) is **proposal-only**: it detects drift between `.ralph/prd.md` and `.ralph/tasks.json` and writes a reviewable `prd-reconciliation.json`/`.md` artifact, but it must never mutate `.ralph/tasks.json`. The checks are conservative so a healthy workspace produces zero findings; it deliberately does not flag done tasks the PRD acknowledges as closed (that needs prose understanding the deterministic engine does not attempt).
 
+The operator trust timeline (issue #73) is a **read-only projection** of durable state — the pre-run execution intent preview is derived from the effective config + selected task, and the post-run timeline/auto-remediation audit is folded from the typed event journal (#68). It must never mutate state and is surfaced only through the React dashboard, not a string-rendered UI path.
+
 Stable latest pointers are part of the operator interface and must stay current:
 
 - `latest-summary.md` and `latest-result.json`
