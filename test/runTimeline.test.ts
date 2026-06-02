@@ -71,6 +71,7 @@ test('buildRunTrustTimeline folds the journal into entries, totals, and remediat
   assert.equal(timeline.totals.providerInvocations, 1);
   assert.equal(timeline.totals.remediationsApplied, 1);
   assert.equal(timeline.totals.scmActions, 1);
+  assert.equal(timeline.totals.workflowPhasesCompleted, 1);
   assert.equal(timeline.totals.artifactsWritten, 1);
   assert.deepEqual(timeline.artifactsWritten, ['iteration-001/iteration-result.json']);
   assert.equal(timeline.fileChanges, null);
@@ -121,7 +122,7 @@ test('buildRunTrustTimeline surfaces workflow phase events in chronological orde
     { seq: 2, timestamp: '2026-01-01T00:00:02Z', type: 'workflow_phase_completed', phase: 'scm', status: 'skipped', taskId: 'T1' }
   ));
 
-  assert.equal(timeline.totals.workflowPhasesCompleted, 3);
+  assert.equal(timeline.totals.workflowPhasesCompleted, 2);
   assert.deepEqual(
     timeline.entries.map((entry) => ({ seq: entry.seq, kind: entry.kind, summary: entry.summary, taskId: entry.taskId })),
     [

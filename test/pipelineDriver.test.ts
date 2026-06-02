@@ -211,6 +211,11 @@ test('drivePipelineRun resumes at the review phase without re-running the loop',
   assert.deepEqual(h.calls, ['review', 'scm']);
   assert.equal(h.result.status, 'complete');
   assert.deepEqual(h.checkpoints.map((c) => c.phase), ['review', 'done']);
+  assert.deepEqual(h.phaseEvents, [
+    { phase: 'review', status: 'succeeded', taskId: 'T1' },
+    { phase: 'scm', status: 'succeeded', taskId: 'T1' },
+    { phase: 'done', status: 'succeeded', taskId: 'T1' }
+  ]);
   assert.equal(h.result.artifact.prUrl, 'https://github.com/acme/repo/pull/9');
 });
 
@@ -223,6 +228,10 @@ test('drivePipelineRun resumes at the SCM phase without loop or review', async (
   assert.deepEqual(h.calls, ['scm']);
   assert.equal(h.result.status, 'complete');
   assert.deepEqual(h.checkpoints.map((c) => c.phase), ['done']);
+  assert.deepEqual(h.phaseEvents, [
+    { phase: 'scm', status: 'succeeded', taskId: 'T1' },
+    { phase: 'done', status: 'succeeded', taskId: 'T1' }
+  ]);
   assert.equal(h.result.artifact.prUrl, 'https://github.com/acme/repo/pull/11');
 });
 

@@ -683,7 +683,15 @@ export function registerCommands(
     paths: RalphPaths,
     progress: vscode.Progress<{ message?: string; increment?: number }>
   ): Promise<void> {
-    const eventJournal = await EventJournalWriter.open(paths.artifactDir, artifact.runId);
+    let eventJournal: EventJournalWriter | null = null;
+    try {
+      eventJournal = await EventJournalWriter.open(paths.artifactDir, artifact.runId);
+    } catch (error) {
+      logger.warn('Pipeline event journal unavailable; continuing without workflow phase events.', {
+        runId: artifact.runId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
     const { artifact: finalArtifact, status: loopStatus } = await drivePipelineRun({
       startPhase,
       artifact,
@@ -704,12 +712,23 @@ export function registerCommands(
         await writePipelineArtifact(paths.artifactDir, next);
       },
       journalWorkflowPhaseCompleted: async (event) => {
-        await eventJournal.append({
-          type: 'workflow_phase_completed',
-          phase: event.phase,
-          status: event.status,
-          taskId: event.taskId
-        });
+        if (!eventJournal) {
+          return;
+        }
+        try {
+          await eventJournal.append({
+            type: 'workflow_phase_completed',
+            phase: event.phase,
+            status: event.status,
+            taskId: event.taskId
+          });
+        } catch (error) {
+          logger.warn('Failed to append workflow phase event; continuing pipeline execution.', {
+            runId: artifact.runId,
+            phase: event.phase,
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
       },
       reportProgress: (message) => progress.report({ message }),
       onError: (message, error) => logger.error(message, error)

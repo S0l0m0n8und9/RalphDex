@@ -376,7 +376,9 @@ export function buildRunTrustTimeline(events: readonly RalphRuntimeEvent[]): Run
         totals.recoveryActionsApplied += 1;
         break;
       case 'workflow_phase_completed':
-        totals.workflowPhasesCompleted += 1;
+        if (event.status !== 'failed' && event.status !== 'skipped') {
+          totals.workflowPhasesCompleted += 1;
+        }
         break;
       case 'scm_action':
         totals.scmActions += 1;

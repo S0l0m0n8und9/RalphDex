@@ -2734,6 +2734,40 @@ test('Run Pipeline runs review agent and SCM agent after the multi-agent loop su
   );
 });
 
+test('Run Pipeline continues when the phase event journal cannot be opened', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+  await fs.writeFile(path.join(rootPath, '.ralph', 'artifacts', 'runs'), 'not a directory', 'utf8');
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setConfiguration({
+    agentId: 'default',
+    agentCount: 1
+  });
+
+  await withMockedRunCliIteration(
+    async (workspaceFolderArg, mode) => createMockRun(workspaceFolderArg.uri.fsPath, mode, null, {
+      followUpAction: 'continue_next_task'
+    }),
+    async () => {
+      activate(createExtensionContext());
+      await vscode.commands.executeCommand('ralphCodex.runPipeline');
+    }
+  );
+
+  const pipelinesDir = path.join(rootPath, '.ralph', 'artifacts', 'pipelines');
+  const pipelineFiles = await fs.readdir(pipelinesDir);
+  assert.equal(pipelineFiles.length, 1, 'Expected exactly one pipeline artifact');
+  const artifactRaw = await fs.readFile(path.join(pipelinesDir, pipelineFiles[0]!), 'utf8');
+  const artifact = JSON.parse(artifactRaw) as { status: string };
+  assert.equal(artifact.status, 'complete', 'Pipeline artifact status must be complete even when journaling is unavailable');
+  assert.match(
+    harness.state.infoMessages.at(-1)?.message ?? '',
+    /Ralph pipeline .+ finished with status: complete/
+  );
+});
+
 test('Run Pipeline captures reviewTranscriptPath and prUrl in the pipeline artifact', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath);
