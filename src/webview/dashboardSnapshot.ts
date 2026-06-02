@@ -20,7 +20,7 @@ import type { DeadLetterEntry } from '../ralph/deadLetter';
 import type { FailureCategoryId, PromptCacheStats, RalphTaskCounts } from '../ralph/types';
 import type { PipelineRunStatus, PipelinePhase } from '../ralph/pipeline';
 import { DOCTRINE_ROOT_RELATIVE } from '../ralph/doctrine';
-import type { ExecutionIntentPreview, RunFileChangeSummary, RunTrustTimeline } from '../ralph/runTimeline';
+import type { ExecutionIntentPreview, RunFileChangeEntry, RunFileChangeSummary, RunTrustTimeline } from '../ralph/runTimeline';
 
 // ---------------------------------------------------------------------------
 // Task board
@@ -355,14 +355,13 @@ export interface DashboardRemediationAuditEntry {
 
 export interface DashboardRunFileChangeEntry {
   path: string;
-  changeType: string;
+  changeType: RunFileChangeEntry['changeType'];
   relevant: boolean;
 }
 
 export interface DashboardRunFileChangeSection {
   status: 'available' | 'missing' | 'unreadable';
   artifactPath: string | null;
-  summary: string;
   changedFileCount: number;
   relevantChangedFileCount: number;
   files: DashboardRunFileChangeEntry[];
@@ -388,7 +387,7 @@ export interface DashboardRunTimelineSection {
   /** Most-recent-first, capped for display. */
   entries: DashboardTimelineEntry[];
   remediationAudit: DashboardRemediationAuditEntry[];
-  fileChanges: DashboardRunFileChangeSection;
+  fileChanges?: DashboardRunFileChangeSection;
 }
 
 /** Max timeline entries surfaced in the dashboard (most recent first). */
@@ -468,7 +467,6 @@ function buildRunFileChangeSection(fileChanges: RunFileChangeSummary | null): Da
     return {
       status: 'missing',
       artifactPath: null,
-      summary: 'No durable diff summary was recorded for the latest run.',
       changedFileCount: 0,
       relevantChangedFileCount: 0,
       files: [],
@@ -478,7 +476,6 @@ function buildRunFileChangeSection(fileChanges: RunFileChangeSummary | null): Da
   return {
     status: fileChanges.status,
     artifactPath: fileChanges.artifactPath,
-    summary: fileChanges.summary,
     changedFileCount: fileChanges.changedFileCount,
     relevantChangedFileCount: fileChanges.relevantChangedFileCount,
     files: fileChanges.files.slice(0, DASHBOARD_FILE_CHANGE_CAP).map((file) => ({

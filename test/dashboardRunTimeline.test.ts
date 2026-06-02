@@ -48,6 +48,7 @@ test('buildRunTimelineSection projects intent + timeline and sorts entries newes
   // Newest-first by seq.
   assert.deepEqual(section?.entries.map((e) => e.seq), [3, 2, 1]);
   assert.equal(section?.remediationAudit.length, 1);
+  assert.ok(section?.fileChanges);
   assert.equal(section?.fileChanges.status, 'missing');
 });
 
@@ -96,7 +97,6 @@ test('buildRunTimelineSection projects one changed file from durable diff eviden
       fileChanges: {
         status: 'available',
         artifactPath: '/workspace/.ralph/artifacts/iteration-001/diff-summary.json',
-        summary: 'Detected 1 relevant changed file(s) out of 1 total changes.',
         changedFileCount: 1,
         relevantChangedFileCount: 1,
         files: [{ path: 'src/ralph/runTimeline.ts', changeType: 'modified', relevant: true }],
@@ -105,6 +105,7 @@ test('buildRunTimelineSection projects one changed file from durable diff eviden
     }
   });
 
+  assert.ok(section?.fileChanges);
   assert.equal(section?.fileChanges.status, 'available');
   assert.equal(section?.fileChanges.changedFileCount, 1);
   assert.equal(section?.fileChanges.files[0]?.path, 'src/ralph/runTimeline.ts');
@@ -124,7 +125,6 @@ test('buildRunTimelineSection caps multiple changed files from durable diff evid
       fileChanges: {
         status: 'available',
         artifactPath: '/workspace/.ralph/artifacts/iteration-001/diff-summary.json',
-        summary: 'Detected multiple relevant changed files.',
         changedFileCount: files.length,
         relevantChangedFileCount: files.filter((file) => file.relevant).length,
         files,
@@ -133,6 +133,7 @@ test('buildRunTimelineSection caps multiple changed files from durable diff evid
     }
   });
 
+  assert.ok(section?.fileChanges);
   assert.equal(section?.fileChanges.files.length, DASHBOARD_FILE_CHANGE_CAP);
   assert.equal(section?.fileChanges.changedFileCount, DASHBOARD_FILE_CHANGE_CAP + 3);
 });
@@ -145,7 +146,6 @@ test('buildRunTimelineSection preserves unreadable diff artifact status without 
       fileChanges: {
         status: 'unreadable',
         artifactPath: '/workspace/.ralph/artifacts/iteration-001/diff-summary.json',
-        summary: 'Unable to read latest run diff summary: ENOENT',
         changedFileCount: 0,
         relevantChangedFileCount: 0,
         files: [],
@@ -154,6 +154,7 @@ test('buildRunTimelineSection preserves unreadable diff artifact status without 
     }
   });
 
+  assert.ok(section?.fileChanges);
   assert.equal(section?.fileChanges.status, 'unreadable');
   assert.match(section?.fileChanges.message ?? '', /unable to read/i);
   assert.deepEqual(section?.fileChanges.files, []);

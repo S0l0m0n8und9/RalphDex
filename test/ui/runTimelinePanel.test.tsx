@@ -31,7 +31,6 @@ function section(overrides: Partial<DashboardRunTimelineSection> = {}): Dashboar
     fileChanges: {
       status: 'available',
       artifactPath: '/workspace/.ralph/artifacts/iteration-001/diff-summary.json',
-      summary: 'Detected 2 relevant changed file(s) out of 3 total changes.',
       changedFileCount: 3,
       relevantChangedFileCount: 2,
       message: 'Detected 2 relevant changed file(s) out of 3 total changes.',
@@ -70,12 +69,17 @@ test('RunTimelinePanel renders an intent-only state before any run', () => {
   assert.doesNotMatch(html, /Repository file changes/);
 });
 
+test('RunTimelinePanel tolerates older run timeline payloads without fileChanges', () => {
+  const html = renderToStaticMarkup(<RunTimelinePanel runTimeline={section({ fileChanges: undefined })} />);
+  assert.match(html, /Repository file changes/);
+  assert.match(html, /No durable diff summary was recorded for the latest run\./);
+});
+
 test('RunTimelinePanel renders unreadable file-change evidence without file rows', () => {
   const html = renderToStaticMarkup(<RunTimelinePanel runTimeline={section({
     fileChanges: {
       status: 'unreadable',
       artifactPath: '/workspace/.ralph/artifacts/iteration-001/diff-summary.json',
-      summary: 'Unable to read latest run diff summary: ENOENT',
       changedFileCount: 0,
       relevantChangedFileCount: 0,
       message: 'Unable to read latest run diff summary: ENOENT',
@@ -94,7 +98,6 @@ test('RunTimelinePanel reports hidden file-change rows when capped', () => {
     fileChanges: {
       status: 'available',
       artifactPath: '/workspace/.ralph/artifacts/iteration-001/diff-summary.json',
-      summary: 'Detected many files.',
       changedFileCount: 4,
       relevantChangedFileCount: 4,
       message: 'Detected many files.',

@@ -83,7 +83,6 @@ function buildUnavailableRunFileChangeSummary(input) {
     return {
         status: input.status,
         artifactPath: input.artifactPath ?? null,
-        summary: input.message,
         changedFileCount: 0,
         relevantChangedFileCount: 0,
         files: [],
@@ -127,7 +126,6 @@ function buildRunFileChangeSummary(input) {
     return {
         status: 'available',
         artifactPath: input.artifactPath,
-        summary: input.diffSummary.summary,
         changedFileCount: input.diffSummary.changedFileCount,
         relevantChangedFileCount: input.diffSummary.relevantChangedFileCount,
         files,

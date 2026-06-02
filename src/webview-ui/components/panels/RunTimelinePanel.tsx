@@ -21,7 +21,15 @@ function Pill({ label }: { label: string }) {
  * from the latest run's event journal. Read-only.
  */
 export function RunTimelinePanel({ runTimeline }: RunTimelinePanelProps) {
-  const { intent, entries, remediationAudit, totals, stopReason, runId, fileChanges } = runTimeline;
+  const { intent, entries, remediationAudit, totals, stopReason, runId } = runTimeline;
+  const fileChanges = runTimeline.fileChanges ?? {
+    status: 'missing' as const,
+    artifactPath: null,
+    changedFileCount: 0,
+    relevantChangedFileCount: 0,
+    files: [],
+    message: 'No durable diff summary was recorded for the latest run.'
+  };
   const hiddenFileCount = Math.max(0, fileChanges.changedFileCount - fileChanges.files.length);
   return (
     <Card title="Run Trust Timeline" subtitle="Execution intent + what the latest run changed">

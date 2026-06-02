@@ -72,7 +72,6 @@ function buildRunFileChangeSection(fileChanges) {
         return {
             status: 'missing',
             artifactPath: null,
-            summary: 'No durable diff summary was recorded for the latest run.',
             changedFileCount: 0,
             relevantChangedFileCount: 0,
             files: [],
@@ -82,7 +81,6 @@ function buildRunFileChangeSection(fileChanges) {
     return {
         status: fileChanges.status,
         artifactPath: fileChanges.artifactPath,
-        summary: fileChanges.summary,
         changedFileCount: fileChanges.changedFileCount,
         relevantChangedFileCount: fileChanges.relevantChangedFileCount,
         files: fileChanges.files.slice(0, exports.DASHBOARD_FILE_CHANGE_CAP).map((file) => ({

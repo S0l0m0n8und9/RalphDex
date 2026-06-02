@@ -145,7 +145,6 @@ export interface RunFileChangeEntry {
 export interface RunFileChangeSummary {
   status: RunFileChangeSummaryStatus;
   artifactPath: string | null;
-  summary: string;
   changedFileCount: number;
   relevantChangedFileCount: number;
   files: RunFileChangeEntry[];
@@ -219,7 +218,6 @@ export function buildUnavailableRunFileChangeSummary(input: {
   return {
     status: input.status,
     artifactPath: input.artifactPath ?? null,
-    summary: input.message,
     changedFileCount: 0,
     relevantChangedFileCount: 0,
     files: [],
@@ -268,7 +266,6 @@ export function buildRunFileChangeSummary(input: {
   return {
     status: 'available',
     artifactPath: input.artifactPath,
-    summary: input.diffSummary.summary,
     changedFileCount: input.diffSummary.changedFileCount,
     relevantChangedFileCount: input.diffSummary.relevantChangedFileCount,
     files,
