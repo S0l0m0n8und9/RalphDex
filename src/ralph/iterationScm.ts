@@ -15,6 +15,12 @@ import type {
   RalphVerificationStatus,
 } from './types';
 
+export interface BranchPerTaskScmAction {
+  taskId: string | null;
+  action: string;
+  status: 'succeeded' | 'failed' | 'skipped';
+}
+
 function formatScmCommitMessage(input: {
   taskId: string;
   taskTitle: string;
@@ -124,10 +130,12 @@ async function createParentPullRequestOnDone(input: {
   integrationBranch: string;
   fallbackBaseBranch: string;
   childTasks: RalphTask[];
-}): Promise<string[]> {
+}): Promise<{ warnings: string[]; actions: BranchPerTaskScmAction[] }> {
   if (!input.prepared.config.scmPrOnParentDone) {
-    return [];
+    return { warnings: [], actions: [] };
   }
+
+  const actions: BranchPerTaskScmAction[] = [];
 
   const prBaseBranch = await resolveParentPullRequestBaseBranch({
     claimFilePath: input.prepared.paths.claimFilePath,
@@ -143,8 +151,13 @@ async function createParentPullRequestOnDone(input: {
   );
   if (pushResult.code !== 0) {
     const failure = (pushResult.stderr || pushResult.stdout || `exit code ${pushResult.code}`).trim();
-    return [`SCM branch-per-task PR creation failed for parent ${input.parentTask.id}: git push failed: ${failure}`];
+    actions.push({ taskId: input.parentTask.id, action: `branch-per-task-push:${input.integrationBranch}`, status: 'failed' });
+    return {
+      warnings: [`SCM branch-per-task PR creation failed for parent ${input.parentTask.id}: git push failed: ${failure}`],
+      actions
+    };
   }
+  actions.push({ taskId: input.parentTask.id, action: `branch-per-task-push:${input.integrationBranch}`, status: 'succeeded' });
 
   try {
     const prResult = await runProcess(
@@ -165,13 +178,25 @@ async function createParentPullRequestOnDone(input: {
     );
     if (prResult.code !== 0) {
       const failure = (prResult.stderr || prResult.stdout || `exit code ${prResult.code}`).trim();
-      return [`SCM branch-per-task PR creation failed for parent ${input.parentTask.id}: gh pr create failed: ${failure}`];
+      actions.push({ taskId: input.parentTask.id, action: `branch-per-task-pr-create:${input.integrationBranch}->${prBaseBranch}`, status: 'failed' });
+      return {
+        warnings: [`SCM branch-per-task PR creation failed for parent ${input.parentTask.id}: gh pr create failed: ${failure}`],
+        actions
+      };
     }
   } catch (error) {
-    return [`SCM branch-per-task PR creation failed for parent ${input.parentTask.id}: ${toErrorMessage(error)}`];
+    actions.push({ taskId: input.parentTask.id, action: `branch-per-task-pr-create:${input.integrationBranch}->${prBaseBranch}`, status: 'failed' });
+    return {
+      warnings: [`SCM branch-per-task PR creation failed for parent ${input.parentTask.id}: ${toErrorMessage(error)}`],
+      actions
+    };
   }
 
-  return [`SCM branch-per-task opened PR for parent ${input.parentTask.id} from ${input.integrationBranch} to ${prBaseBranch}.`];
+  actions.push({ taskId: input.parentTask.id, action: `branch-per-task-pr-create:${input.integrationBranch}->${prBaseBranch}`, status: 'succeeded' });
+  return {
+    warnings: [`SCM branch-per-task opened PR for parent ${input.parentTask.id} from ${input.integrationBranch} to ${prBaseBranch}.`],
+    actions
+  };
 }
 
 export async function commitOnDone(input: {
@@ -313,6 +338,7 @@ async function reopenTaskWithMergeBlocker(input: {
 
 export interface BranchPerTaskScmResult {
   warnings: string[];
+  actions: BranchPerTaskScmAction[];
   parentCompletedAndMerged: boolean;
   parentTask: RalphTask | null;
   selectedTaskAfterScm?: RalphTask | null;
@@ -341,10 +367,11 @@ export async function reconcileBranchPerTaskScm(input: {
   const selectedTask = input.prepared.selectedTask;
   const selectedClaim = input.prepared.selectedTaskClaim?.claim;
   if (!selectedTask || !selectedClaim?.featureBranch || !selectedClaim.baseBranch) {
-    return { warnings: [], parentCompletedAndMerged: false, parentTask: null };
+    return { warnings: [], actions: [], parentCompletedAndMerged: false, parentTask: null };
   }
 
   const warnings: string[] = [];
+  const actions: BranchPerTaskScmAction[] = [];
   let parentCompletedAndMerged = false;
   let completedParentTask: RalphTask | null = null;
   let selectedTaskAfterScm: RalphTask | null | undefined;
@@ -370,6 +397,7 @@ export async function reconcileBranchPerTaskScm(input: {
       iteration: input.prepared.iteration,
       validationStatus: input.validationStatus
     }));
+    actions.push({ taskId: selectedTask.id, action: 'branch-per-task-commit', status: 'succeeded' });
 
     if (selectedClaim.integrationBranch) {
       await runMerge({
@@ -381,6 +409,7 @@ export async function reconcileBranchPerTaskScm(input: {
         agentId: input.prepared.config.agentId
       });
       warnings.push(`SCM branch-per-task merged ${selectedClaim.featureBranch} into ${selectedClaim.integrationBranch}.`);
+      actions.push({ taskId: selectedTask.id, action: `branch-per-task-merge:${selectedClaim.featureBranch}->${selectedClaim.integrationBranch}`, status: 'succeeded' });
 
       const parentTask = selectedTask.parentId
         ? findTaskById(input.taskFileAfter, selectedTask.parentId)
@@ -398,16 +427,19 @@ export async function reconcileBranchPerTaskScm(input: {
           agentId: input.prepared.config.agentId
         });
         warnings.push(`SCM branch-per-task merged ${selectedClaim.integrationBranch} into ${selectedClaim.baseBranch} for parent ${parentTask.id}.`);
+        actions.push({ taskId: parentTask.id, action: `branch-per-task-merge:${selectedClaim.integrationBranch}->${selectedClaim.baseBranch}`, status: 'succeeded' });
         parentCompletedAndMerged = true;
         completedParentTask = parentTask;
         const childTasks = input.taskFileAfter.tasks.filter((task) => task.parentId === parentTask.id);
-        warnings.push(...await createParentPullRequestOnDone({
+        const parentPr = await createParentPullRequestOnDone({
           prepared: input.prepared,
           parentTask,
           integrationBranch: selectedClaim.integrationBranch,
           fallbackBaseBranch: selectedClaim.baseBranch,
           childTasks
-        }));
+        });
+        warnings.push(...parentPr.warnings);
+        actions.push(...parentPr.actions);
       } else {
         await checkoutGitBranch(input.prepared.rootPath, selectedClaim.baseBranch);
       }
@@ -421,6 +453,7 @@ export async function reconcileBranchPerTaskScm(input: {
         agentId: input.prepared.config.agentId
       });
       warnings.push(`SCM branch-per-task merged ${selectedClaim.featureBranch} into ${selectedClaim.baseBranch}.`);
+      actions.push({ taskId: selectedTask.id, action: `branch-per-task-merge:${selectedClaim.featureBranch}->${selectedClaim.baseBranch}`, status: 'succeeded' });
     }
   } catch (error) {
     const conflictPaths = await listGitConflictPaths(input.prepared.rootPath);
@@ -465,10 +498,11 @@ export async function reconcileBranchPerTaskScm(input: {
       warnings.push(
         `SCM branch-per-task failed for ${selectedTask.id}: ${blocker}`
       );
+      actions.push({ taskId: mergeTargetTaskId, action: `branch-per-task-merge:${lastMergeSource}->${lastMergeTarget}`, status: 'failed' });
       const refreshedTaskFile = parseTaskFile(await fs.readFile(input.prepared.paths.taskFilePath, 'utf8'));
       selectedTaskAfterScm = findTaskById(refreshedTaskFile, selectedTask.id);
     }
   }
 
-  return { warnings, parentCompletedAndMerged, parentTask: completedParentTask, selectedTaskAfterScm };
+  return { warnings, actions, parentCompletedAndMerged, parentTask: completedParentTask, selectedTaskAfterScm };
 }

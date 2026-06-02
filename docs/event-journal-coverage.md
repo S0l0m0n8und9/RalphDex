@@ -19,8 +19,8 @@ The journal is not a debug log. Emit one event for each semantic runtime action 
 | Artifact persistence | `artifact_written` | `RalphIterationEngine.runCliIteration` after iteration/provenance persistence | artifact totals and artifact list | covered |
 | Commit-on-done SCM action | `scm_action` | `RalphIterationEngine.runCliIteration` after commit-on-done coordination | timeline entry and SCM total | covered |
 | Run completion | `run_completed` | `RalphIterationEngine.runCliIteration` before state recording | timeline entry, stop reason | covered |
-| Review-agent result | `review_result` | event type exists; no direct review-agent emit site is wired in this audit | timeline entry | future |
-| Branch-per-task SCM details | `scm_action` | branch-per-task warnings are persisted in iteration result; detailed branch/PR actions are not yet journaled | timeline entry when emitted | future |
+| Review-agent result | `review_result` | `RalphIterationEngine.runCliIteration` for `review` and `reviewer` roles | timeline entry with anomaly count | covered |
+| Branch-per-task SCM details | `scm_action` | `reconcileBranchPerTaskScm` returns structured commit/merge/push/PR actions; `RalphIterationEngine.runCliIteration` journals them | timeline entry per action | covered |
 | Recovery/crash-resume action | `recovery_applied` | event type exists; stale-claim and recovery commands do not emit through the iteration journal yet | timeline entry | future |
 | Workflow/pipeline phase transition | `workflow_phase_completed` | event type exists; full workflow and supervisor phase transitions remain in their own artifacts | reducer total | future |
 | Cleanup preview/apply | none | cleanup manifest JSON/Markdown remains the authoritative audit artifact | not projected | intentionally not journaled |

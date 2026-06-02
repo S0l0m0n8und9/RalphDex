@@ -51,6 +51,7 @@ class ScmCoordinator {
     }
     async reconcileBranchPerTask(input) {
         const warnings = [];
+        const scmActions = [];
         let selectedTaskStatus = input.completionReconciliation.selectedTask?.status;
         let selectedTask = input.completionReconciliation.selectedTask;
         let autoReviewContext;
@@ -87,6 +88,7 @@ class ScmCoordinator {
                 conflictResolver
             });
             warnings.push(...branchScm.warnings);
+            scmActions.push(...branchScm.actions);
             if (branchScm.selectedTaskAfterScm && input.prepared.selectedTask?.id === branchScm.selectedTaskAfterScm.id) {
                 selectedTask = branchScm.selectedTaskAfterScm;
             }
@@ -106,6 +108,7 @@ class ScmCoordinator {
         }
         return {
             warnings,
+            scmActions,
             selectedTaskStatus,
             selectedTask,
             autoReviewContext

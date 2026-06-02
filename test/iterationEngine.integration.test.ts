@@ -653,6 +653,17 @@ test('runCliIteration uses branch-per-task SCM with parent integration branches 
   assert.equal(finalTaskFile.tasks.find((task) => task.id === 'T40')?.status, 'done');
   assert.match(summary.result.warnings.join('\n'), /SCM branch-per-task merged ralph\/T40\.2 into ralph\/integration\/T40/);
   assert.match(summary.result.warnings.join('\n'), /SCM branch-per-task merged ralph\/integration\/T40 into main for parent T40/);
+
+  const events = await readEventJournal(path.join(rootPath, '.ralph', 'artifacts'), summary.prepared.provenanceId);
+  const scmActions = events.filter((event) => event.type === 'scm_action');
+  assert.deepEqual(
+    scmActions.map((event) => `${event.taskId}:${event.action}:${event.status}`),
+    [
+      'T40.2:branch-per-task-commit:succeeded',
+      'T40.2:branch-per-task-merge:ralph/T40.2->ralph/integration/T40:succeeded',
+      'T40:branch-per-task-merge:ralph/integration/T40->main:succeeded'
+    ]
+  );
 });
 
 test('runCliIteration reopens the task when branch-per-task merge hits a conflict', async () => {
@@ -2359,6 +2370,22 @@ test('runCliIteration pushes the parent integration branch and opens a PR when a
   assert.equal(pullRequests[0]?.title, 'Aggregate parent');
   assert.match(pullRequests[0]?.body ?? '', /- T1\.1: Implemented the first slice\./);
   assert.match(pullRequests[0]?.body ?? '', /- T1\.2: Completed the final T1 slice\./);
+
+  const events = await readEventJournal(path.join(rootPath, '.ralph', 'artifacts'), summary.prepared.provenanceId);
+  assert.ok(
+    events.some((event) => event.type === 'scm_action'
+      && event.taskId === 'T1'
+      && event.action === 'branch-per-task-push:ralph/integration/T1'
+      && event.status === 'succeeded'),
+    'expected parent integration branch push to be journaled'
+  );
+  assert.ok(
+    events.some((event) => event.type === 'scm_action'
+      && event.taskId === 'T1'
+      && event.action === 'branch-per-task-pr-create:ralph/integration/T1->main'
+      && event.status === 'succeeded'),
+    'expected parent PR creation to be journaled'
+  );
 });
 
 test('runCliIteration keeps parent completion applied when PR creation cannot run', async () => {
@@ -4017,6 +4044,13 @@ test('review-agent source edits are treated as a verification anomaly instead of
     await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')
   ) as RalphTaskFile;
   assert.equal(updatedTaskFile.tasks.find((task) => task.id === 'T1')?.status, 'in_progress');
+
+  const events = await readEventJournal(path.join(rootPath, '.ralph', 'artifacts'), summary.prepared.provenanceId);
+  const reviewResult = events.find((event) => event.type === 'review_result');
+  assert.ok(reviewResult, 'expected review-agent result to be journaled');
+  assert.equal(reviewResult.taskId, 'T1');
+  assert.equal(reviewResult.status, 'flagged');
+  assert.ok((reviewResult.anomalies ?? 0) > 0);
 });
 
 test('runCliIteration writes a structured handoff note on clean termination', async () => {
