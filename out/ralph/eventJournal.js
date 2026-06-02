@@ -39,6 +39,7 @@ exports.serializeEvent = serializeEvent;
 exports.parseEventJournal = parseEventJournal;
 exports.parseEventJournalResumable = parseEventJournalResumable;
 exports.readEventJournal = readEventJournal;
+exports.readEventJournalResumable = readEventJournalResumable;
 exports.reduceRunState = reduceRunState;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
@@ -209,6 +210,26 @@ async function readEventJournal(artifactsDir, runId) {
     const { journalPath } = resolveEventJournalPaths(artifactsDir, runId);
     try {
         return parseEventJournal(await fs.readFile(journalPath, 'utf8'));
+    }
+    catch (err) {
+        if (err instanceof Error && 'code' in err && err.code === 'ENOENT') {
+            return [];
+        }
+        throw err;
+    }
+}
+/**
+ * Like {@link readEventJournal} but tolerant of a malformed trailing line: a
+ * crash mid-`appendFile` can leave a partial last line, so this returns the
+ * valid prefix (via {@link parseEventJournalResumable}) rather than throwing.
+ * Returns `[]` when no journal exists yet. Use this for read-only consumers
+ * (e.g. the dashboard trust timeline) that must not silently discard a live run
+ * just because its last event is half-written.
+ */
+async function readEventJournalResumable(artifactsDir, runId) {
+    const { journalPath } = resolveEventJournalPaths(artifactsDir, runId);
+    try {
+        return parseEventJournalResumable(await fs.readFile(journalPath, 'utf8'));
     }
     catch (err) {
         if (err instanceof Error && 'code' in err && err.code === 'ENOENT') {

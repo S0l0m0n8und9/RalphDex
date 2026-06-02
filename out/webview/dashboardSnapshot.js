@@ -11,9 +11,60 @@
  * so callers can always render a valid (possibly empty) dashboard.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.DASHBOARD_TIMELINE_ENTRY_CAP = void 0;
+exports.buildRunTimelineSection = buildRunTimelineSection;
 exports.buildDashboardSnapshot = buildDashboardSnapshot;
 const multiAgentStatus_1 = require("../ralph/multiAgentStatus");
 const doctrine_1 = require("../ralph/doctrine");
+/** Max timeline entries surfaced in the dashboard (most recent first). */
+exports.DASHBOARD_TIMELINE_ENTRY_CAP = 40;
+/**
+ * Projects the pre-run intent + post-run trust timeline (issue #73) into a
+ * dashboard section. Returns null when neither is available.
+ */
+function buildRunTimelineSection(input) {
+    const { intent, timeline } = input;
+    if (!intent && !timeline) {
+        return null;
+    }
+    const entries = (timeline?.entries ?? [])
+        .slice()
+        .sort((a, b) => b.seq - a.seq)
+        .slice(0, exports.DASHBOARD_TIMELINE_ENTRY_CAP)
+        .map((entry) => ({ seq: entry.seq, timestamp: entry.timestamp, kind: entry.kind, summary: entry.summary, taskId: entry.taskId }));
+    return {
+        intent: intent
+            ? {
+                provider: intent.provider,
+                autonomyMode: intent.autonomyMode,
+                agentRole: intent.agentRole,
+                verifierStack: intent.verifierStack,
+                gitCheckpointMode: intent.gitCheckpointMode,
+                scmStrategy: intent.scmStrategy,
+                autoAppliedRemediations: intent.autoAppliedRemediations,
+                selectedTaskId: intent.selectedTaskId,
+                selectedTaskTitle: intent.selectedTaskTitle,
+                notes: intent.notes
+            }
+            : null,
+        runId: timeline?.runId ?? null,
+        startedAt: timeline?.startedAt ?? null,
+        completedAt: timeline?.completedAt ?? null,
+        stopReason: timeline?.stopReason ?? null,
+        totals: timeline?.totals ?? {
+            taskStateChanges: 0,
+            providerInvocations: 0,
+            remediationsApplied: 0,
+            recoveryActionsApplied: 0,
+            artifactsWritten: 0,
+            scmActions: 0
+        },
+        entries,
+        // Cap like `entries` so a long run with many remediations can't produce an
+        // unbounded dashboard payload; keep the most recent.
+        remediationAudit: (timeline?.remediationAudit ?? []).slice(-exports.DASHBOARD_TIMELINE_ENTRY_CAP)
+    };
+}
 // ---------------------------------------------------------------------------
 // Assembly
 // ---------------------------------------------------------------------------
@@ -29,7 +80,8 @@ const doctrine_1 = require("../ralph/doctrine");
  * @param agentSummaries Agent summaries from `readMultiAgentStatusSummaries()`,
  *                       or null when multi-agent data is not yet loaded.
  */
-function buildDashboardSnapshot(snapshot, agentSummaries = null) {
+function buildDashboardSnapshot(snapshot, agentSummaries = null, runTimelineInput = null) {
+    const runTimeline = runTimelineInput ? buildRunTimelineSection(runTimelineInput) : null;
     return {
         workspaceName: snapshot.workspaceName,
         taskBoard: buildTaskBoard(snapshot),
@@ -42,6 +94,7 @@ function buildDashboardSnapshot(snapshot, agentSummaries = null) {
         preflight: buildPreflightSection(snapshot),
         pipeline: buildPipelineSection(snapshot),
         doctrine: buildDoctrineSection(snapshot),
+        ...(runTimeline ? { runTimeline } : {}),
     };
 }
 function buildDoctrineSection(snapshot) {

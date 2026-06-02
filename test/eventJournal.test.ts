@@ -7,6 +7,7 @@ import {
   EventJournalWriter,
   parseEventJournal,
   readEventJournal,
+  readEventJournalResumable,
   reduceRunState,
   resolveEventJournalPaths,
   RUNTIME_EVENT_SCHEMA_VERSION,
@@ -233,4 +234,28 @@ test('every declared event type is unique and reduces without throwing', () => {
   })) as RalphRuntimeEvent[];
   const snapshot = reduceRunState(events);
   assert.equal(snapshot.totals.events, RUNTIME_EVENT_TYPES.length);
+});
+
+test('readEventJournalResumable returns [] when no journal exists', async (t) => {
+  const dir = await tmpArtifactsDir();
+  t.after(() => fs.rm(dir, { recursive: true, force: true }));
+  assert.deepEqual(await readEventJournalResumable(dir, 'run-missing'), []);
+});
+
+test('readEventJournalResumable recovers the valid prefix when the last line is partial', async (t) => {
+  const dir = await tmpArtifactsDir();
+  t.after(() => fs.rm(dir, { recursive: true, force: true }));
+
+  const writer = await EventJournalWriter.open(dir, 'run-1', { clock: fixedClock() });
+  await writer.append({ type: 'run_started', mode: 'loop' });
+  await writer.append({ type: 'task_selected', taskId: 'T1', title: 'First' });
+
+  // Simulate a mid-write crash: append a partial, unparseable trailing line.
+  const journalPath = resolveEventJournalPaths(dir, 'run-1').journalPath;
+  await fs.appendFile(journalPath, '{"type":"task_state_chan', 'utf8');
+
+  // Strict read throws on the corrupt tail; resumable recovers the 2 valid events.
+  await assert.rejects(readEventJournal(dir, 'run-1'));
+  const recovered = await readEventJournalResumable(dir, 'run-1');
+  assert.deepEqual(recovered.map((e) => e.seq), [1, 2]);
 });

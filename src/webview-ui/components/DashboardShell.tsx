@@ -18,6 +18,7 @@ import { CostTickerPanel } from './panels/CostTickerPanel';
 import { FirstRunReadiness } from './panels/FirstRunReadiness';
 import { DoctrineCard } from './panels/DoctrineCard';
 import { DoctrineProposalReviewPanel } from './panels/DoctrineProposalReviewPanel';
+import { RunTimelinePanel } from './panels/RunTimelinePanel';
 
 interface DashboardShellProps {
   state: RalphDashboardState;
@@ -230,6 +231,7 @@ export function DashboardShell({ state, model, onCommand, onSettingUpdate, onAct
   const deadLetter = snapshot?.deadLetter ?? { entries: [] };
   const pipeline = snapshot?.pipeline ?? null;
   const doctrine = snapshot?.doctrine ?? null;
+  const runTimeline = snapshot?.runTimeline ?? null;
   const showDoctrineDiagnostics = doctrineNeedsDiagnosticsAttention(doctrine, lastDoctrineActionResult);
 
   useEffect(() => {
@@ -266,6 +268,7 @@ export function DashboardShell({ state, model, onCommand, onSettingUpdate, onAct
             <AgentLanes lanes={state.agentLanes} />
             <Timeline iterations={state.recentIterations} onOpenArtifact={onOpenArtifact} />
           </div>
+          {runTimeline && <RunTimelinePanel runTimeline={runTimeline} />}
           <DeadLetter deadLetter={deadLetter} onCommand={onCommand} />
         </>
       );

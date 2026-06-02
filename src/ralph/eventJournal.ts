@@ -350,6 +350,26 @@ export async function readEventJournal(artifactsDir: string, runId: string): Pro
   }
 }
 
+/**
+ * Like {@link readEventJournal} but tolerant of a malformed trailing line: a
+ * crash mid-`appendFile` can leave a partial last line, so this returns the
+ * valid prefix (via {@link parseEventJournalResumable}) rather than throwing.
+ * Returns `[]` when no journal exists yet. Use this for read-only consumers
+ * (e.g. the dashboard trust timeline) that must not silently discard a live run
+ * just because its last event is half-written.
+ */
+export async function readEventJournalResumable(artifactsDir: string, runId: string): Promise<RalphRuntimeEvent[]> {
+  const { journalPath } = resolveEventJournalPaths(artifactsDir, runId);
+  try {
+    return parseEventJournalResumable(await fs.readFile(journalPath, 'utf8'));
+  } catch (err) {
+    if (err instanceof Error && 'code' in err && (err as NodeJS.ErrnoException).code === 'ENOENT') {
+      return [];
+    }
+    throw err;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Reducers
 // ---------------------------------------------------------------------------
