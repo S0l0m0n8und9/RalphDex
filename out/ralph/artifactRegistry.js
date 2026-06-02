@@ -109,13 +109,37 @@ function upsertArtifactEntry(registry, entry) {
     next.push(entry);
     return { ...registry, entries: sortEntries(next) };
 }
-/** Removes every entry whose relative path is in `relativePaths`. */
+/**
+ * Removes every entry whose relative path is in `relativePaths`.
+ *
+ * Stored ids are always root-relative POSIX paths, so callers must pass relative
+ * paths. An absolute path can never match a stored id and would silently remove
+ * nothing — so absolute paths are rejected loudly rather than no-op'd.
+ */
 function removeArtifactEntries(registry, relativePaths) {
-    const removeIds = new Set(relativePaths.map((p) => artifactEntryId(p)));
+    const absolute = relativePaths.find((candidate) => path.isAbsolute(candidate));
+    if (absolute !== undefined) {
+        throw new Error(`removeArtifactEntries expects root-relative paths; received absolute path "${absolute}". `
+            + 'Convert it with toRegistryRelativePath(artifactsDir, path) first.');
+    }
+    const removeIds = new Set(relativePaths.map((candidate) => artifactEntryId(candidate)));
     return {
         ...registry,
         entries: registry.entries.filter((entry) => !removeIds.has(entry.id))
     };
+}
+/** Structural guard: a registry entry must carry the required string/boolean fields. */
+function isValidRegistryEntry(value) {
+    if (typeof value !== 'object' || value === null) {
+        return false;
+    }
+    const entry = value;
+    return (typeof entry.id === 'string'
+        && typeof entry.type === 'string'
+        && typeof entry.path === 'string'
+        && typeof entry.createdAt === 'string'
+        && typeof entry.retentionClass === 'string'
+        && typeof entry.pinned === 'boolean');
 }
 /** Returns entries matching every provided filter field (AND semantics). */
 function queryArtifacts(registry, query = {}) {
@@ -164,18 +188,30 @@ function buildArtifactEntry(artifactsDir, input, now = () => new Date()) {
         ...(input.related ? { related: input.related } : {})
     };
 }
-// ---------------------------------------------------------------------------
-// I/O
-// ---------------------------------------------------------------------------
-/** Reads the registry; returns an empty registry when none exists yet. */
-async function readArtifactRegistry(artifactsDir) {
+/**
+ * Reads the registry; returns an empty registry when none exists yet.
+ *
+ * The read is best-effort and forward/backward tolerant: an unrecognised
+ * `schemaVersion` and any structurally-malformed entries are surfaced via
+ * `options.warn` (when provided) rather than silently discarded, and malformed
+ * entries are dropped so consumers never see partial objects.
+ */
+async function readArtifactRegistry(artifactsDir, options = {}) {
     const registryPath = resolveArtifactRegistryPath(artifactsDir);
     try {
         const parsed = JSON.parse(await fs.readFile(registryPath, 'utf8'));
-        return {
-            schemaVersion: exports.ARTIFACT_REGISTRY_SCHEMA_VERSION,
-            entries: Array.isArray(parsed.entries) ? parsed.entries : []
-        };
+        if (typeof parsed.schemaVersion === 'number' && parsed.schemaVersion !== exports.ARTIFACT_REGISTRY_SCHEMA_VERSION) {
+            options.warn?.(`Artifact registry at ${registryPath} has schemaVersion ${parsed.schemaVersion}, `
+                + `expected ${exports.ARTIFACT_REGISTRY_SCHEMA_VERSION}; loading best-effort. Entries with an `
+                + 'incompatible shape will be dropped.');
+        }
+        const rawEntries = Array.isArray(parsed.entries) ? parsed.entries : [];
+        const entries = rawEntries.filter(isValidRegistryEntry);
+        if (entries.length !== rawEntries.length) {
+            options.warn?.(`Artifact registry at ${registryPath} dropped ${rawEntries.length - entries.length} `
+                + 'malformed entr(y/ies) during load.');
+        }
+        return { schemaVersion: exports.ARTIFACT_REGISTRY_SCHEMA_VERSION, entries };
     }
     catch (err) {
         if (err instanceof Error && 'code' in err && err.code === 'ENOENT') {
@@ -198,11 +234,11 @@ async function writeRegistry(artifactsDir, registry) {
  */
 async function registerArtifacts(artifactsDir, inputs, options = {}) {
     if (inputs.length === 0) {
-        return readArtifactRegistry(artifactsDir);
+        return readArtifactRegistry(artifactsDir, options);
     }
     const lockPath = `${resolveArtifactRegistryPath(artifactsDir)}.lock`;
     const result = await (0, fileLock_1.withFileLock)(lockPath, options.lock, async () => {
-        let registry = await readArtifactRegistry(artifactsDir);
+        let registry = await readArtifactRegistry(artifactsDir, options);
         for (const input of inputs) {
             registry = upsertArtifactEntry(registry, buildArtifactEntry(artifactsDir, input, options.now));
         }
@@ -222,7 +258,7 @@ async function registerArtifacts(artifactsDir, inputs, options = {}) {
 async function reconcileArtifactRegistry(artifactsDir, options = {}) {
     const lockPath = `${resolveArtifactRegistryPath(artifactsDir)}.lock`;
     const result = await (0, fileLock_1.withFileLock)(lockPath, options.lock, async () => {
-        const registry = await readArtifactRegistry(artifactsDir);
+        const registry = await readArtifactRegistry(artifactsDir, options);
         const removed = [];
         const kept = [];
         for (const entry of registry.entries) {

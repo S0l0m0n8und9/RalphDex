@@ -197,3 +197,53 @@ test('concurrent registerArtifacts calls do not lose entries', async (t) => {
   const registry = await readArtifactRegistry(dir);
   assert.equal(registry.entries.length, 8);
 });
+
+test('removeArtifactEntries throws on an absolute path instead of silently no-op-ing', () => {
+  const root = path.join('/ws', '.ralph', 'artifacts');
+  let registry = createEmptyRegistry();
+  registry = upsertArtifactEntry(registry, buildArtifactEntry(root, iterationEntry({ path: 'iteration-001/prompt.md' })));
+  assert.throws(
+    () => removeArtifactEntries(registry, [path.join(root, 'iteration-001', 'prompt.md')]),
+    /expects root-relative paths/
+  );
+});
+
+test('readArtifactRegistry drops malformed entries and warns', async (t) => {
+  const dir = await tmpArtifactsDir();
+  t.after(() => fs.rm(dir, { recursive: true, force: true }));
+
+  await fs.writeFile(
+    resolveArtifactRegistryPath(dir),
+    JSON.stringify({
+      schemaVersion: ARTIFACT_REGISTRY_SCHEMA_VERSION,
+      entries: [
+        { id: 'a/b.json', type: 'prompt', path: 'a/b.json', createdAt: '2026-01-01T00:00:00.000Z', retentionClass: 'iteration', pinned: false },
+        { id: 'broken' },
+        'not-an-object'
+      ]
+    }),
+    'utf8'
+  );
+
+  const warnings: string[] = [];
+  const registry = await readArtifactRegistry(dir, { warn: (m) => warnings.push(m) });
+  assert.deepEqual(registry.entries.map((e) => e.id), ['a/b.json']);
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /dropped 2 malformed/);
+});
+
+test('readArtifactRegistry warns on an unrecognised schemaVersion', async (t) => {
+  const dir = await tmpArtifactsDir();
+  t.after(() => fs.rm(dir, { recursive: true, force: true }));
+
+  await fs.writeFile(
+    resolveArtifactRegistryPath(dir),
+    JSON.stringify({ schemaVersion: 999, entries: [] }),
+    'utf8'
+  );
+
+  const warnings: string[] = [];
+  await readArtifactRegistry(dir, { warn: (m) => warnings.push(m) });
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /schemaVersion 999/);
+});

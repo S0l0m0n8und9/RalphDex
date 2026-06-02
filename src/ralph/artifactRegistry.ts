@@ -145,16 +145,45 @@ export function upsertArtifactEntry(
   return { ...registry, entries: sortEntries(next) };
 }
 
-/** Removes every entry whose relative path is in `relativePaths`. */
+/**
+ * Removes every entry whose relative path is in `relativePaths`.
+ *
+ * Stored ids are always root-relative POSIX paths, so callers must pass relative
+ * paths. An absolute path can never match a stored id and would silently remove
+ * nothing — so absolute paths are rejected loudly rather than no-op'd.
+ */
 export function removeArtifactEntries(
   registry: ArtifactRegistry,
   relativePaths: readonly string[]
 ): ArtifactRegistry {
-  const removeIds = new Set(relativePaths.map((p) => artifactEntryId(p)));
+  const absolute = relativePaths.find((candidate) => path.isAbsolute(candidate));
+  if (absolute !== undefined) {
+    throw new Error(
+      `removeArtifactEntries expects root-relative paths; received absolute path "${absolute}". `
+      + 'Convert it with toRegistryRelativePath(artifactsDir, path) first.'
+    );
+  }
+  const removeIds = new Set(relativePaths.map((candidate) => artifactEntryId(candidate)));
   return {
     ...registry,
     entries: registry.entries.filter((entry) => !removeIds.has(entry.id))
   };
+}
+
+/** Structural guard: a registry entry must carry the required string/boolean fields. */
+function isValidRegistryEntry(value: unknown): value is ArtifactRegistryEntry {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const entry = value as Record<string, unknown>;
+  return (
+    typeof entry.id === 'string'
+    && typeof entry.type === 'string'
+    && typeof entry.path === 'string'
+    && typeof entry.createdAt === 'string'
+    && typeof entry.retentionClass === 'string'
+    && typeof entry.pinned === 'boolean'
+  );
 }
 
 /** Returns entries matching every provided filter field (AND semantics). */
@@ -217,15 +246,50 @@ export function buildArtifactEntry(
 // I/O
 // ---------------------------------------------------------------------------
 
-/** Reads the registry; returns an empty registry when none exists yet. */
-export async function readArtifactRegistry(artifactsDir: string): Promise<ArtifactRegistry> {
+export interface RegistryReadOptions {
+  /**
+   * Invoked with a human-readable message when the on-disk registry is
+   * structurally suspect: an unrecognised `schemaVersion` or malformed entries
+   * that are dropped. Lets callers surface incompatibilities (via their logger)
+   * instead of failing silently. Optional — reads still succeed best-effort.
+   */
+  warn?: (message: string) => void;
+}
+
+/**
+ * Reads the registry; returns an empty registry when none exists yet.
+ *
+ * The read is best-effort and forward/backward tolerant: an unrecognised
+ * `schemaVersion` and any structurally-malformed entries are surfaced via
+ * `options.warn` (when provided) rather than silently discarded, and malformed
+ * entries are dropped so consumers never see partial objects.
+ */
+export async function readArtifactRegistry(
+  artifactsDir: string,
+  options: RegistryReadOptions = {}
+): Promise<ArtifactRegistry> {
   const registryPath = resolveArtifactRegistryPath(artifactsDir);
   try {
     const parsed = JSON.parse(await fs.readFile(registryPath, 'utf8')) as Partial<ArtifactRegistry>;
-    return {
-      schemaVersion: ARTIFACT_REGISTRY_SCHEMA_VERSION,
-      entries: Array.isArray(parsed.entries) ? parsed.entries : []
-    };
+
+    if (typeof parsed.schemaVersion === 'number' && parsed.schemaVersion !== ARTIFACT_REGISTRY_SCHEMA_VERSION) {
+      options.warn?.(
+        `Artifact registry at ${registryPath} has schemaVersion ${parsed.schemaVersion}, `
+        + `expected ${ARTIFACT_REGISTRY_SCHEMA_VERSION}; loading best-effort. Entries with an `
+        + 'incompatible shape will be dropped.'
+      );
+    }
+
+    const rawEntries = Array.isArray(parsed.entries) ? parsed.entries : [];
+    const entries = rawEntries.filter(isValidRegistryEntry);
+    if (entries.length !== rawEntries.length) {
+      options.warn?.(
+        `Artifact registry at ${registryPath} dropped ${rawEntries.length - entries.length} `
+        + 'malformed entr(y/ies) during load.'
+      );
+    }
+
+    return { schemaVersion: ARTIFACT_REGISTRY_SCHEMA_VERSION, entries };
   } catch (err) {
     if (err instanceof Error && 'code' in err && (err as NodeJS.ErrnoException).code === 'ENOENT') {
       return createEmptyRegistry();
@@ -240,7 +304,7 @@ async function writeRegistry(artifactsDir: string, registry: ArtifactRegistry): 
   await fs.writeFile(registryPath, stableJson(registry), 'utf8');
 }
 
-export interface RegistryWriteOptions {
+export interface RegistryWriteOptions extends RegistryReadOptions {
   /** Forwarded to the file lock; primarily for fast-failing tests. */
   lock?: { lockRetryCount?: number; lockRetryDelayMs?: number };
   now?: () => Date;
@@ -259,11 +323,11 @@ export async function registerArtifacts(
   options: RegistryWriteOptions = {}
 ): Promise<ArtifactRegistry> {
   if (inputs.length === 0) {
-    return readArtifactRegistry(artifactsDir);
+    return readArtifactRegistry(artifactsDir, options);
   }
   const lockPath = `${resolveArtifactRegistryPath(artifactsDir)}.lock`;
   const result = await withFileLock(lockPath, options.lock, async () => {
-    let registry = await readArtifactRegistry(artifactsDir);
+    let registry = await readArtifactRegistry(artifactsDir, options);
     for (const input of inputs) {
       registry = upsertArtifactEntry(registry, buildArtifactEntry(artifactsDir, input, options.now));
     }
@@ -287,7 +351,7 @@ export async function reconcileArtifactRegistry(
 ): Promise<{ registry: ArtifactRegistry; removed: string[] }> {
   const lockPath = `${resolveArtifactRegistryPath(artifactsDir)}.lock`;
   const result = await withFileLock(lockPath, options.lock, async () => {
-    const registry = await readArtifactRegistry(artifactsDir);
+    const registry = await readArtifactRegistry(artifactsDir, options);
     const removed: string[] = [];
     const kept: ArtifactRegistryEntry[] = [];
     for (const entry of registry.entries) {

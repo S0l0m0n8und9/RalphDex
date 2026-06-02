@@ -124,7 +124,8 @@ class ArtifactPersistenceService {
                     provider: input.prepared.config.cliProvider ?? null,
                     iteration: input.prepared.iteration
                 },
-                doctrineProposalId: doctrineProposalArtifact?.proposalId ?? null
+                doctrineProposalId: doctrineProposalArtifact?.proposalId ?? null,
+                warn: (message) => this.logger.warn(message)
             });
         }
         catch (error) {

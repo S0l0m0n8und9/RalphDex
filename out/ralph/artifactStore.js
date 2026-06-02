@@ -573,6 +573,9 @@ async function writeProvenanceBundle(input) {
         retention
     };
 }
+function toRegistryRelative(artifactRootDir, target) {
+    return path.relative(artifactRootDir, target).split(path.sep).join('/');
+}
 /**
  * Registers the artifacts produced by one iteration (plus its provenance bundle)
  * in the canonical artifact registry (`index.json`), so the dashboard/sidebar and
@@ -585,6 +588,7 @@ async function writeProvenanceBundle(input) {
  * for backward compatibility; the registry is an additive index.
  */
 async function registerIterationArtifactSet(input) {
+    const iterationResultRelative = toRegistryRelative(input.artifactRootDir, input.iterationPaths.iterationResultPath);
     const candidates = [
         { path: input.iterationPaths.promptPath, type: 'prompt', retentionClass: 'iteration' },
         { path: input.iterationPaths.promptEvidencePath, type: 'prompt-evidence', retentionClass: 'iteration' },
@@ -597,19 +601,31 @@ async function registerIterationArtifactSet(input) {
         { path: input.iterationPaths.executionSummaryPath, type: 'execution-summary', retentionClass: 'iteration' },
         { path: input.iterationPaths.diffSummaryPath, type: 'diff-summary', retentionClass: 'iteration' },
         { path: input.iterationPaths.remediationPath, type: 'task-remediation', retentionClass: 'iteration' },
-        { path: input.iterationPaths.doctrineProposalPath, type: 'doctrine-proposal', retentionClass: 'iteration' }
+        // The iteration directory holds a *draft* copy of the proposal; the canonical,
+        // operator-reviewable artifact lives under doctrine-proposals/<id>.json (below).
+        // Distinct types keep `queryArtifacts({ type: 'doctrine-proposal' })` returning
+        // only the canonical entry.
+        { path: input.iterationPaths.doctrineProposalPath, type: 'doctrine-proposal-draft', retentionClass: 'iteration' }
     ];
     if (input.provenancePaths) {
-        candidates.push({ path: input.provenancePaths.bundlePath, type: 'provenance-bundle', retentionClass: 'durable' }, { path: input.provenancePaths.summaryPath, type: 'provenance-summary', retentionClass: 'durable' });
+        candidates.push(
+        // Provenance bundles are derived from the iteration result they wrap.
+        {
+            path: input.provenancePaths.bundlePath,
+            type: 'provenance-bundle',
+            retentionClass: 'durable',
+            related: { generatedFrom: iterationResultRelative }
+        }, { path: input.provenancePaths.summaryPath, type: 'provenance-summary', retentionClass: 'durable' });
     }
     if (input.doctrineProposalId) {
         const canonical = resolveDoctrineProposalCanonicalPaths(input.artifactRootDir, input.doctrineProposalId);
-        candidates.push({ path: canonical.jsonPath, type: 'doctrine-proposal', retentionClass: 'durable' });
+        candidates.push({
+            path: canonical.jsonPath,
+            type: 'doctrine-proposal',
+            retentionClass: 'durable',
+            related: { generatedFrom: toRegistryRelative(input.artifactRootDir, input.iterationPaths.doctrineProposalPath) }
+        });
     }
-    const iterationResultRelative = path
-        .relative(input.artifactRootDir, input.iterationPaths.iterationResultPath)
-        .split(path.sep)
-        .join('/');
     const present = await Promise.all(candidates.map(async (candidate) => ({
         candidate,
         exists: await fs
@@ -629,12 +645,9 @@ async function registerIterationArtifactSet(input) {
         provider: input.metadata.provider,
         iteration: input.metadata.iteration,
         retentionClass: candidate.retentionClass,
-        // Provenance bundles are derived from the iteration result they wrap.
-        ...(candidate.type === 'provenance-bundle'
-            ? { related: { generatedFrom: iterationResultRelative } }
-            : {})
+        ...(candidate.related ? { related: candidate.related } : {})
     }));
-    await (0, artifactRegistry_1.registerArtifacts)(input.artifactRootDir, entries);
+    await (0, artifactRegistry_1.registerArtifacts)(input.artifactRootDir, entries, { warn: input.warn });
 }
 async function writeWatchdogDiagnosticArtifact(input) {
     const watchdogDir = path.join(input.artifactRootDir, 'watchdog');

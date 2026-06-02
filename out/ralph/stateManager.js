@@ -788,7 +788,9 @@ class RalphStateManager {
         // stays consistent with what remains on disk (issue #69). Best-effort: a
         // failure here must not abort cleanup.
         try {
-            const { removed } = await (0, artifactRegistry_1.reconcileArtifactRegistry)(paths.artifactDir);
+            const { removed } = await (0, artifactRegistry_1.reconcileArtifactRegistry)(paths.artifactDir, {
+                warn: (message) => this.logger.warn(message)
+            });
             if (removed.length > 0) {
                 this.logger.info('Reconciled the artifact registry after cleanup.', {
                     removedEntryCount: removed.length
