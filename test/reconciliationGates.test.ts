@@ -151,6 +151,26 @@ test('runGatePipeline rejects done when a configured validation-command verifier
   }
 });
 
+test('runGatePipeline rejects done when a configured validation-command verifier failed, even if overall verificationStatus passed', () => {
+  const result = runGatePipeline(
+    makeState({
+      validationCommand: 'npm test',
+      report: { requestedStatus: 'done' },
+      verificationStatus: 'passed',
+      validationCommandStatus: 'failed'
+    })
+  );
+
+  assert.equal(result.kind, 'rejected');
+  if (result.kind === 'rejected') {
+    assert.equal(result.reason, 'verification_failed');
+    assert.equal(
+      result.warnings.some((w) => w.includes('validation-command verifier status was failed')),
+      true
+    );
+  }
+});
+
 test('runGatePipeline preserves done behavior when no validation command is configured', () => {
   const result = runGatePipeline(
     makeState({
