@@ -58,7 +58,9 @@ async function loadLatestRunTimeline(artifactsDir, currentProvenanceId) {
         const names = runDirs
             .filter((entry) => entry.isDirectory())
             .map((entry) => entry.name)
-            .sort((a, b) => b.localeCompare(a));
+            // Byte-order (not locale-sensitive) descending: run ids are timestamp/uuid
+            // strings whose correct ordering is lexicographic, independent of locale.
+            .sort((a, b) => (b > a ? 1 : b < a ? -1 : 0));
         for (const name of names) {
             if (!candidateRunIds.includes(name)) {
                 candidateRunIds.push(name);
@@ -69,7 +71,10 @@ async function loadLatestRunTimeline(artifactsDir, currentProvenanceId) {
         // No runs directory yet.
     }
     for (const runId of candidateRunIds) {
-        const events = await (0, eventJournal_1.readEventJournal)(artifactsDir, runId).catch(() => []);
+        // Resumable read recovers the valid prefix of a journal whose last line is
+        // partially written (mid-crash), so a live run is never silently skipped in
+        // favour of an older run's stale timeline. ENOENT yields [] -> next candidate.
+        const events = await (0, eventJournal_1.readEventJournalResumable)(artifactsDir, runId);
         if (events.length > 0) {
             return (0, runTimeline_1.buildRunTrustTimeline)(events);
         }

@@ -5,7 +5,7 @@ import { collectStatusSnapshot } from '../commands/statusSnapshot';
 import { readConfig } from '../config/readConfig';
 import { RalphStateManager } from '../ralph/stateManager';
 import { readMultiAgentStatusSummaries } from '../ralph/multiAgentStatusSnapshot';
-import { readEventJournal, type RalphRuntimeEvent } from '../ralph/eventJournal';
+import { readEventJournalResumable, type RalphRuntimeEvent } from '../ralph/eventJournal';
 import {
   buildExecutionIntentPreview,
   buildRunTrustTimeline,
@@ -35,7 +35,9 @@ async function loadLatestRunTimeline(
     const names = runDirs
       .filter((entry) => entry.isDirectory())
       .map((entry) => entry.name)
-      .sort((a, b) => b.localeCompare(a));
+      // Byte-order (not locale-sensitive) descending: run ids are timestamp/uuid
+      // strings whose correct ordering is lexicographic, independent of locale.
+      .sort((a, b) => (b > a ? 1 : b < a ? -1 : 0));
     for (const name of names) {
       if (!candidateRunIds.includes(name)) {
         candidateRunIds.push(name);
@@ -46,7 +48,10 @@ async function loadLatestRunTimeline(
   }
 
   for (const runId of candidateRunIds) {
-    const events: RalphRuntimeEvent[] = await readEventJournal(artifactsDir, runId).catch(() => []);
+    // Resumable read recovers the valid prefix of a journal whose last line is
+    // partially written (mid-crash), so a live run is never silently skipped in
+    // favour of an older run's stale timeline. ENOENT yields [] -> next candidate.
+    const events: RalphRuntimeEvent[] = await readEventJournalResumable(artifactsDir, runId);
     if (events.length > 0) {
       return buildRunTrustTimeline(events);
     }

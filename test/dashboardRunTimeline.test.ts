@@ -70,3 +70,18 @@ test('buildRunTimelineSection works with intent only (no run yet)', () => {
   assert.deepEqual(section?.entries, []);
   assert.equal(section?.totals.taskStateChanges, 0);
 });
+
+test('buildRunTimelineSection caps remediationAudit at DASHBOARD_TIMELINE_ENTRY_CAP', () => {
+  const audits = Array.from({ length: DASHBOARD_TIMELINE_ENTRY_CAP + 5 }, (_unused, i) => ({
+    seq: i + 1, timestamp: `t${i + 1}`, taskId: 'T1', action: 'mark_blocked', applied: true
+  }));
+  const t: RunTrustTimeline = {
+    runId: 'run-1', startedAt: null, completedAt: null, stopReason: null,
+    entries: [], remediationAudit: audits, artifactsWritten: [],
+    totals: { taskStateChanges: 0, providerInvocations: 0, remediationsApplied: audits.length, artifactsWritten: 0, scmActions: 0 }
+  };
+  const section = buildRunTimelineSection({ intent: null, timeline: t });
+  assert.equal(section?.remediationAudit.length, DASHBOARD_TIMELINE_ENTRY_CAP);
+  // Keeps the most recent (last) entries.
+  assert.equal(section?.remediationAudit[section.remediationAudit.length - 1].seq, DASHBOARD_TIMELINE_ENTRY_CAP + 5);
+});

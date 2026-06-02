@@ -409,7 +409,9 @@ export function buildRunTimelineSection(input: {
       scmActions: 0
     },
     entries,
-    remediationAudit: timeline?.remediationAudit ?? []
+    // Cap like `entries` so a long run with many remediations can't produce an
+    // unbounded dashboard payload; keep the most recent.
+    remediationAudit: (timeline?.remediationAudit ?? []).slice(-DASHBOARD_TIMELINE_ENTRY_CAP)
   };
 }
 
