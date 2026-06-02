@@ -68,9 +68,7 @@ This document catalogues verification challenges and race conditions that arise 
 
 **Location:** `src/ralph/reconciliation.ts` — `reconcileCompletionReport`
 
-**Fix:** After the hard-block guard that already rejects 'done' reports when `verificationStatus !== 'passed'`, a non-blocking warning is now appended to the artifact when `requestedStatus === 'done'` and a validation command is configured (`prepared.validationCommand`) but the completion report omits `validationRan`. This makes silent validation skips visible in provenance bundles and iteration logs without blocking valid completions where the agent simply forgot the field.
-
-**Remaining gap:** Ralph's `verificationStatus === 'passed'` gate does not require that the validation-command verifier specifically ran — a passing file-change verifier is sufficient. Agents that made file changes but never ran `npm test` can still mark tasks done if the file-change verifier passes. Closing this fully would require making the validation-command verifier mandatory when a command is configured.
+**Fix:** After the hard-block guard that rejects 'done' reports when `verificationStatus !== 'passed'`, reconciliation also checks validation-command evidence directly. When a validation command is configured and the `validationCommand` verifier mode is enabled, a 'done' report is rejected unless that verifier specifically ran and passed. A passing file-change verifier is no longer sufficient to mark the task done. Ralph still appends a non-blocking warning when the verifier passed but the completion report omits `validationRan`, preserving observability for agents that forgot to self-report the command.
 
 ---
 

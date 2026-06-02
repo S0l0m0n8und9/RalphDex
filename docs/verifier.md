@@ -79,6 +79,8 @@ Workspace changes are evidence of activity, not evidence of correctness or compl
 
 When `validationCommand` passes but `gitDiff` reports `failed` (no new relevant transitions in this iteration), Ralph treats that combination as `partial_progress` for outcome classification. This prevents no-progress retries from consuming budget when correctness is already confirmed and the required workspace state already existed at iteration start.
 
+When a validation command is selected and the `validationCommand` verifier mode is enabled, done-state reconciliation requires that verifier to pass specifically. An overall `passed` verification status from another verifier, such as `gitDiff`, is not enough to apply a completion report that requests `done`.
+
 ## No-Progress Detection
 
 No-progress detection remains deterministic. Current signals include:

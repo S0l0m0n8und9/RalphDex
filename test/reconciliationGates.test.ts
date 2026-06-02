@@ -131,6 +131,58 @@ test('runGatePipeline rejects with verification_failed when done is requested bu
   }
 });
 
+test('runGatePipeline rejects done when a configured validation-command verifier was skipped', () => {
+  const result = runGatePipeline(
+    makeState({
+      validationCommand: 'npm test',
+      report: { requestedStatus: 'done' },
+      verificationStatus: 'passed',
+      validationCommandStatus: 'skipped'
+    })
+  );
+
+  assert.equal(result.kind, 'rejected');
+  if (result.kind === 'rejected') {
+    assert.equal(result.reason, 'verification_failed');
+    assert.equal(
+      result.warnings.some((w) => w.includes('validation-command verifier status was skipped')),
+      true
+    );
+  }
+});
+
+test('runGatePipeline rejects done when a configured validation-command verifier failed, even if overall verificationStatus passed', () => {
+  const result = runGatePipeline(
+    makeState({
+      validationCommand: 'npm test',
+      report: { requestedStatus: 'done' },
+      verificationStatus: 'passed',
+      validationCommandStatus: 'failed'
+    })
+  );
+
+  assert.equal(result.kind, 'rejected');
+  if (result.kind === 'rejected') {
+    assert.equal(result.reason, 'verification_failed');
+    assert.equal(
+      result.warnings.some((w) => w.includes('validation-command verifier status was failed')),
+      true
+    );
+  }
+});
+
+test('runGatePipeline preserves done behavior when no validation command is configured', () => {
+  const result = runGatePipeline(
+    makeState({
+      report: { requestedStatus: 'done' },
+      verificationStatus: 'passed',
+      validationCommandStatus: 'skipped'
+    })
+  );
+
+  assert.equal(result.kind, 'proceed');
+});
+
 test('runGatePipeline rejects with needs_human_review_with_done when a done report also flags human review', () => {
   const result = runGatePipeline(
     makeState({ report: { requestedStatus: 'done', needsHumanReview: true } })
