@@ -13,8 +13,8 @@ import type { RalphTaskFile } from './types';
  * - `stale_prd_task_reference`: the PRD cites a task id that no longer exists in
  *   the backlog (the PRD describes work the backlog has dropped).
  * - `orphan_active_task`: an active (todo/in_progress) task that is neither cited
- *   by id in the PRD nor shares a significant title token with PRD text (backlog
- *   work the PRD does not describe).
+ *   by id in the live PRD scope nor shares a significant title token with live
+ *   PRD scope text (backlog work the current PRD does not describe).
  * - `duplicate_active_task`: two or more active tasks with the same normalized
  *   title (redundant backlog coverage).
  *
@@ -63,7 +63,7 @@ function isActiveStatus(status: string): boolean {
  * `## Delivered horizons (archive)` marker) — so archived horizons that cite
  * long-completed task ids do not drive active-backlog reconciliation.
  */
-export function parsePrdTaskReferences(prdText: string): { allIds: Set<string>; liveScopeIds: Set<string> } {
+export function parsePrdTaskReferences(prdText: string): { allIds: Set<string>; liveScopeIds: Set<string>; liveScopeText: string } {
   const allIds = new Set(prdText.match(TASK_ID_PATTERN) ?? []);
 
   const lines = prdText.split('\n');
@@ -80,9 +80,10 @@ export function parsePrdTaskReferences(prdText: string): { allIds: Set<string>; 
       liveLines.push(line);
     }
   }
-  const liveScopeIds = new Set(liveLines.join('\n').match(TASK_ID_PATTERN) ?? []);
+  const liveScopeText = liveLines.join('\n');
+  const liveScopeIds = new Set(liveScopeText.match(TASK_ID_PATTERN) ?? []);
 
-  return { allIds, liveScopeIds };
+  return { allIds, liveScopeIds, liveScopeText };
 }
 
 const TITLE_STOPWORDS = new Set([
@@ -118,8 +119,8 @@ export function analyzePrdBacklogReconciliation(input: {
   const findings: PrdReconciliationFinding[] = [];
   const tasks = input.taskFile.tasks ?? [];
   const taskIds = new Set(tasks.map((task) => task.id));
-  const { allIds, liveScopeIds } = parsePrdTaskReferences(input.prdText);
-  const prdTextLower = input.prdText.toLowerCase();
+  const { liveScopeIds, liveScopeText } = parsePrdTaskReferences(input.prdText);
+  const liveScopeTextLower = liveScopeText.toLowerCase();
 
   // stale_prd_task_reference: the PRD's *live scope* cites an id the backlog no
   // longer contains. Scope to liveScopeIds (not allIds) so completed tasks that
@@ -140,11 +141,11 @@ export function analyzePrdBacklogReconciliation(input: {
     if (!isActiveStatus(task.status)) {
       continue;
     }
-    if (allIds.has(task.id)) {
+    if (liveScopeIds.has(task.id)) {
       continue;
     }
     const tokens = significantTitleTokens(task.title ?? '');
-    const traceable = tokens.some((token) => prdTextLower.includes(token));
+    const traceable = tokens.some((token) => liveScopeTextLower.includes(token));
     if (!traceable) {
       findings.push({
         type: 'orphan_active_task',
