@@ -380,15 +380,19 @@ export async function reconcileBranchPerTaskScm(input: {
   // conflict resolver has accurate context if that merge throws.
   let lastMergeSource = selectedClaim.featureBranch;
   let lastMergeTarget = selectedClaim.integrationBranch ?? selectedClaim.baseBranch;
+  let pendingFailedAction = `branch-per-task-checkout:${selectedClaim.featureBranch}`;
 
   const runMerge = async (mergeInput: Parameters<typeof mergeGitBranch>[0]): Promise<void> => {
     lastMergeSource = mergeInput.sourceBranch;
     lastMergeTarget = mergeInput.targetBranch;
+    pendingFailedAction = `branch-per-task-merge:${mergeInput.sourceBranch}->${mergeInput.targetBranch}`;
     await mergeGitBranch(mergeInput);
   };
 
   try {
+    pendingFailedAction = `branch-per-task-checkout:${selectedClaim.featureBranch}`;
     await checkoutGitBranch(input.prepared.rootPath, selectedClaim.featureBranch);
+    pendingFailedAction = 'branch-per-task-commit';
     warnings.push(await commitOnDone({
       rootPath: input.prepared.rootPath,
       taskId: selectedTask.id,
@@ -441,6 +445,7 @@ export async function reconcileBranchPerTaskScm(input: {
         warnings.push(...parentPr.warnings);
         actions.push(...parentPr.actions);
       } else {
+        pendingFailedAction = `branch-per-task-checkout:${selectedClaim.baseBranch}`;
         await checkoutGitBranch(input.prepared.rootPath, selectedClaim.baseBranch);
       }
     } else {
@@ -498,7 +503,7 @@ export async function reconcileBranchPerTaskScm(input: {
       warnings.push(
         `SCM branch-per-task failed for ${selectedTask.id}: ${blocker}`
       );
-      actions.push({ taskId: mergeTargetTaskId, action: `branch-per-task-merge:${lastMergeSource}->${lastMergeTarget}`, status: 'failed' });
+      actions.push({ taskId: mergeTargetTaskId, action: pendingFailedAction, status: 'failed' });
       const refreshedTaskFile = parseTaskFile(await fs.readFile(input.prepared.paths.taskFilePath, 'utf8'));
       selectedTaskAfterScm = findTaskById(refreshedTaskFile, selectedTask.id);
     }

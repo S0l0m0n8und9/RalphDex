@@ -725,6 +725,14 @@ test('runCliIteration reopens the task when branch-per-task merge hits a conflic
   assert.deepEqual(gitState.conflictPaths, ['src/feature.ts']);
   assert.match(summary.result.warnings.join('\n'), /SCM branch-per-task failed for T41: Merge conflict/);
   assert.match(summary.result.warnings.join('\n'), /src\/feature\.ts/);
+
+  const events = await readEventJournal(path.join(rootPath, '.ralph', 'artifacts'), summary.prepared.provenanceId);
+  const failedScmAction = events
+    .filter((event) => event.type === 'scm_action')
+    .find((event) => event.status === 'failed');
+  assert.ok(failedScmAction, 'expected failed branch-per-task merge to be journaled');
+  assert.equal(failedScmAction.taskId, 'T41');
+  assert.equal(failedScmAction.action, 'branch-per-task-merge:ralph/T41->main');
 });
 
 test('runCliIteration persists blocked preflight evidence before throwing', async () => {
