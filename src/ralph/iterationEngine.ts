@@ -100,6 +100,10 @@ function relativeArtifactPath(artifactRootDir: string, artifactPath: string): st
   return path.relative(artifactRootDir, artifactPath).replace(/\\/g, '/');
 }
 
+function isReviewAgentRole(agentRole: string): boolean {
+  return agentRole === 'review' || agentRole === 'reviewer';
+}
+
 export class RalphIterationEngine {
   private readonly artifactPersistence: ArtifactPersistenceService;
   private readonly iterationExecutor: IterationExecutor;
@@ -749,6 +753,14 @@ export class RalphIterationEngine {
           };
         }
       });
+      for (const scmAction of branchPerTask.scmActions) {
+        await this.appendRuntimeEvent(eventJournal, {
+          type: 'scm_action',
+          taskId: scmAction.taskId,
+          action: scmAction.action,
+          status: scmAction.status
+        });
+      }
 
       let afterCoreState = await captureCoreState(prepared.paths);
       let taskStateVerification = await this.verificationRunner.runTaskStateVerification({
@@ -834,6 +846,18 @@ export class RalphIterationEngine {
           verifier: verifier.verifier,
           status: verifier.status,
           iteration: prepared.iteration
+        });
+      }
+      if (isReviewAgentRole(prepared.config.agentRole)) {
+        const anomalyCount = classified.verifierResults.filter((verifier) => verifier.status === 'failed').length
+          + result.errors.length;
+        await this.appendRuntimeEvent(eventJournal, {
+          type: 'review_result',
+          taskId: prepared.selectedTask?.id ?? null,
+          status: result.verificationStatus === 'passed' && result.completionReportStatus !== 'rejected' && anomalyCount === 0
+            ? 'passed'
+            : 'flagged',
+          anomalies: anomalyCount
         });
       }
       if (prepared.selectedTask

@@ -59,8 +59,9 @@ test('buildRunTrustTimeline folds the journal into entries, totals, and remediat
     { seq: 6, timestamp: '2026-01-01T00:00:06Z', type: 'remediation_applied', taskId: 'T1', action: 'mark_blocked', applied: true },
     { seq: 7, timestamp: '2026-01-01T00:00:07Z', type: 'artifact_written', artifactType: 'iteration-result', relativePath: 'iteration-001/iteration-result.json' },
     { seq: 8, timestamp: '2026-01-01T00:00:08Z', type: 'scm_action', taskId: 'T1', action: 'commit', status: 'succeeded' },
-    { seq: 9, timestamp: '2026-01-01T00:00:09Z', type: 'task_state_changed', taskId: 'T1', from: 'in_progress', to: 'done' },
-    { seq: 10, timestamp: '2026-01-01T00:00:10Z', type: 'run_completed', stopReason: 'no_actionable_task' }
+    { seq: 9, timestamp: '2026-01-01T00:00:09Z', type: 'review_result', taskId: 'T1', status: 'flagged', anomalies: 2 },
+    { seq: 10, timestamp: '2026-01-01T00:00:10Z', type: 'task_state_changed', taskId: 'T1', from: 'in_progress', to: 'done' },
+    { seq: 11, timestamp: '2026-01-01T00:00:11Z', type: 'run_completed', stopReason: 'no_actionable_task' }
   ));
 
   assert.equal(timeline.runId, 'run-1');
@@ -76,12 +77,14 @@ test('buildRunTrustTimeline folds the journal into entries, totals, and remediat
   // artifact_written is folded into totals only (not a timeline entry); the rest are entries.
   assert.ok(!timeline.entries.some((e) => e.kind === 'artifact_written'));
   assert.ok(timeline.entries.some((e) => e.kind === 'task_state_changed' && e.taskId === 'T1'));
+  assert.ok(timeline.entries.some((e) => e.kind === 'review_result' && e.summary === 'Review flagged (2 anomalies).'));
   assert.deepEqual(timeline.remediationAudit, [
     { seq: 6, timestamp: '2026-01-01T00:00:06Z', taskId: 'T1', action: 'mark_blocked', applied: true }
   ]);
 
   const md = renderRunTrustTimelineMarkdown(timeline);
   assert.match(md, /Run trust timeline/);
+  assert.match(md, /Review flagged \(2 anomalies\)\./);
   assert.match(md, /Auto-remediation audit/);
 });
 

@@ -4,6 +4,7 @@ import {
   prepareBranchPerTaskExecutionWorkspace,
   listGitConflictPaths,
   reconcileBranchPerTaskScm,
+  type BranchPerTaskScmAction,
   type ScmConflictResolver
 } from '../iterationScm';
 import type { CompletionReconciliationOutcome } from '../reconciliation';
@@ -28,6 +29,7 @@ export interface ReconcileBranchPerTaskInput {
 
 export interface ReconcileBranchPerTaskOutput {
   warnings: string[];
+  scmActions: BranchPerTaskScmAction[];
   selectedTaskStatus?: CompletionReconciliationOutcome['selectedTask'] extends infer T
     ? T extends { status: infer S }
       ? S
@@ -56,6 +58,7 @@ export class ScmCoordinator {
 
   public async reconcileBranchPerTask(input: ReconcileBranchPerTaskInput): Promise<ReconcileBranchPerTaskOutput> {
     const warnings: string[] = [];
+    const scmActions: BranchPerTaskScmAction[] = [];
     let selectedTaskStatus = input.completionReconciliation.selectedTask?.status;
     let selectedTask = input.completionReconciliation.selectedTask;
     let autoReviewContext: ReconcileBranchPerTaskOutput['autoReviewContext'];
@@ -94,6 +97,7 @@ export class ScmCoordinator {
         conflictResolver
       });
       warnings.push(...branchScm.warnings);
+      scmActions.push(...branchScm.actions);
       if (branchScm.selectedTaskAfterScm && input.prepared.selectedTask?.id === branchScm.selectedTaskAfterScm.id) {
         selectedTask = branchScm.selectedTaskAfterScm;
       } else {
@@ -113,6 +117,7 @@ export class ScmCoordinator {
 
     return {
       warnings,
+      scmActions,
       selectedTaskStatus,
       selectedTask,
       autoReviewContext
