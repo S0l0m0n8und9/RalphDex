@@ -54,6 +54,7 @@ import { OutcomeClassifier } from './iteration/OutcomeClassifier';
 import { RemediationCoordinator } from './iteration/RemediationCoordinator';
 import { ScmCoordinator } from './iteration/ScmCoordinator';
 import { VerificationRunner } from './iteration/VerificationRunner';
+import { EventJournalWriter, type RalphRuntimeEventInput } from './eventJournal';
 
 export interface RalphIterationEngineHooks {
   beforeCliExecutionIntegrityCheck?: (prepared: PreparedIterationContext) => Promise<void>;
@@ -95,6 +96,10 @@ function runRecordFromIteration(
   };
 }
 
+function relativeArtifactPath(artifactRootDir: string, artifactPath: string): string {
+  return path.relative(artifactRootDir, artifactPath).replace(/\\/g, '/');
+}
+
 export class RalphIterationEngine {
   private readonly artifactPersistence: ArtifactPersistenceService;
   private readonly iterationExecutor: IterationExecutor;
@@ -119,6 +124,25 @@ export class RalphIterationEngine {
     this.remediationCoordinator = new RemediationCoordinator(this.logger);
     this.scmCoordinator = new ScmCoordinator(this.logger);
     this.planningGate = new PlanningGate(this.strategies, this.logger);
+  }
+
+  private async appendRuntimeEvent(
+    writer: EventJournalWriter | null,
+    input: RalphRuntimeEventInput
+  ): Promise<boolean> {
+    if (!writer) {
+      return false;
+    }
+    try {
+      await writer.append(input);
+      return true;
+    } catch (error) {
+      this.logger.warn('Failed to append Ralph runtime event.', {
+        eventType: input.type,
+        error: toErrorMessage(error)
+      });
+      return false;
+    }
   }
 
   public async preparePrompt(
@@ -297,8 +321,11 @@ export class RalphIterationEngine {
       persistBlockedPreflightBundle: (input) => persistBlockedPreflightBundle(input, this.logger),
       persistPreparedProvenanceBundle: (preparedContext) => persistPreparedProvenanceBundle(preparedContext, this.logger)
     });
+    let eventJournal: EventJournalWriter | null = null;
+    let runtimeRunCompleted = false;
     try {
       let artifactPaths = this.artifactPersistence.resolvePaths(prepared.paths.artifactDir, prepared.iteration);
+      eventJournal = await EventJournalWriter.open(prepared.paths.artifactDir, prepared.provenanceId);
       const startedAt = prepared.phaseSeed.inspectStartedAt;
       const phaseTimestamps: RalphIterationResult['phaseTimestamps'] = {
         inspectStartedAt: prepared.phaseSeed.inspectStartedAt,
@@ -309,6 +336,19 @@ export class RalphIterationEngine {
         verificationFinishedAt: startedAt,
         classifiedAt: startedAt
       };
+      await this.appendRuntimeEvent(eventJournal, {
+        type: 'run_started',
+        mode,
+        backlogRemaining: prepared.beforeCoreState.taskFile.tasks.filter((task) => task.status !== 'done').length
+      });
+      if (prepared.selectedTask) {
+        await this.appendRuntimeEvent(eventJournal, {
+          type: 'task_selected',
+          taskId: prepared.selectedTask.id,
+          title: prepared.selectedTask.title,
+          iteration: prepared.iteration
+        });
+      }
 
       const planningGateDecision = await this.planningGate.evaluate(prepared);
       if (planningGateDecision.warnings.length > 0) {
@@ -438,6 +478,33 @@ export class RalphIterationEngine {
           promptCacheStats: null,
           executionCostUsd: null
         });
+        await this.appendRuntimeEvent(eventJournal, {
+          type: 'artifact_written',
+          artifactType: 'iteration-result',
+          relativePath: relativeArtifactPath(prepared.paths.artifactDir, artifactPaths.iterationResultPath),
+          iteration: prepared.iteration
+        });
+        await this.appendRuntimeEvent(eventJournal, {
+          type: 'artifact_written',
+          artifactType: 'planning-gate-result',
+          relativePath: relativeArtifactPath(prepared.paths.artifactDir, iterationGateArtifactPath),
+          iteration: prepared.iteration
+        });
+        if (prepared.selectedTask && completionClassification === 'blocked' && prepared.selectedTask.status !== 'blocked') {
+          await this.appendRuntimeEvent(eventJournal, {
+            type: 'task_state_changed',
+            taskId: prepared.selectedTask.id,
+            from: prepared.selectedTask.status,
+            to: 'blocked',
+            reason: stopReason
+          });
+        }
+        runtimeRunCompleted = await this.appendRuntimeEvent(eventJournal, {
+          type: 'run_completed',
+          stopReason,
+          iterations: prepared.iteration,
+          backlogRemaining: result.backlog.remainingTaskCount ?? undefined
+        });
 
         const runRecord = runRecordFromIteration(mode, prepared, startedAt, result);
         await this.stateManager.recordIteration(
@@ -556,6 +623,14 @@ export class RalphIterationEngine {
 
       const artifactBaseName = createArtifactBaseName(prepared.promptKind, prepared.iteration);
       const runArtifacts = this.stateManager.runArtifactPaths(prepared.paths, artifactBaseName);
+      if (shouldExecutePrompt) {
+        await this.appendRuntimeEvent(eventJournal, {
+          type: 'provider_invoked',
+          taskId: prepared.selectedTask?.id ?? null,
+          provider: effectiveProvider,
+          iteration: prepared.iteration
+        });
+      }
       const execution = await this.iterationExecutor.execute({
         prepared,
         mode,
@@ -570,6 +645,15 @@ export class RalphIterationEngine {
         beforeCliExecutionIntegrityCheck: this.hooks.beforeCliExecutionIntegrityCheck,
         prepareExecutionWorkspace: (preparedContext) => this.scmCoordinator.prepareExecutionWorkspace(preparedContext)
       });
+      if (shouldExecutePrompt) {
+        await this.appendRuntimeEvent(eventJournal, {
+          type: 'provider_completed',
+          taskId: prepared.selectedTask?.id ?? null,
+          provider: effectiveProvider,
+          status: execution.executionStatus,
+          iteration: prepared.iteration
+        });
+      }
       phaseTimestamps.executionStartedAt = execution.executionStartedAt;
       phaseTimestamps.executionFinishedAt = execution.executionFinishedAt;
 
@@ -634,6 +718,13 @@ export class RalphIterationEngine {
         lastMessage: execution.lastMessage,
         taskFilePath: prepared.paths.taskFilePath,
         logger: this.logger
+      });
+      await this.appendRuntimeEvent(eventJournal, {
+        type: 'completion_report_parsed',
+        taskId: prepared.selectedTask?.id ?? null,
+        requestedStatus: completionReconciliation.artifact.report?.requestedStatus ?? null,
+        parsed: completionReconciliation.artifact.status === 'applied',
+        needsHumanReview: completionReconciliation.artifact.report?.needsHumanReview ?? false
       });
       const branchPerTask = await this.scmCoordinator.reconcileBranchPerTask({
         prepared,
@@ -736,6 +827,26 @@ export class RalphIterationEngine {
           warnings: [...planningGateDecision.warnings, ...result.warnings]
         };
       }
+      for (const verifier of classified.verifierResults) {
+        await this.appendRuntimeEvent(eventJournal, {
+          type: 'verifier_result',
+          taskId: prepared.selectedTask?.id ?? null,
+          verifier: verifier.verifier,
+          status: verifier.status,
+          iteration: prepared.iteration
+        });
+      }
+      if (prepared.selectedTask
+        && classified.selectedTaskAfter
+        && prepared.selectedTask.status !== classified.selectedTaskAfter.status) {
+        await this.appendRuntimeEvent(eventJournal, {
+          type: 'task_state_changed',
+          taskId: prepared.selectedTask.id,
+          from: prepared.selectedTask.status,
+          to: classified.selectedTaskAfter.status,
+          reason: completionReconciliation.artifact.status
+        });
+      }
       const loopEvaluation = this.loopDecisionService.evaluate({
         prepared,
         result,
@@ -790,6 +901,15 @@ export class RalphIterationEngine {
       result = remediationOutcome.result;
       const remediationArtifact = remediationOutcome.remediationArtifact;
       remediationOutcome.effectiveTaskFile;
+      if (result.remediation) {
+        const autoApplied = result.warnings.some((warning) => warning.includes(`Remediation auto-applied: ${result.remediation?.action}`));
+        await this.appendRuntimeEvent(eventJournal, {
+          type: 'remediation_applied',
+          taskId: result.selectedTaskId,
+          action: result.remediation.action,
+          applied: autoApplied
+        });
+      }
 
       // Run onStop hook when the loop will not continue (adopted from Ruflo's hook system).
       if (result.stopReason) {
@@ -850,6 +970,14 @@ export class RalphIterationEngine {
       if (commitWarnings.length > 0) {
         result.warnings.push(...commitWarnings);
       }
+      if (prepared.config.scmStrategy === 'commit-on-done' && taskStateVerification.selectedTaskCompleted) {
+        await this.appendRuntimeEvent(eventJournal, {
+          type: 'scm_action',
+          taskId: prepared.selectedTask?.id ?? null,
+          action: 'commit-on-done',
+          status: commitWarnings.length > 0 ? 'failed' : 'succeeded'
+        });
+      }
 
       if (selectedTaskReopened && prepared.selectedTask) {
         const refreshedTaskFile = parseTaskFile(await fs.readFile(prepared.paths.taskFilePath, 'utf8'));
@@ -897,6 +1025,32 @@ export class RalphIterationEngine {
         promptCacheStats: execution.promptCacheStats,
         executionCostUsd: execution.executionCostUsd
       });
+      await this.appendRuntimeEvent(eventJournal, {
+        type: 'artifact_written',
+        artifactType: 'iteration-result',
+        relativePath: relativeArtifactPath(prepared.paths.artifactDir, artifactPaths.iterationResultPath),
+        iteration: prepared.iteration
+      });
+      await this.appendRuntimeEvent(eventJournal, {
+        type: 'artifact_written',
+        artifactType: 'provenance-bundle',
+        relativePath: relativeArtifactPath(prepared.paths.artifactDir, prepared.provenanceBundlePaths.bundlePath),
+        iteration: prepared.iteration
+      });
+      if (remediationArtifact) {
+        await this.appendRuntimeEvent(eventJournal, {
+          type: 'artifact_written',
+          artifactType: 'task-remediation',
+          relativePath: relativeArtifactPath(prepared.paths.artifactDir, artifactPaths.remediationPath),
+          iteration: prepared.iteration
+        });
+      }
+      runtimeRunCompleted = await this.appendRuntimeEvent(eventJournal, {
+        type: 'run_completed',
+        stopReason: result.stopReason,
+        iterations: prepared.iteration,
+        backlogRemaining: result.backlog.remainingTaskCount ?? undefined
+      });
 
       const runRecord = runRecordFromIteration(mode, prepared, startedAt, result);
       await this.stateManager.recordIteration(
@@ -938,6 +1092,13 @@ export class RalphIterationEngine {
         autoReviewContext: branchPerTask.autoReviewContext
       };
     } finally {
+      if (eventJournal && !runtimeRunCompleted) {
+        await this.appendRuntimeEvent(eventJournal, {
+          type: 'run_completed',
+          stopReason: null,
+          iterations: prepared.iteration
+        });
+      }
       if (prepared.selectedTask) {
         await releaseClaim(
           prepared.paths.claimFilePath,

@@ -7,6 +7,7 @@ import * as vscode from 'vscode';
 import { DEFAULT_CONFIG } from '../src/config/defaults';
 import { CodexExecRequest, CodexExecResult } from '../src/codex/types';
 import { hashText } from '../src/ralph/integrity';
+import { readEventJournal } from '../src/ralph/eventJournal';
 import { RalphIterationEngine, RalphIterationEngineHooks } from '../src/ralph/iterationEngine';
 import { RalphStateManager } from '../src/ralph/stateManager';
 import { resolveStaleClaim } from '../src/ralph/taskFile';
@@ -441,6 +442,16 @@ test('runCliIteration records successful progress, artifacts, and state persiste
   assert.match(bundleSummaryText, /- Agent ID: default/);
   assert.equal(bundle.iterationResultPath, path.join(rootPath, '.ralph', 'artifacts', 'runs', bundle.provenanceId, 'iteration-result.json'));
   assert.equal(bundle.status, 'executed');
+
+  const firstRunEvents = await readEventJournal(path.join(rootPath, '.ralph', 'artifacts'), bundle.provenanceId);
+  assert.ok(firstRunEvents.some((event) => event.type === 'run_started' && event.mode === 'loop'));
+  assert.ok(firstRunEvents.some((event) => event.type === 'task_selected' && event.taskId === 'T1'));
+  assert.ok(firstRunEvents.some((event) => event.type === 'provider_invoked' && event.taskId === 'T1'));
+  assert.ok(firstRunEvents.some((event) => event.type === 'provider_completed' && event.taskId === 'T1' && event.provider === firstRun.result.selectedProvider && event.status === 'succeeded'));
+  assert.ok(firstRunEvents.some((event) => event.type === 'completion_report_parsed' && event.taskId === 'T1' && event.parsed));
+  assert.ok(firstRunEvents.some((event) => event.type === 'verifier_result' && event.taskId === 'T1' && event.verifier === 'taskState'));
+  assert.ok(firstRunEvents.some((event) => event.type === 'artifact_written' && event.artifactType === 'iteration-result'));
+  assert.ok(firstRunEvents.some((event) => event.type === 'run_completed' && event.iterations === 1));
 
   const reloadedState = await first.stateManager.loadState(rootPath, first.stateManager.resolvePaths(rootPath, DEFAULT_CONFIG));
   assert.equal(reloadedState.nextIteration, 2);
@@ -2642,6 +2653,10 @@ test('runCliIteration persists blocked provenance artifacts when launch integrit
   await assert.doesNotReject(fs.access(latestBundle.provenanceFailureSummaryPath));
   assert.match(latestSummary, /Ralph Provenance Failure/);
   assert.match(latestSummary, /stdinPayloadHash/);
+
+  const events = await readEventJournal(path.join(rootPath, '.ralph', 'artifacts'), latestFailure.provenanceId);
+  assert.ok(events.some((event) => event.type === 'run_started'));
+  assert.ok(events.some((event) => event.type === 'run_completed'));
 });
 
 test('runCliIteration persists blocked provenance artifacts for execution-plan hash mismatch', async () => {
@@ -5315,6 +5330,13 @@ test('execution-profile evidence stays aligned after per-tier provider fallback'
   assert.ok(/codex/i.test(fallbackWarning ?? ''));
   assert.ok(/workspace-default-model/i.test(fallbackWarning ?? ''));
   assert.ok(/medium/i.test(fallbackWarning ?? ''));
+
+  const events = await readEventJournal(path.join(rootPath, '.ralph', 'artifacts'), run.result.provenanceId!);
+  const providerInvoked = events.find((event) => event.type === 'provider_invoked');
+  const providerCompleted = events.find((event) => event.type === 'provider_completed');
+  assert.ok(providerInvoked);
+  assert.ok(providerCompleted);
+  assert.equal(providerCompleted.provider, providerInvoked.provider);
 });
 
 test('execution-profile evidence stays aligned when model tiering is disabled', async () => {

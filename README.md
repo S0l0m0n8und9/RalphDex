@@ -369,6 +369,7 @@ Permissive provider modes (`dangerously-skip-permissions`, `allow-all`) are avai
 - [docs/testing.md](docs/testing.md): scripts, coverage, and runtime notes
 - [docs/invariants.md](docs/invariants.md): state, task, and artifact invariants
 - [docs/provenance.md](docs/provenance.md): plan/prompt/invocation/run trust chain
+- [docs/event-journal-coverage.md](docs/event-journal-coverage.md): runtime event journal coverage matrix
 - [docs/security.md](docs/security.md): security and data-handling boundary for harness use
 - [docs/verifier.md](docs/verifier.md): verifier modes, classification rules, and stop semantics
 - [docs/boundaries.md](docs/boundaries.md): explicit non-goals and trust limits
