@@ -143,6 +143,7 @@ const TIMELINE_ENTRY_KINDS = new Set([
     'recovery_applied',
     'review_result',
     'scm_action',
+    'workflow_phase_completed',
     'run_completed'
 ]);
 function describeEvent(event) {
@@ -167,6 +168,12 @@ function describeEvent(event) {
             return { kind: 'review_result', summary: `Review ${event.status}${event.anomalies ? ` (${event.anomalies} anomalies)` : ''}.`, taskId: event.taskId ?? null };
         case 'scm_action':
             return { kind: 'scm_action', summary: `SCM ${event.action}: ${event.status}.`, taskId: event.taskId ?? null };
+        case 'workflow_phase_completed':
+            return {
+                kind: 'workflow_phase_completed',
+                summary: `Workflow phase ${event.phase}: ${event.status ?? 'succeeded'}.`,
+                taskId: event.taskId ?? null
+            };
         default:
             return null;
     }
@@ -182,6 +189,7 @@ function buildRunTrustTimeline(events) {
         providerInvocations: 0,
         remediationsApplied: 0,
         recoveryActionsApplied: 0,
+        workflowPhasesCompleted: 0,
         artifactsWritten: 0,
         scmActions: 0
     };
@@ -220,6 +228,9 @@ function buildRunTrustTimeline(events) {
             case 'recovery_applied':
                 totals.recoveryActionsApplied += 1;
                 break;
+            case 'workflow_phase_completed':
+                totals.workflowPhasesCompleted += 1;
+                break;
             case 'scm_action':
                 totals.scmActions += 1;
                 break;
@@ -251,7 +262,7 @@ function renderRunTrustTimelineMarkdown(timeline) {
         `- Started: ${timeline.startedAt ?? 'n/a'}`,
         `- Completed: ${timeline.completedAt ?? 'in progress'}`,
         `- Stop reason: ${timeline.stopReason ?? 'n/a'}`,
-        `- Task state changes: ${timeline.totals.taskStateChanges}; remediations applied: ${timeline.totals.remediationsApplied}; recovery actions: ${timeline.totals.recoveryActionsApplied}; SCM actions: ${timeline.totals.scmActions}; artifacts written: ${timeline.totals.artifactsWritten}`,
+        `- Task state changes: ${timeline.totals.taskStateChanges}; remediations applied: ${timeline.totals.remediationsApplied}; recovery actions: ${timeline.totals.recoveryActionsApplied}; workflow phases: ${timeline.totals.workflowPhasesCompleted}; SCM actions: ${timeline.totals.scmActions}; artifacts written: ${timeline.totals.artifactsWritten}`,
         ''
     ];
     if (timeline.entries.length === 0) {

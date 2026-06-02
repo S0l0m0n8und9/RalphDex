@@ -37,6 +37,7 @@ exports.OrchestrationTransitionError = void 0;
 exports.resolveOrchestrationPaths = resolveOrchestrationPaths;
 exports.initializeState = initializeState;
 exports.advanceState = advanceState;
+exports.buildWorkflowPhaseCompletedEventForTransition = buildWorkflowPhaseCompletedEventForTransition;
 exports.writeOrchestrationGraph = writeOrchestrationGraph;
 exports.writeOrchestrationState = writeOrchestrationState;
 exports.readOrchestrationGraph = readOrchestrationGraph;
@@ -79,6 +80,11 @@ function findEdge(graph, from, to) {
 }
 function findNodeState(state, nodeId) {
     return state.nodeStates.find(ns => ns.nodeId === nodeId);
+}
+function extractTaskIdFromNodeId(nodeId) {
+    const parts = nodeId.split(':');
+    const candidate = parts.length > 1 ? parts[1] : null;
+    return candidate && candidate.trim().length > 0 ? candidate : null;
 }
 function validateEvidenceRefs(evidence, context) {
     for (const [index, entry] of evidence.entries()) {
@@ -204,6 +210,22 @@ function advanceState(graph, state, targetNodeId, evidence) {
         cursor: nextCursor,
         nodeStates: updatedNodeStates,
         updatedAt: now
+    };
+}
+function buildWorkflowPhaseCompletedEventForTransition(graph, before, after) {
+    if (!before.cursor) {
+        return null;
+    }
+    const completed = after.nodeStates.find(nodeState => nodeState.nodeId === before.cursor && nodeState.outcome === 'completed');
+    if (!completed) {
+        return null;
+    }
+    const node = graph.nodes.find(candidate => candidate.id === before.cursor);
+    return {
+        type: 'workflow_phase_completed',
+        phase: node?.label ?? before.cursor,
+        status: 'succeeded',
+        taskId: extractTaskIdFromNodeId(before.cursor)
     };
 }
 // ---------------------------------------------------------------------------

@@ -2696,6 +2696,7 @@ test('Run Pipeline runs review agent and SCM agent after the multi-agent loop su
   assert.equal(pipelineFiles.length, 1, 'Expected exactly one pipeline artifact');
   const artifactRaw = await fs.readFile(path.join(pipelinesDir, pipelineFiles[0]!), 'utf8');
   const artifact = JSON.parse(artifactRaw) as {
+    runId: string;
     status: string;
     reviewTranscriptPath?: string;
     taskGraphSource?: string;
@@ -2704,6 +2705,20 @@ test('Run Pipeline runs review agent and SCM agent after the multi-agent loop su
   assert.equal(artifact.status, 'complete', 'Pipeline artifact status must be complete');
   assert.equal(artifact.taskGraphSource, 'approved-plan', 'approved task graph should be the default pipeline source');
   assert.equal(artifact.rootTaskId, 'T1', 'approved task graph root should be the first approved generated task');
+  const events = await readEventJournal(path.join(rootPath, '.ralph', 'artifacts'), artifact.runId);
+  const phaseEvents = events
+    .filter((event) => event.type === 'workflow_phase_completed')
+    .map((event) => ({
+      phase: event.phase,
+      status: event.status,
+      taskId: event.taskId
+    }));
+  assert.deepEqual(phaseEvents, [
+    { phase: 'loop', status: 'succeeded', taskId: 'T1' },
+    { phase: 'review', status: 'succeeded', taskId: 'T1' },
+    { phase: 'scm', status: 'succeeded', taskId: 'T1' },
+    { phase: 'done', status: 'succeeded', taskId: 'T1' }
+  ]);
 
   const persistedTasks = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as {
     tasks: Array<{ id: string }>;

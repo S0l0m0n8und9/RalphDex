@@ -41,6 +41,12 @@ export interface PipelineDriverOptions {
   checkpoint(artifact: PipelineRunArtifact): Promise<void>;
   /** Optional progress-message sink (no-op when omitted). */
   reportProgress?(message: string): void;
+  /** Optional durable trust-journal sink for workflow phase transitions. */
+  journalWorkflowPhaseCompleted?(event: {
+    phase: string;
+    status: 'succeeded' | 'failed' | 'skipped';
+    taskId: string | null;
+  }): Promise<void>;
   /** Optional structured error sink for non-fatal phase failures. */
   onError?(message: string, error: unknown): void;
   /** Injectable clock for `loopEndTime`; defaults to the current time. */
@@ -89,6 +95,16 @@ export async function drivePipelineRun(
     current = { ...current, ...updates };
     await checkpoint(current);
   };
+  const journalPhase = async (
+    phase: string,
+    status: 'succeeded' | 'failed' | 'skipped'
+  ): Promise<void> => {
+    await options.journalWorkflowPhaseCompleted?.({
+      phase,
+      status,
+      taskId: current.rootTaskId ?? null
+    });
+  };
 
   // --- Loop phase ---
   let loopStatus: 'complete' | 'failed' = 'complete';
@@ -105,6 +121,9 @@ export async function drivePipelineRun(
     }
     if (loopStatus === 'complete') {
       await writeCheckpoint({ phase: 'loop' });
+      await journalPhase('loop', 'succeeded');
+    } else {
+      await journalPhase('loop', 'failed');
     }
   }
 
@@ -122,10 +141,13 @@ export async function drivePipelineRun(
         phase: 'review',
         ...(reviewTranscriptPath !== undefined && { reviewTranscriptPath })
       });
+      await journalPhase('review', 'succeeded');
 
       runScm = true;
     } catch (error) {
       onError('Pipeline review phase failed.', error);
+      await journalPhase('review', 'failed');
+      await journalPhase('scm', 'skipped');
     }
   }
 
@@ -137,8 +159,10 @@ export async function drivePipelineRun(
     try {
       const scmRun = await runners.runScm();
       prUrl = scmRun?.prUrl;
+      await journalPhase('scm', 'succeeded');
     } catch (error) {
       onError('Pipeline SCM phase failed.', error);
+      await journalPhase('scm', 'failed');
     }
   }
 
@@ -149,6 +173,7 @@ export async function drivePipelineRun(
     phase: 'done',
     ...(prUrl !== undefined && { prUrl })
   });
+  await journalPhase('done', loopStatus === 'complete' ? 'succeeded' : 'failed');
 
   return { artifact: current, rolesRun, status: loopStatus };
 }

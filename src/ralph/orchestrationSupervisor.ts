@@ -2,6 +2,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { stableJson } from './integrity';
 import { readPlanGraph, writePlanGraph } from './planGraph';
+import type { RalphRuntimeEventInput } from './eventJournal';
 import type {
   ExecutionWave,
   OrchestrationEdge,
@@ -61,6 +62,12 @@ function findEdge(graph: OrchestrationGraph, from: string, to: string): Orchestr
 
 function findNodeState(state: OrchestrationState, nodeId: string): OrchestrationNodeState | undefined {
   return state.nodeStates.find(ns => ns.nodeId === nodeId);
+}
+
+function extractTaskIdFromNodeId(nodeId: string): string | null {
+  const parts = nodeId.split(':');
+  const candidate = parts.length > 1 ? parts[1] : null;
+  return candidate && candidate.trim().length > 0 ? candidate : null;
 }
 
 function validateEvidenceRefs(
@@ -232,6 +239,29 @@ export function advanceState(
     cursor: nextCursor,
     nodeStates: updatedNodeStates,
     updatedAt: now
+  };
+}
+
+export function buildWorkflowPhaseCompletedEventForTransition(
+  graph: OrchestrationGraph,
+  before: OrchestrationState,
+  after: OrchestrationState
+): RalphRuntimeEventInput | null {
+  if (!before.cursor) {
+    return null;
+  }
+  const completed = after.nodeStates.find(
+    nodeState => nodeState.nodeId === before.cursor && nodeState.outcome === 'completed'
+  );
+  if (!completed) {
+    return null;
+  }
+  const node = graph.nodes.find(candidate => candidate.id === before.cursor);
+  return {
+    type: 'workflow_phase_completed',
+    phase: node?.label ?? before.cursor,
+    status: 'succeeded',
+    taskId: extractTaskIdFromNodeId(before.cursor)
   };
 }
 
