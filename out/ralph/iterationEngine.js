@@ -636,8 +636,8 @@ class RalphIterationEngine {
             });
             if (prepared.config.agentRole === 'watchdog'
                 && completionReconciliation.artifact.status === 'applied'
-                && completionReconciliation.artifact.report?.watchdog_actions?.length) {
-                for (const action of completionReconciliation.artifact.report.watchdog_actions) {
+                && completionReconciliation.appliedWatchdogActions.length > 0) {
+                for (const action of completionReconciliation.appliedWatchdogActions) {
                     await this.appendRuntimeEvent(eventJournal, {
                         type: 'recovery_applied',
                         taskId: action.taskId,

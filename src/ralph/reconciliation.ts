@@ -75,6 +75,7 @@ function buildRejectedOutcome(
     progressChanged: false,
     taskFileChanged: false,
     claimContested: reason === 'claim_contested',
+    appliedWatchdogActions: [],
     warnings: warningList
   };
 }
@@ -107,6 +108,7 @@ async function buildReconciliationPrelude(input: ReconcileCompletionReportInput)
         progressChanged: false,
         taskFileChanged: false,
         claimContested: false,
+        appliedWatchdogActions: [],
         warnings: []
       }
     };
@@ -127,6 +129,7 @@ async function buildReconciliationPrelude(input: ReconcileCompletionReportInput)
         progressChanged: false,
         taskFileChanged: false,
         claimContested: false,
+        appliedWatchdogActions: [],
         warnings
       }
     };
@@ -158,6 +161,7 @@ export interface CompletionReconciliationOutcome {
   progressChanged: boolean;
   taskFileChanged: boolean;
   claimContested: boolean;
+  appliedWatchdogActions: RalphWatchdogAction[];
   warnings: string[];
 }
 
@@ -225,6 +229,7 @@ export async function reconcileCompletionReport(
     progressChanged: post.progressChanged,
     taskFileChanged: post.taskFileChanged,
     claimContested: false,
+    appliedWatchdogActions: post.appliedWatchdogActions,
     warnings
   };
 }
@@ -284,6 +289,7 @@ interface PostWriteResult {
   taskFileChanged: boolean;
   progressChanged: boolean;
   selectedTask: RalphTask | null;
+  appliedWatchdogActions: RalphWatchdogAction[];
 }
 
 async function runPostWriteStages(
@@ -295,12 +301,14 @@ async function runPostWriteStages(
 ): Promise<PostWriteResult> {
   let taskFileChanged = applied.taskFileChanged;
   let progressChanged = applied.verificationResult.progressChanged;
+  const appliedWatchdogActions: RalphWatchdogAction[] = [];
   const report = state.report;
 
   if (state.prepared.config.agentRole === 'watchdog' && report.watchdog_actions?.length) {
     const watchdogOutcome = await processWatchdogActions(input, report.watchdog_actions);
     taskFileChanged = taskFileChanged || watchdogOutcome.taskFileChanged;
     progressChanged = progressChanged || watchdogOutcome.progressChanged;
+    appliedWatchdogActions.push(...watchdogOutcome.appliedActions);
     warnings.push(...watchdogOutcome.warnings);
   }
 
@@ -360,7 +368,7 @@ async function runPostWriteStages(
     state.selectedTask.id
   );
 
-  return { taskFileChanged, progressChanged, selectedTask };
+  return { taskFileChanged, progressChanged, selectedTask, appliedWatchdogActions };
 }
 
 // Acquires the task-file lock once and, inside that critical section, writes both
@@ -446,9 +454,10 @@ async function updateTaskFileWithVerification(
 async function processWatchdogActions(
   input: ReconcileCompletionReportInput,
   watchdogActions: RalphWatchdogAction[]
-): Promise<{ taskFileChanged: boolean; progressChanged: boolean; warnings: string[] }> {
+): Promise<{ taskFileChanged: boolean; progressChanged: boolean; appliedActions: RalphWatchdogAction[]; warnings: string[] }> {
   let taskFileChanged = false;
   let progressChanged = false;
+  const appliedActions: RalphWatchdogAction[] = [];
   const warnings: string[] = [];
 
   await writeWatchdogDiagnosticArtifact({
@@ -482,6 +491,8 @@ async function processWatchdogActions(
         warnings.push(
           `Watchdog action resolve_stale_claim was not eligible for ${action.taskId} held by ${action.agentId}.`
         );
+      } else {
+        appliedActions.push(action);
       }
       continue;
     }
@@ -498,6 +509,7 @@ async function processWatchdogActions(
 
       await applySuggestedChildTasksToFile(input.taskFilePath, action.taskId, action.suggestedChildTasks);
       taskFileChanged = true;
+      appliedActions.push(action);
       continue;
     }
 
@@ -526,11 +538,13 @@ async function processWatchdogActions(
     );
     progressChanged = true;
     taskFileChanged = true;
+    appliedActions.push(action);
   }
 
   return {
     taskFileChanged,
     progressChanged,
+    appliedActions,
     warnings
   };
 }

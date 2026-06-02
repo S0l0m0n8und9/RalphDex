@@ -2255,11 +2255,11 @@ test('runCliIteration lets watchdog agents reconcile cross-task recovery actions
   const events = await readEventJournal(path.join(rootPath, '.ralph', 'artifacts'), summary.prepared.provenanceId);
   const recoveryEvents = events.filter((event) => event.type === 'recovery_applied');
   assert.deepEqual(
-    recoveryEvents.map((event) => `${event.taskId}:${event.action}:${event.severity}`),
+    recoveryEvents.map((event) => ({ taskId: event.taskId, action: event.action, severity: event.severity })),
     [
-      'T2:watchdog:resolve_stale_claim:high',
-      'T3:watchdog:decompose_task:high',
-      'T4:watchdog:escalate_to_human:critical'
+      { taskId: 'T2', action: 'watchdog:resolve_stale_claim', severity: 'high' },
+      { taskId: 'T3', action: 'watchdog:decompose_task', severity: 'high' },
+      { taskId: 'T4', action: 'watchdog:escalate_to_human', severity: 'critical' }
     ]
   );
 });
