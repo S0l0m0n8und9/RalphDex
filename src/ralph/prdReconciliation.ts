@@ -118,11 +118,14 @@ export function analyzePrdBacklogReconciliation(input: {
   const findings: PrdReconciliationFinding[] = [];
   const tasks = input.taskFile.tasks ?? [];
   const taskIds = new Set(tasks.map((task) => task.id));
-  const { allIds } = parsePrdTaskReferences(input.prdText);
+  const { allIds, liveScopeIds } = parsePrdTaskReferences(input.prdText);
   const prdTextLower = input.prdText.toLowerCase();
 
-  // stale_prd_task_reference: PRD cites an id the backlog no longer contains.
-  const staleRefs = Array.from(allIds).filter((id) => !taskIds.has(id)).sort();
+  // stale_prd_task_reference: the PRD's *live scope* cites an id the backlog no
+  // longer contains. Scope to liveScopeIds (not allIds) so completed tasks that
+  // were pruned from tasks.json but are still cited in the archived-horizon
+  // sections do not produce false positives.
+  const staleRefs = Array.from(liveScopeIds).filter((id) => !taskIds.has(id)).sort();
   for (const id of staleRefs) {
     findings.push({
       type: 'stale_prd_task_reference',

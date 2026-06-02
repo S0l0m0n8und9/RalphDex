@@ -72,6 +72,24 @@ test('flags a stale PRD task reference', () => {
   assert.deepEqual(f?.taskIds, ['T999']);
 });
 
+test('does not flag a stale reference cited only in the archived-horizon section', () => {
+  // T58 is cited only in the archive; T999 is cited in live scope. Neither exists
+  // in the backlog, but only the live-scope reference should be flagged stale.
+  const prd = [
+    '## Current scope',
+    'Remaining: T999.',
+    '## Delivered horizons (archive)',
+    'Long ago we completed T58.'
+  ].join('\n');
+  const proposal = analyzePrdBacklogReconciliation({
+    prdText: prd,
+    taskFile: taskFile([{ id: 'T1', title: 'Something', status: 'done' }]),
+    generatedAt: AT
+  });
+  const stale = proposal.findings.filter((x) => x.type === 'stale_prd_task_reference');
+  assert.deepEqual(stale.flatMap((f) => f.taskIds ?? []), ['T999']);
+});
+
 test('flags an orphan active task not traceable to the PRD', () => {
   const prd = '## Current scope\nObjective: improve the caching layer.';
   const proposal = analyzePrdBacklogReconciliation({
