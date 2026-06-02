@@ -103,6 +103,23 @@ test('flags an orphan active task not traceable to the PRD', () => {
   assert.deepEqual(f?.taskIds, ['T7']);
 });
 
+test('flags an active task referenced only by id in the archived PRD horizon', () => {
+  const prd = [
+    '## Current scope',
+    'Objective: improve the caching layer.',
+    '## Delivered horizons (archive)',
+    'T58 was delivered in an earlier horizon.'
+  ].join('\n');
+  const proposal = analyzePrdBacklogReconciliation({
+    prdText: prd,
+    taskFile: taskFile([{ id: 'T58', title: 'Refresh build telemetry', status: 'todo' }]),
+    generatedAt: AT
+  });
+  const f = proposal.findings.find((x) => x.type === 'orphan_active_task');
+  assert.ok(f, 'expected archive-only PRD id references not to suppress orphan detection');
+  assert.deepEqual(f?.taskIds, ['T58']);
+});
+
 test('does not flag an active task whose title token appears in the PRD', () => {
   const prd = '## Current scope\nObjective: improve the telemetry exporter.';
   const proposal = analyzePrdBacklogReconciliation({
@@ -111,6 +128,23 @@ test('does not flag an active task whose title token appears in the PRD', () => 
     generatedAt: AT
   });
   assert.equal(proposal.findings.filter((x) => x.type === 'orphan_active_task').length, 0);
+});
+
+test('flags an active task whose title tokens appear only in the archived PRD horizon', () => {
+  const prd = [
+    '## Current scope',
+    'Objective: improve the caching layer.',
+    '## Delivered horizons (archive)',
+    'The telemetry exporter was completed in a previous horizon.'
+  ].join('\n');
+  const proposal = analyzePrdBacklogReconciliation({
+    prdText: prd,
+    taskFile: taskFile([{ id: 'T7', title: 'Rewrite the telemetry exporter', status: 'todo' }]),
+    generatedAt: AT
+  });
+  const f = proposal.findings.find((x) => x.type === 'orphan_active_task');
+  assert.ok(f, 'expected archive-only title tokens not to suppress orphan detection');
+  assert.deepEqual(f?.taskIds, ['T7']);
 });
 
 test('flags duplicate active tasks sharing a title', () => {
