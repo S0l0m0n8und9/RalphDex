@@ -60,8 +60,9 @@ test('buildRunTrustTimeline folds the journal into entries, totals, and remediat
     { seq: 7, timestamp: '2026-01-01T00:00:07Z', type: 'artifact_written', artifactType: 'iteration-result', relativePath: 'iteration-001/iteration-result.json' },
     { seq: 8, timestamp: '2026-01-01T00:00:08Z', type: 'scm_action', taskId: 'T1', action: 'commit', status: 'succeeded' },
     { seq: 9, timestamp: '2026-01-01T00:00:09Z', type: 'review_result', taskId: 'T1', status: 'flagged', anomalies: 2 },
-    { seq: 10, timestamp: '2026-01-01T00:00:10Z', type: 'task_state_changed', taskId: 'T1', from: 'in_progress', to: 'done' },
-    { seq: 11, timestamp: '2026-01-01T00:00:11Z', type: 'run_completed', stopReason: 'no_actionable_task' }
+    { seq: 10, timestamp: '2026-01-01T00:00:10Z', type: 'workflow_phase_completed', phase: 'review', status: 'succeeded', taskId: 'T1' },
+    { seq: 11, timestamp: '2026-01-01T00:00:11Z', type: 'task_state_changed', taskId: 'T1', from: 'in_progress', to: 'done' },
+    { seq: 12, timestamp: '2026-01-01T00:00:12Z', type: 'run_completed', stopReason: 'no_actionable_task' }
   ));
 
   assert.equal(timeline.runId, 'run-1');
@@ -70,6 +71,7 @@ test('buildRunTrustTimeline folds the journal into entries, totals, and remediat
   assert.equal(timeline.totals.providerInvocations, 1);
   assert.equal(timeline.totals.remediationsApplied, 1);
   assert.equal(timeline.totals.scmActions, 1);
+  assert.equal(timeline.totals.workflowPhasesCompleted, 1);
   assert.equal(timeline.totals.artifactsWritten, 1);
   assert.deepEqual(timeline.artifactsWritten, ['iteration-001/iteration-result.json']);
   assert.equal(timeline.fileChanges, null);
@@ -78,6 +80,11 @@ test('buildRunTrustTimeline folds the journal into entries, totals, and remediat
   assert.ok(!timeline.entries.some((e) => e.kind === 'artifact_written'));
   assert.ok(timeline.entries.some((e) => e.kind === 'task_state_changed' && e.taskId === 'T1'));
   assert.ok(timeline.entries.some((e) => e.kind === 'review_result' && e.summary === 'Review flagged (2 anomalies).'));
+  const workflowPhaseIndex = timeline.entries.findIndex((e) => e.kind === 'workflow_phase_completed');
+  const taskDoneIndex = timeline.entries.findIndex((e) => e.kind === 'task_state_changed');
+  assert.ok(workflowPhaseIndex > -1, 'expected workflow phase completion in the trust timeline');
+  assert.ok(workflowPhaseIndex < taskDoneIndex, 'workflow phase event must keep journal sequence ordering');
+  assert.equal(timeline.entries[workflowPhaseIndex]!.summary, 'Workflow phase review: succeeded.');
   assert.deepEqual(timeline.remediationAudit, [
     { seq: 6, timestamp: '2026-01-01T00:00:06Z', taskId: 'T1', action: 'mark_blocked', applied: true }
   ]);
@@ -85,6 +92,7 @@ test('buildRunTrustTimeline folds the journal into entries, totals, and remediat
   const md = renderRunTrustTimelineMarkdown(timeline);
   assert.match(md, /Run trust timeline/);
   assert.match(md, /Review flagged \(2 anomalies\)\./);
+  assert.match(md, /Workflow phase review: succeeded\./);
   assert.match(md, /Auto-remediation audit/);
 });
 
@@ -105,6 +113,24 @@ test('buildRunTrustTimeline surfaces recovery_applied events in totals and the t
   const recoveryEntry = timeline.entries.find((e) => e.kind === 'recovery_applied');
   assert.ok(recoveryEntry, 'expected a recovery_applied timeline entry');
   assert.match(recoveryEntry!.summary, /Recovery retry_with_context applied \(severity medium\)/);
+});
+
+test('buildRunTrustTimeline surfaces workflow phase events in chronological order', () => {
+  const timeline = buildRunTrustTimeline(events(
+    { seq: 3, timestamp: '2026-01-01T00:00:03Z', type: 'workflow_phase_completed', phase: 'review', status: 'succeeded', taskId: 'T1' },
+    { seq: 1, timestamp: '2026-01-01T00:00:01Z', type: 'workflow_phase_completed', phase: 'loop', status: 'succeeded', taskId: 'T1' },
+    { seq: 2, timestamp: '2026-01-01T00:00:02Z', type: 'workflow_phase_completed', phase: 'scm', status: 'skipped', taskId: 'T1' }
+  ));
+
+  assert.equal(timeline.totals.workflowPhasesCompleted, 2);
+  assert.deepEqual(
+    timeline.entries.map((entry) => ({ seq: entry.seq, kind: entry.kind, summary: entry.summary, taskId: entry.taskId })),
+    [
+      { seq: 1, kind: 'workflow_phase_completed', summary: 'Workflow phase loop: succeeded.', taskId: 'T1' },
+      { seq: 2, kind: 'workflow_phase_completed', summary: 'Workflow phase scm: skipped.', taskId: 'T1' },
+      { seq: 3, kind: 'workflow_phase_completed', summary: 'Workflow phase review: succeeded.', taskId: 'T1' }
+    ]
+  );
 });
 
 test('normalizeRunDiffSummary rejects malformed durable diff artifacts', () => {

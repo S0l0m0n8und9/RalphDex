@@ -53,6 +53,7 @@ const statusSnapshot_1 = require("./statusSnapshot");
 const artifactCommands_1 = require("./artifactCommands");
 const pipeline_1 = require("../ralph/pipeline");
 const pipelineDriver_1 = require("../ralph/pipelineDriver");
+const eventJournal_1 = require("../ralph/eventJournal");
 const pathResolver_1 = require("../ralph/pathResolver");
 const projectGenerator_1 = require("../ralph/projectGenerator");
 const prdReadiness_1 = require("../ralph/prdReadiness");
@@ -489,6 +490,16 @@ function registerCommands(context, logger, broadcaster, panelManager) {
      * so a crash at any point leaves a resumable artifact on disk.
      */
     async function runPipelineFromPhase(startPhase, artifact, workspaceFolder, config, paths, progress) {
+        let eventJournal = null;
+        try {
+            eventJournal = await eventJournal_1.EventJournalWriter.open(paths.artifactDir, artifact.runId);
+        }
+        catch (error) {
+            logger.warn('Pipeline event journal unavailable; continuing without workflow phase events.', {
+                runId: artifact.runId,
+                error: error instanceof Error ? error.message : String(error)
+            });
+        }
         const { artifact: finalArtifact, status: loopStatus } = await (0, pipelineDriver_1.drivePipelineRun)({
             startPhase,
             artifact,
@@ -501,6 +512,26 @@ function registerCommands(context, logger, broadcaster, panelManager) {
             },
             checkpoint: async (next) => {
                 await (0, pipeline_1.writePipelineArtifact)(paths.artifactDir, next);
+            },
+            journalWorkflowPhaseCompleted: async (event) => {
+                if (!eventJournal) {
+                    return;
+                }
+                try {
+                    await eventJournal.append({
+                        type: 'workflow_phase_completed',
+                        phase: event.phase,
+                        status: event.status,
+                        taskId: event.taskId
+                    });
+                }
+                catch (error) {
+                    logger.warn('Failed to append workflow phase event; continuing pipeline execution.', {
+                        runId: artifact.runId,
+                        phase: event.phase,
+                        error: error instanceof Error ? error.message : String(error)
+                    });
+                }
             },
             reportProgress: (message) => progress.report({ message }),
             onError: (message, error) => logger.error(message, error)

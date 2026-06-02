@@ -22,13 +22,12 @@ The journal is not a debug log. Emit one event for each semantic runtime action 
 | Review-agent result | `review_result` | `RalphIterationEngine.runCliIteration` for `review` and `reviewer` roles | timeline entry with anomaly count | covered |
 | Branch-per-task SCM details | `scm_action` | `reconcileBranchPerTaskScm` returns structured commit/merge/push/PR actions; `RalphIterationEngine.runCliIteration` journals them | timeline entry per action | covered |
 | Recovery/crash-resume action | `recovery_applied` | watchdog recovery actions in `RalphIterationEngine.runCliIteration`; operator stale-claim/requeue recovery commands append to the latest run journal when available | timeline entry | covered |
-| Workflow/pipeline phase transition | `workflow_phase_completed` | event type exists; full workflow and supervisor phase transitions remain in their own artifacts | reducer total | future |
+| Workflow/pipeline phase transition | `workflow_phase_completed` | `drivePipelineRun` emits loop/review/SCM/done phase results through the Run Full Workflow command journal; `buildWorkflowPhaseCompletedEventForTransition` shapes supervisor node transitions for callers | timeline entry and reducer total | covered |
 | Cleanup preview/apply | none | cleanup manifest JSON/Markdown remains the authoritative audit artifact | not projected | intentionally not journaled |
 | PRD/backlog reconciliation proposal write | none | proposal JSON/Markdown remains the authoritative audit artifact | not projected | intentionally not journaled |
 
 ## Deferred Rationale
 
-- Workflow phase events need emit sites outside the core single-iteration path. They are high-value future work but should be added where those services own the decision, not synthesized from warnings later.
 - Cleanup and PRD reconciliation already write dedicated proposal/manifest artifacts that are more useful than a timeline row. Journal events would add noise unless operators need them in the dashboard trust timeline.
 
 ## Test Evidence
@@ -36,3 +35,5 @@ The journal is not a debug log. Emit one event for each semantic runtime action 
 - `test/eventJournal.test.ts` covers event schema, parsing, writer resume behavior, and reducer behavior.
 - `test/runTimeline.test.ts` covers timeline projection for journal events.
 - `test/iterationEngine.integration.test.ts` proves successful CLI iterations create a run journal containing run, task, provider, completion-report, verifier, artifact, and completion events.
+- `test/pipelineDriver.test.ts` and `test/commandShell.smoke.test.ts` cover full-workflow phase event ordering and durable journal persistence.
+- `test/orchestrationSupervisor.test.ts` covers supervisor transition event shaping.

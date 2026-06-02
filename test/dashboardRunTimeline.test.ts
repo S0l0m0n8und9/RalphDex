@@ -26,7 +26,7 @@ function timeline(entries: TrustTimelineEntry[]): RunTrustTimeline {
     remediationAudit: [{ seq: 5, timestamp: '2026-01-01T00:00:05Z', taskId: 'T1', action: 'mark_blocked', applied: true }],
     artifactsWritten: ['iteration-001/iteration-result.json'],
     fileChanges: null,
-    totals: { taskStateChanges: 1, providerInvocations: 1, remediationsApplied: 1, recoveryActionsApplied: 0, artifactsWritten: 1, scmActions: 1 }
+    totals: { taskStateChanges: 1, providerInvocations: 1, remediationsApplied: 1, recoveryActionsApplied: 0, workflowPhasesCompleted: 0, artifactsWritten: 1, scmActions: 1 }
   };
 }
 
@@ -81,7 +81,7 @@ test('buildRunTimelineSection caps remediationAudit at DASHBOARD_TIMELINE_ENTRY_
   const t: RunTrustTimeline = {
     runId: 'run-1', startedAt: null, completedAt: null, stopReason: null,
     entries: [], remediationAudit: audits, artifactsWritten: [], fileChanges: null,
-    totals: { taskStateChanges: 0, providerInvocations: 0, remediationsApplied: audits.length, recoveryActionsApplied: 0, artifactsWritten: 0, scmActions: 0 }
+    totals: { taskStateChanges: 0, providerInvocations: 0, remediationsApplied: audits.length, recoveryActionsApplied: 0, workflowPhasesCompleted: 0, artifactsWritten: 0, scmActions: 0 }
   };
   const section = buildRunTimelineSection({ intent: null, timeline: t });
   assert.equal(section?.remediationAudit.length, DASHBOARD_TIMELINE_ENTRY_CAP);

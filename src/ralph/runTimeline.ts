@@ -114,6 +114,7 @@ export type TrustTimelineEntryKind =
   | 'recovery_applied'
   | 'review_result'
   | 'scm_action'
+  | 'workflow_phase_completed'
   | 'artifact_written'
   | 'run_completed';
 
@@ -169,6 +170,7 @@ export interface RunTrustTimeline {
     providerInvocations: number;
     remediationsApplied: number;
     recoveryActionsApplied: number;
+    workflowPhasesCompleted: number;
     artifactsWritten: number;
     scmActions: number;
   };
@@ -284,6 +286,7 @@ const TIMELINE_ENTRY_KINDS: ReadonlySet<TrustTimelineEntryKind> = new Set([
   'recovery_applied',
   'review_result',
   'scm_action',
+  'workflow_phase_completed',
   'run_completed'
 ]);
 
@@ -309,6 +312,12 @@ function describeEvent(event: RalphRuntimeEvent): { kind: TrustTimelineEntryKind
       return { kind: 'review_result', summary: `Review ${event.status}${event.anomalies ? ` (${event.anomalies} anomalies)` : ''}.`, taskId: event.taskId ?? null };
     case 'scm_action':
       return { kind: 'scm_action', summary: `SCM ${event.action}: ${event.status}.`, taskId: event.taskId ?? null };
+    case 'workflow_phase_completed':
+      return {
+        kind: 'workflow_phase_completed',
+        summary: `Workflow phase ${event.phase}: ${event.status ?? 'succeeded'}.`,
+        taskId: event.taskId ?? null
+      };
     default:
       return null;
   }
@@ -325,6 +334,7 @@ export function buildRunTrustTimeline(events: readonly RalphRuntimeEvent[]): Run
     providerInvocations: 0,
     remediationsApplied: 0,
     recoveryActionsApplied: 0,
+    workflowPhasesCompleted: 0,
     artifactsWritten: 0,
     scmActions: 0
   };
@@ -365,6 +375,11 @@ export function buildRunTrustTimeline(events: readonly RalphRuntimeEvent[]): Run
       case 'recovery_applied':
         totals.recoveryActionsApplied += 1;
         break;
+      case 'workflow_phase_completed':
+        if (event.status !== 'failed' && event.status !== 'skipped') {
+          totals.workflowPhasesCompleted += 1;
+        }
+        break;
       case 'scm_action':
         totals.scmActions += 1;
         break;
@@ -401,7 +416,7 @@ export function renderRunTrustTimelineMarkdown(timeline: RunTrustTimeline): stri
     `- Started: ${timeline.startedAt ?? 'n/a'}`,
     `- Completed: ${timeline.completedAt ?? 'in progress'}`,
     `- Stop reason: ${timeline.stopReason ?? 'n/a'}`,
-    `- Task state changes: ${timeline.totals.taskStateChanges}; remediations applied: ${timeline.totals.remediationsApplied}; recovery actions: ${timeline.totals.recoveryActionsApplied}; SCM actions: ${timeline.totals.scmActions}; artifacts written: ${timeline.totals.artifactsWritten}`,
+    `- Task state changes: ${timeline.totals.taskStateChanges}; remediations applied: ${timeline.totals.remediationsApplied}; recovery actions: ${timeline.totals.recoveryActionsApplied}; workflow phases: ${timeline.totals.workflowPhasesCompleted}; SCM actions: ${timeline.totals.scmActions}; artifacts written: ${timeline.totals.artifactsWritten}`,
     ''
   ];
   if (timeline.entries.length === 0) {

@@ -30,6 +30,13 @@ async function drivePipelineRun(options) {
         current = { ...current, ...updates };
         await checkpoint(current);
     };
+    const journalPhase = async (phase, status) => {
+        await options.journalWorkflowPhaseCompleted?.({
+            phase,
+            status,
+            taskId: current.rootTaskId ?? null
+        });
+    };
     // --- Loop phase ---
     let loopStatus = 'complete';
     if (startPhase === 'loop') {
@@ -44,6 +51,10 @@ async function drivePipelineRun(options) {
         }
         if (loopStatus === 'complete') {
             await writeCheckpoint({ phase: 'loop' });
+            await journalPhase('loop', 'succeeded');
+        }
+        else {
+            await journalPhase('loop', 'failed');
         }
     }
     // --- Review phase ---
@@ -59,10 +70,13 @@ async function drivePipelineRun(options) {
                 phase: 'review',
                 ...(reviewTranscriptPath !== undefined && { reviewTranscriptPath })
             });
+            await journalPhase('review', 'succeeded');
             runScm = true;
         }
         catch (error) {
             onError('Pipeline review phase failed.', error);
+            await journalPhase('review', 'failed');
+            await journalPhase('scm', 'skipped');
         }
     }
     // --- SCM phase ---
@@ -73,9 +87,11 @@ async function drivePipelineRun(options) {
         try {
             const scmRun = await runners.runScm();
             prUrl = scmRun?.prUrl;
+            await journalPhase('scm', 'succeeded');
         }
         catch (error) {
             onError('Pipeline SCM phase failed.', error);
+            await journalPhase('scm', 'failed');
         }
     }
     // --- Finalize ---
@@ -85,6 +101,7 @@ async function drivePipelineRun(options) {
         phase: 'done',
         ...(prUrl !== undefined && { prUrl })
     });
+    await journalPhase('done', loopStatus === 'complete' ? 'succeeded' : 'failed');
     return { artifact: current, rolesRun, status: loopStatus };
 }
 //# sourceMappingURL=pipelineDriver.js.map

@@ -2696,6 +2696,7 @@ test('Run Pipeline runs review agent and SCM agent after the multi-agent loop su
   assert.equal(pipelineFiles.length, 1, 'Expected exactly one pipeline artifact');
   const artifactRaw = await fs.readFile(path.join(pipelinesDir, pipelineFiles[0]!), 'utf8');
   const artifact = JSON.parse(artifactRaw) as {
+    runId: string;
     status: string;
     reviewTranscriptPath?: string;
     taskGraphSource?: string;
@@ -2704,6 +2705,20 @@ test('Run Pipeline runs review agent and SCM agent after the multi-agent loop su
   assert.equal(artifact.status, 'complete', 'Pipeline artifact status must be complete');
   assert.equal(artifact.taskGraphSource, 'approved-plan', 'approved task graph should be the default pipeline source');
   assert.equal(artifact.rootTaskId, 'T1', 'approved task graph root should be the first approved generated task');
+  const events = await readEventJournal(path.join(rootPath, '.ralph', 'artifacts'), artifact.runId);
+  const phaseEvents = events
+    .filter((event) => event.type === 'workflow_phase_completed')
+    .map((event) => ({
+      phase: event.phase,
+      status: event.status,
+      taskId: event.taskId
+    }));
+  assert.deepEqual(phaseEvents, [
+    { phase: 'loop', status: 'succeeded', taskId: 'T1' },
+    { phase: 'review', status: 'succeeded', taskId: 'T1' },
+    { phase: 'scm', status: 'succeeded', taskId: 'T1' },
+    { phase: 'done', status: 'succeeded', taskId: 'T1' }
+  ]);
 
   const persistedTasks = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as {
     tasks: Array<{ id: string }>;
@@ -2713,6 +2728,40 @@ test('Run Pipeline runs review agent and SCM agent after the multi-agent loop su
     false,
     'runPipeline default path must not scaffold PRD-heading pipeline tasks when an approved graph exists'
   );
+  assert.match(
+    harness.state.infoMessages.at(-1)?.message ?? '',
+    /Ralph pipeline .+ finished with status: complete/
+  );
+});
+
+test('Run Pipeline continues when the phase event journal cannot be opened', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+  await fs.writeFile(path.join(rootPath, '.ralph', 'artifacts', 'runs'), 'not a directory', 'utf8');
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setConfiguration({
+    agentId: 'default',
+    agentCount: 1
+  });
+
+  await withMockedRunCliIteration(
+    async (workspaceFolderArg, mode) => createMockRun(workspaceFolderArg.uri.fsPath, mode, null, {
+      followUpAction: 'continue_next_task'
+    }),
+    async () => {
+      activate(createExtensionContext());
+      await vscode.commands.executeCommand('ralphCodex.runPipeline');
+    }
+  );
+
+  const pipelinesDir = path.join(rootPath, '.ralph', 'artifacts', 'pipelines');
+  const pipelineFiles = await fs.readdir(pipelinesDir);
+  assert.equal(pipelineFiles.length, 1, 'Expected exactly one pipeline artifact');
+  const artifactRaw = await fs.readFile(path.join(pipelinesDir, pipelineFiles[0]!), 'utf8');
+  const artifact = JSON.parse(artifactRaw) as { status: string };
+  assert.equal(artifact.status, 'complete', 'Pipeline artifact status must be complete even when journaling is unavailable');
   assert.match(
     harness.state.infoMessages.at(-1)?.message ?? '',
     /Ralph pipeline .+ finished with status: complete/

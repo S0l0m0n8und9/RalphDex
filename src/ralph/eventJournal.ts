@@ -158,6 +158,7 @@ export interface ArtifactWrittenEvent extends RuntimeEventEnvelope {
 
 export interface WorkflowPhaseCompletedEvent extends RuntimeEventEnvelope {
   type: 'workflow_phase_completed';
+  taskId?: string | null;
   phase: string;
   status?: 'succeeded' | 'failed' | 'skipped';
 }

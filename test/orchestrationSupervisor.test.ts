@@ -5,6 +5,7 @@ import * as path from 'node:path';
 import test from 'node:test';
 import {
   advanceState,
+  buildWorkflowPhaseCompletedEventForTransition,
   initializeState,
   OrchestrationTransitionError,
   readNodeSpan,
@@ -117,6 +118,37 @@ test('advanceState moves cursor and records evidence on valid transition', () =>
   // n3 is still pending.
   const n3 = next.nodeStates.find(ns => ns.nodeId === 'n3')!;
   assert.equal(n3.outcome, 'pending');
+});
+
+test('buildWorkflowPhaseCompletedEventForTransition describes a completed supervisor node', () => {
+  const graph = makeSimpleGraph({
+    nodes: [
+      { id: 'task:T1', kind: 'task_exec', label: 'Execute T1' },
+      { id: 'verify:T1', kind: 'verify_gate', label: 'Verify T1' },
+      { id: 'scm:T1', kind: 'scm_submit', label: 'Submit T1' }
+    ],
+    entryNodeId: 'task:T1',
+    edges: [
+      {
+        from: 'task:T1',
+        to: 'verify:T1',
+        evidenceRequired: [{
+          kind: 'verifier_outcome',
+          ref: '.ralph/artifacts/iteration-001/verifier-summary.json',
+          summary: 'verifier must pass'
+        }]
+      }
+    ]
+  });
+  const state = initializeState(graph);
+  const next = advanceState(graph, state, 'verify:T1', makeEvidence());
+
+  assert.deepEqual(buildWorkflowPhaseCompletedEventForTransition(graph, state, next), {
+    type: 'workflow_phase_completed',
+    phase: 'Execute T1',
+    status: 'succeeded',
+    taskId: 'T1'
+  });
 });
 
 // ---------------------------------------------------------------------------

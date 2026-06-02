@@ -40,6 +40,7 @@ interface DriveHarness {
   progressMessages: string[];
   errors: Array<{ message: string; error: unknown }>;
   calls: PipelineStartPhase[];
+  phaseEvents: Array<{ phase: string; status: 'succeeded' | 'failed' | 'skipped'; taskId: string | null }>;
 }
 
 async function drive(
@@ -47,7 +48,7 @@ async function drive(
   runnerOverrides: Partial<PipelineRoleRunners>,
   artifact: PipelineRunArtifact = baseArtifact()
 ): Promise<DriveHarness & { result: Awaited<ReturnType<typeof drivePipelineRun>> }> {
-  const harness: DriveHarness = { checkpoints: [], progressMessages: [], errors: [], calls: [] };
+  const harness: DriveHarness = { checkpoints: [], progressMessages: [], errors: [], calls: [], phaseEvents: [] };
 
   const provided: PipelineRoleRunners = {
     runLoop: async () => {},
@@ -81,6 +82,9 @@ async function drive(
       // Capture a snapshot to prove each checkpoint is a fresh merged object.
       harness.checkpoints.push({ ...next });
     },
+    journalWorkflowPhaseCompleted: async (event) => {
+      harness.phaseEvents.push(event);
+    },
     reportProgress: (message) => harness.progressMessages.push(message),
     onError: (message, error) => harness.errors.push({ message, error }),
     now: () => FIXED_NOW
@@ -102,6 +106,12 @@ test('drivePipelineRun runs loop -> review -> scm in order on the happy path', a
 
   // Checkpoint phase progression: loop -> review -> done.
   assert.deepEqual(h.checkpoints.map((c) => c.phase), ['loop', 'review', 'done']);
+  assert.deepEqual(h.phaseEvents, [
+    { phase: 'loop', status: 'succeeded', taskId: 'T1' },
+    { phase: 'review', status: 'succeeded', taskId: 'T1' },
+    { phase: 'scm', status: 'succeeded', taskId: 'T1' },
+    { phase: 'done', status: 'succeeded', taskId: 'T1' }
+  ]);
 
   // PR-artifact shape: PR URL + review transcript propagate onto the final artifact.
   assert.equal(h.result.artifact.status, 'complete');
@@ -126,6 +136,10 @@ test('drivePipelineRun stops before review/SCM when the loop fails', async () =>
 
   // Only the finalize checkpoint is written (the post-loop checkpoint is skipped).
   assert.deepEqual(h.checkpoints.map((c) => c.phase), ['done']);
+  assert.deepEqual(h.phaseEvents, [
+    { phase: 'loop', status: 'failed', taskId: 'T1' },
+    { phase: 'done', status: 'failed', taskId: 'T1' }
+  ]);
   assert.equal(h.result.artifact.status, 'failed');
   assert.equal(h.result.artifact.prUrl, undefined);
 
@@ -147,6 +161,12 @@ test('drivePipelineRun skips SCM but stays complete when review fails', async ()
   assert.deepEqual(h.result.rolesRun, ['loop', 'review']);
   assert.equal(h.result.status, 'complete');
   assert.deepEqual(h.checkpoints.map((c) => c.phase), ['loop', 'done']);
+  assert.deepEqual(h.phaseEvents, [
+    { phase: 'loop', status: 'succeeded', taskId: 'T1' },
+    { phase: 'review', status: 'failed', taskId: 'T1' },
+    { phase: 'scm', status: 'skipped', taskId: 'T1' },
+    { phase: 'done', status: 'succeeded', taskId: 'T1' }
+  ]);
   assert.equal(h.result.artifact.status, 'complete');
   assert.equal(h.result.artifact.prUrl, undefined);
   assert.equal(h.errors.length, 1);
@@ -169,6 +189,12 @@ test('drivePipelineRun logs the SCM failure but stays complete with no PR URL', 
   assert.deepEqual(h.result.rolesRun, ['loop', 'review', 'scm']);
   assert.equal(h.result.status, 'complete');
   assert.deepEqual(h.checkpoints.map((c) => c.phase), ['loop', 'review', 'done']);
+  assert.deepEqual(h.phaseEvents, [
+    { phase: 'loop', status: 'succeeded', taskId: 'T1' },
+    { phase: 'review', status: 'succeeded', taskId: 'T1' },
+    { phase: 'scm', status: 'failed', taskId: 'T1' },
+    { phase: 'done', status: 'succeeded', taskId: 'T1' }
+  ]);
   assert.equal('prUrl' in h.result.artifact, false);
   assert.equal(h.errors.length, 1);
   assert.equal(h.errors[0].error, scmError);
@@ -185,6 +211,11 @@ test('drivePipelineRun resumes at the review phase without re-running the loop',
   assert.deepEqual(h.calls, ['review', 'scm']);
   assert.equal(h.result.status, 'complete');
   assert.deepEqual(h.checkpoints.map((c) => c.phase), ['review', 'done']);
+  assert.deepEqual(h.phaseEvents, [
+    { phase: 'review', status: 'succeeded', taskId: 'T1' },
+    { phase: 'scm', status: 'succeeded', taskId: 'T1' },
+    { phase: 'done', status: 'succeeded', taskId: 'T1' }
+  ]);
   assert.equal(h.result.artifact.prUrl, 'https://github.com/acme/repo/pull/9');
 });
 
@@ -197,6 +228,10 @@ test('drivePipelineRun resumes at the SCM phase without loop or review', async (
   assert.deepEqual(h.calls, ['scm']);
   assert.equal(h.result.status, 'complete');
   assert.deepEqual(h.checkpoints.map((c) => c.phase), ['done']);
+  assert.deepEqual(h.phaseEvents, [
+    { phase: 'scm', status: 'succeeded', taskId: 'T1' },
+    { phase: 'done', status: 'succeeded', taskId: 'T1' }
+  ]);
   assert.equal(h.result.artifact.prUrl, 'https://github.com/acme/repo/pull/11');
 });
 
