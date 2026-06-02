@@ -202,12 +202,17 @@ Source of truth: `package.json` (`contributes.commands`) is authoritative for sh
 Current command surface:
 
 - `Ralphdex: Initialize Doctrine Pack`
+- `Ralphdex: Open Doctrine Folder`
+- `Ralphdex: Open Doctrine Invariants`
+- `Ralphdex: Open Doctrine Boundaries`
+- `Ralphdex: Open Doctrine Agents`
 - `Ralphdex: Add Task`
 - `Ralphdex: Seed Tasks from Feature Request`
 - `Ralphdex: Prepare IDE Prompt`
 - `Ralphdex: Open Codex IDE`
 - `Ralphdex: Run Single Iteration`
 - `Ralphdex: Run Loop`
+- `Ralphdex: Stop Loop`
 - `Ralphdex: Run Multi-Agent Loop`
 - `Ralphdex: Run Review Agent`
 - `Ralphdex: Run Watchdog Agent`
@@ -377,6 +382,7 @@ Permissive provider modes (`dangerously-skip-permissions`, `allow-all`) are avai
 - [docs/multi-agent-readiness.md](docs/multi-agent-readiness.md): historical record of the 2026-03-17 multi-agent readiness milestone
 - [docs/prompt-calibration.md](docs/prompt-calibration.md): token target derivation, recalibration procedure, and reasoning effort overhead
 - [docs/release-workflow.md](docs/release-workflow.md): version bump, packaging, and VS Code Marketplace publish procedure
+- [docs/marketplace-dry-run-2026-06-02.md](docs/marketplace-dry-run-2026-06-02.md): current VSIX packaging and packaged activation dry-run record
 - [docs/dogfooding-runbook.md](docs/dogfooding-runbook.md): manual live-provider runbook, evidence contract, redaction rules, and pass/fail criteria
 - [docs/failure-recovery.md](docs/failure-recovery.md): failure category taxonomy, recovery playbooks, and diagnostic cost
 - [docs/ui-state-fixtures.md](docs/ui-state-fixtures.md): deterministic dashboard/sidebar fixture catalogue for UI review and regression checks

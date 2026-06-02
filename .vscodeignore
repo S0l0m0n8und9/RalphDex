@@ -21,8 +21,12 @@ tsconfig.tsbuildinfo
 .worktrees/**
 
 # Context and editor tooling files
+.github/**
 .claude/**
 .vscode/**
+AGENTS.md
+AGENTS.local.md
+.ralph-config.json
 
 # Project metadata not for distribution
 ralph.code-workspace
