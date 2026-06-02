@@ -5,6 +5,7 @@ import { WorkspaceScan } from '../services/workspaceInspection';
 import { pathExists } from '../util/fs';
 import { DOCTRINE_MARKDOWN_FILES, type DoctrineContext, type DoctrineInspection } from './doctrine';
 import type { DoctrineProposalArtifact, DoctrineProposalRisk } from './doctrineProposals';
+import type { PrdReconciliationProposal } from './prdReconciliation';
 import { EffectiveTierInfo } from './complexityScorer';
 import { describeStopReason } from './stopReasonPresentation';
 import { deriveRootPolicy } from './rootPolicy';
@@ -62,6 +63,14 @@ export interface RalphOfflineEvaluationSummary {
   expectationMismatches: number;
 }
 
+export interface RalphPrdReconciliationStatus {
+  status: 'available' | 'missing' | 'stale' | 'unreadable';
+  proposal: PrdReconciliationProposal | null;
+  jsonPath: string | null;
+  markdownPath: string | null;
+  message: string | null;
+}
+
 export interface RalphStatusSnapshot {
   workspaceName: string;
   rootPath: string;
@@ -101,6 +110,8 @@ export interface RalphStatusSnapshot {
   latestCliInvocation: RalphCliInvocation | null;
   latestRemediation: RalphLatestRemediationStatus | null;
   latestDoctrineProposal: DoctrineProposalArtifact | null;
+  /** Latest PRD/backlog reconciliation proposal state for dashboard/status surfaces. */
+  prdReconciliation: RalphPrdReconciliationStatus;
   /** Current doctrine pack inspection collected without mutating .ralph/doctrine. */
   doctrineInspection: DoctrineInspection;
   /** Current bounded prompt doctrine context collected without mutating .ralph/doctrine. */

@@ -291,6 +291,32 @@ export interface DashboardDoctrineSection {
 }
 
 // ---------------------------------------------------------------------------
+// PRD/backlog reconciliation
+// ---------------------------------------------------------------------------
+
+export type DashboardPrdReconciliationStatus = 'clean' | 'findings' | 'unavailable';
+export type DashboardPrdReconciliationAvailability = 'available' | 'missing' | 'stale' | 'unreadable';
+
+export interface DashboardPrdReconciliationFinding {
+  severity: 'info' | 'warning';
+  type: string;
+  summary: string;
+  taskIds: string[];
+}
+
+export interface DashboardPrdReconciliationSection {
+  status: DashboardPrdReconciliationStatus;
+  availability: DashboardPrdReconciliationAvailability;
+  findingCount: number;
+  severityCounts: { info: number; warning: number };
+  findings: DashboardPrdReconciliationFinding[];
+  proposalJsonPath: string | null;
+  proposalMarkdownPath: string | null;
+  generatedAt: string | null;
+  message: string;
+}
+
+// ---------------------------------------------------------------------------
 // Top-level dashboard snapshot
 // ---------------------------------------------------------------------------
 
@@ -363,6 +389,7 @@ export interface DashboardSnapshot {
   preflight?: DashboardPreflightSection;
   pipeline?: DashboardPipelineSection;
   doctrine?: DashboardDoctrineSection;
+  prdReconciliation: DashboardPrdReconciliationSection;
   runTimeline?: DashboardRunTimelineSection;
 }
 
@@ -451,10 +478,69 @@ export function buildDashboardSnapshot(
     preflight: buildPreflightSection(snapshot),
     pipeline: buildPipelineSection(snapshot),
     doctrine: buildDoctrineSection(snapshot),
+    prdReconciliation: buildPrdReconciliationSection(snapshot),
     ...(runTimeline ? { runTimeline } : {}),
   };
 }
 
+function summarizeReconciliationMessage(message: string): string {
+  const firstSentence = message.match(/^.*?(?:\.|$)/)?.[0]?.trim();
+  return firstSentence || message;
+}
+
+function buildPrdReconciliationSection(snapshot: RalphStatusSnapshot): DashboardPrdReconciliationSection {
+  const source = snapshot.prdReconciliation ?? {
+    status: 'missing' as const,
+    proposal: null,
+    jsonPath: null,
+    markdownPath: null,
+    message: 'PRD/backlog reconciliation has not been generated yet.'
+  };
+  const proposal = source.proposal;
+  const findings = (proposal?.findings ?? []).map((finding) => ({
+    severity: finding.severity,
+    type: finding.type,
+    summary: summarizeReconciliationMessage(finding.message),
+    taskIds: finding.taskIds ?? []
+  }));
+  const severityCounts = findings.reduce(
+    (counts, finding) => {
+      counts[finding.severity] += 1;
+      return counts;
+    },
+    { info: 0, warning: 0 }
+  );
+  const findingCount = proposal?.findingCount ?? findings.length;
+  const available = source.status === 'available' && proposal !== null;
+
+  if (!available) {
+    return {
+      status: 'unavailable',
+      availability: source.status,
+      findingCount: 0,
+      severityCounts: { info: 0, warning: 0 },
+      findings: [],
+      proposalJsonPath: source.jsonPath,
+      proposalMarkdownPath: source.markdownPath,
+      generatedAt: null,
+      message: source.message ?? 'PRD/backlog reconciliation proposal is unavailable.'
+    };
+  }
+
+  return {
+    status: findingCount > 0 ? 'findings' : 'clean',
+    availability: 'available',
+    findingCount,
+    severityCounts,
+    findings,
+    proposalJsonPath: source.jsonPath,
+    proposalMarkdownPath: source.markdownPath,
+    generatedAt: proposal.generatedAt,
+    message: findingCount > 0
+      ? `${findingCount} reconciliation finding${findingCount === 1 ? '' : 's'} require review.`
+      : 'No drift detected between PRD and backlog.'
+  };
+}
 
 function buildDoctrineSection(snapshot: RalphStatusSnapshot): DashboardDoctrineSection {
   const inspection = snapshot.doctrineInspection ?? {

@@ -539,6 +539,13 @@ function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnap
     },
     latestRemediation: null,
     latestDoctrineProposal: null,
+    prdReconciliation: {
+      status: 'missing',
+      proposal: null,
+      jsonPath: null,
+      markdownPath: null,
+      message: 'PRD/backlog reconciliation has not been generated yet.'
+    },
     doctrineInspection: {
       doctrineDir: '/workspace/.ralph/doctrine',
       health: 'healthy',

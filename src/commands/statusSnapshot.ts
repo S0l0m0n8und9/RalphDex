@@ -7,12 +7,13 @@ import { buildPreflightReport, checkHandoffHealth, checkStaleState, inspectPrefl
 import { deriveRootPolicy } from '../ralph/rootPolicy';
 import {
   resolveLatestStatusArtifacts,
+  type RalphPrdReconciliationStatus,
   RalphLatestRemediationStatus,
   RalphStatusSnapshot
 } from '../ralph/statusReport';
 import { deriveEffectiveTier } from '../ralph/complexityScorer';
 import { RalphStateManager } from '../ralph/stateManager';
-import { inspectTaskClaimGraph, selectNextTask } from '../ralph/taskFile';
+import { inspectTaskClaimGraph, parseTaskFile, selectNextTask } from '../ralph/taskFile';
 import type {
   FailureCategoryId,
   RalphCliInvocation,
@@ -26,7 +27,7 @@ import type {
   ReplanDecisionArtifact
 } from '../ralph/types';
 import { resolveLatestHandoffPath } from '../ralph/handoffManager';
-import { contextEnvelopePath, inspectGeneratedArtifactRetention, inspectProvenanceBundleRetention, planGraphPath, resolveDoctrineProposalReviewPaths } from '../ralph/artifactStore';
+import { contextEnvelopePath, inspectGeneratedArtifactRetention, inspectProvenanceBundleRetention, planGraphPath, resolveDoctrineProposalReviewPaths, resolvePrdReconciliationPaths, writePrdReconciliationProposal } from '../ralph/artifactStore';
 import {
   captureGitStatus,
   chooseValidationCommand,
@@ -49,6 +50,7 @@ import { DoctrineProposalArtifact, DoctrineProposalRisk, DoctrineProposalStatus 
 import { getEffectivePolicy } from '../ralph/rolePolicy';
 import type { ContextEnvelope } from '../ralph/types';
 import { collectDoctrineContext, inspectDoctrinePack } from '../ralph/doctrine';
+import { analyzePrdBacklogReconciliation, type PrdReconciliationProposal } from '../ralph/prdReconciliation';
 
 export async function readJsonArtifact(target: string | null): Promise<unknown | null> {
   if (!target) {
@@ -415,6 +417,127 @@ export function normalizeDoctrineProposalArtifact(candidate: unknown): DoctrineP
   };
 }
 
+function normalizePrdReconciliationProposal(candidate: unknown): PrdReconciliationProposal | null {
+  if (typeof candidate !== 'object' || candidate === null) {
+    return null;
+  }
+  const record = candidate as Record<string, unknown>;
+  if (record.kind !== 'prdReconciliation'
+    || record.schemaVersion !== 1
+    || typeof record.generatedAt !== 'string'
+    || typeof record.findingCount !== 'number'
+    || !Array.isArray(record.findings)) {
+    return null;
+  }
+
+  const findings: PrdReconciliationProposal['findings'] = [];
+  for (const candidateFinding of record.findings) {
+    if (typeof candidateFinding !== 'object' || candidateFinding === null) {
+      return null;
+    }
+    const finding = candidateFinding as Record<string, unknown>;
+    if ((finding.type !== 'stale_prd_task_reference'
+        && finding.type !== 'orphan_active_task'
+        && finding.type !== 'duplicate_active_task')
+      || (finding.severity !== 'info' && finding.severity !== 'warning')
+      || typeof finding.message !== 'string'
+      || (finding.taskIds !== undefined
+        && (!Array.isArray(finding.taskIds) || finding.taskIds.some((taskId) => typeof taskId !== 'string')))) {
+      return null;
+    }
+    findings.push({
+      type: finding.type,
+      severity: finding.severity,
+      message: finding.message,
+      ...(Array.isArray(finding.taskIds) ? { taskIds: finding.taskIds as string[] } : {})
+    });
+  }
+
+  return {
+    schemaVersion: 1,
+    kind: 'prdReconciliation',
+    generatedAt: record.generatedAt,
+    findingCount: record.findingCount,
+    findings
+  };
+}
+
+async function collectPrdReconciliationStatus(input: {
+  prdPath: string;
+  taskFilePath: string;
+  artifactDir: string;
+  taskFileText: string | null;
+  logger: Logger;
+}): Promise<RalphPrdReconciliationStatus> {
+  const paths = resolvePrdReconciliationPaths(input.artifactDir);
+  const [prdExists, taskFileExists] = await Promise.all([
+    pathExists(input.prdPath),
+    pathExists(input.taskFilePath)
+  ]);
+
+  if (!prdExists) {
+    return {
+      status: 'missing',
+      proposal: null,
+      jsonPath: paths.jsonPath,
+      markdownPath: paths.markdownPath,
+      message: 'PRD file is missing; create .ralph/prd.md or regenerate the PRD.'
+    };
+  }
+  if (!taskFileExists || !input.taskFileText) {
+    return {
+      status: 'missing',
+      proposal: null,
+      jsonPath: paths.jsonPath,
+      markdownPath: paths.markdownPath,
+      message: 'Task file is missing or unreadable; restore .ralph/tasks.json before reconciling PRD scope.'
+    };
+  }
+
+  let proposal: PrdReconciliationProposal;
+  try {
+    proposal = analyzePrdBacklogReconciliation({
+      prdText: await fs.readFile(input.prdPath, 'utf8'),
+      taskFile: parseTaskFile(input.taskFileText),
+      generatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    const existing = normalizePrdReconciliationProposal(await readJsonArtifact(paths.jsonPath));
+    return {
+      status: existing ? 'stale' : 'unreadable',
+      proposal: null,
+      jsonPath: paths.jsonPath,
+      markdownPath: paths.markdownPath,
+      message: existing
+        ? 'Latest reconciliation proposal is stale; refresh the dashboard or run Show Status.'
+        : `Unable to analyze PRD/backlog reconciliation: ${error instanceof Error ? error.message : String(error)}`
+    };
+  }
+
+  try {
+    await writePrdReconciliationProposal(input.artifactDir, proposal);
+  } catch (error) {
+    input.logger.warn('Failed to persist PRD/backlog reconciliation proposal for dashboard.', {
+      error: error instanceof Error ? error.message : String(error)
+    });
+    return {
+      status: 'unreadable',
+      proposal: null,
+      jsonPath: paths.jsonPath,
+      markdownPath: paths.markdownPath,
+      message: `Unable to write PRD/backlog reconciliation proposal: ${error instanceof Error ? error.message : String(error)}`
+    };
+  }
+
+  return {
+    status: 'available',
+    proposal,
+    jsonPath: paths.jsonPath,
+    markdownPath: paths.markdownPath,
+    message: null
+  };
+}
+
 export async function collectStatusSnapshot(
   workspaceFolder: vscode.WorkspaceFolder,
   stateManager: RalphStateManager,
@@ -501,7 +624,8 @@ export async function collectStatusSnapshot(
     doctrineInspection,
     doctrineContext,
     pendingDoctrineProposalCountsByRisk,
-    pendingDoctrineProposals
+    pendingDoctrineProposals,
+    prdReconciliation
   ] = await Promise.all([
     inspectPreflightArtifactReadiness({
       rootPath: workspaceFolder.uri.fsPath,
@@ -523,7 +647,14 @@ export async function collectStatusSnapshot(
     inspectDoctrinePack(workspaceFolder.uri.fsPath),
     collectDoctrineContext(workspaceFolder.uri.fsPath),
     countPendingDoctrineProposalsByRisk(inspection.paths.artifactDir),
-    readPendingDoctrineProposals(inspection.paths.artifactDir)
+    readPendingDoctrineProposals(inspection.paths.artifactDir),
+    collectPrdReconciliationStatus({
+      prdPath: inspection.paths.prdPath,
+      taskFilePath: inspection.paths.taskFilePath,
+      artifactDir: inspection.paths.artifactDir,
+      taskFileText: taskInspection.text,
+      logger
+    })
   ]);
   const agentHealthDiagnostics = [...staleStateDiagnostics, ...handoffHealthDiagnostics];
   const claimGraph = await inspectTaskClaimGraph(inspection.paths.claimFilePath);
@@ -838,6 +969,7 @@ export async function collectStatusSnapshot(
     latestCliInvocation,
     latestRemediation,
     latestDoctrineProposal,
+    prdReconciliation,
     doctrineInspection,
     doctrineContext,
     pendingDoctrineProposalCountsByRisk,

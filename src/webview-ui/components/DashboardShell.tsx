@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { RalphDashboardState, RalphDoctrineProposalActionPayload, RalphWebviewMessage } from '../../ui/uiTypes';
 import type { WebviewUiModel } from '../viewModel';
-import type { DashboardDoctrineSection, DiagnosisSection } from '../../webview/dashboardSnapshot';
+import type { DashboardDoctrineSection, DashboardPrdReconciliationSection, DiagnosisSection } from '../../webview/dashboardSnapshot';
 import { HealthPulse, Icon, Btn, Card, StatusPill } from './primitives/Card';
 import { HeroNow } from './hero/HeroNow';
 import { AgentLanes } from './panels/AgentLanes';
@@ -223,6 +223,78 @@ function DoctrineOverviewStatusCard({ doctrine, onOpenDoctrineTab }: { doctrine:
   );
 }
 
+function PrdReconciliationCard({
+  reconciliation,
+  onOpenArtifact
+}: {
+  reconciliation: DashboardPrdReconciliationSection;
+  onOpenArtifact: (path: string) => void;
+}) {
+  const hasFindings = reconciliation.status === 'findings';
+  const unavailable = reconciliation.status === 'unavailable';
+  const proposalPath = reconciliation.proposalMarkdownPath ?? reconciliation.proposalJsonPath;
+  const statusKind = unavailable ? 'warn' : hasFindings ? 'warn' : 'ok';
+  const subtitle = unavailable
+    ? `proposal unavailable: ${reconciliation.availability}`
+    : hasFindings
+      ? 'Review-only PRD/backlog drift proposal.'
+      : 'PRD and backlog are aligned.';
+
+  return (
+    <Card
+      title="PRD / Backlog"
+      subtitle={subtitle}
+      action={proposalPath && (
+        <Btn size="sm" variant={hasFindings ? 'primary' : 'secondary'} onClick={() => onOpenArtifact(proposalPath)}>
+          Open Proposal
+        </Btn>
+      )}
+      style={hasFindings || unavailable
+        ? {
+          borderColor: 'color-mix(in srgb, var(--warn) 45%, var(--border))',
+          borderTop: '2px solid var(--warn)',
+          background: 'color-mix(in srgb, var(--warn) 6%, var(--surface))'
+        }
+        : undefined}
+    >
+      <div style={{ display: 'grid', gap: 10 }} data-testid="prd-reconciliation-card">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          <StatusPill kind={statusKind}>status: {reconciliation.status}</StatusPill>
+          <StatusPill kind={hasFindings ? 'warn' : 'ok'}>findings: {reconciliation.findingCount}</StatusPill>
+          <StatusPill kind={reconciliation.severityCounts.warning > 0 ? 'warn' : 'neutral'}>
+            warnings: {reconciliation.severityCounts.warning}
+          </StatusPill>
+          <StatusPill kind={reconciliation.severityCounts.info > 0 ? 'accent' : 'neutral'}>
+            info: {reconciliation.severityCounts.info}
+          </StatusPill>
+        </div>
+        <p style={{ fontSize: 12, color: unavailable ? 'var(--warn)' : 'var(--fg)', margin: 0, lineHeight: 1.45 }}>
+          {reconciliation.message}
+        </p>
+        {reconciliation.findings.length > 0 && (
+          <div style={{ display: 'grid', gap: 6 }}>
+            {reconciliation.findings.slice(0, 4).map((finding, index) => (
+              <div key={`${finding.type}-${index}`} style={{
+                display: 'grid',
+                gridTemplateColumns: 'auto auto minmax(0, 1fr)',
+                alignItems: 'start',
+                gap: 8,
+                fontSize: 11,
+                color: 'var(--dim)',
+                minWidth: 0
+              }}>
+                <StatusPill small kind={finding.severity === 'warning' ? 'warn' : 'accent'}>{finding.severity}</StatusPill>
+                <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--fg)', overflowWrap: 'anywhere' }}>{finding.type}</span>
+                <span style={{ minWidth: 0, overflowWrap: 'anywhere' }}>{finding.summary}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
 export function DashboardShell({ state, model, onCommand, onSettingUpdate, onActiveTabChange, onOpenArtifact, onSeedTasks, onDoctrineAction, lastDoctrineActionResult }: DashboardShellProps) {
   const [activeTab, setActiveTab] = useState<TabId>(() => resolveInitialDashboardTab(state.viewIntent));
   const appliedIntentRef = useRef<string | null>(state.viewIntent?.activeTab ?? null);
@@ -231,6 +303,7 @@ export function DashboardShell({ state, model, onCommand, onSettingUpdate, onAct
   const deadLetter = snapshot?.deadLetter ?? { entries: [] };
   const pipeline = snapshot?.pipeline ?? null;
   const doctrine = snapshot?.doctrine ?? null;
+  const prdReconciliation = snapshot?.prdReconciliation ?? null;
   const runTimeline = snapshot?.runTimeline ?? null;
   const showDoctrineDiagnostics = doctrineNeedsDiagnosticsAttention(doctrine, lastDoctrineActionResult);
 
@@ -262,6 +335,7 @@ export function DashboardShell({ state, model, onCommand, onSettingUpdate, onAct
           <HeroNow state={state} model={model}
             onStartLoop={onStartLoop} onStopLoop={onStopLoop} onRunIteration={onRunIteration} />
           {pipeline && <PipelineRunStrip pipeline={pipeline} onCommand={onCommand} />}
+          {prdReconciliation && <PrdReconciliationCard reconciliation={prdReconciliation} onOpenArtifact={onOpenArtifact} />}
           <DoctrineOverviewStatusCard doctrine={doctrine} onOpenDoctrineTab={() => selectTab('doctrine')} />
           {diagnosis && <FailurePanel diagnosis={diagnosis} onOpenArtifact={onOpenArtifact} onCommand={onCommand} />}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 14 }}>

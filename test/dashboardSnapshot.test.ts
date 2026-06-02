@@ -42,6 +42,7 @@ function minimalSnapshot(
       | 'pendingDoctrineProposals'
       | 'latestDoctrineProposalPath'
       | 'latestDoctrineProposalMdPath'
+      | 'prdReconciliation'
       | 'latestPipelineRun'
       | 'preflightReport'
       | 'orchestration'
@@ -81,6 +82,13 @@ function minimalSnapshot(
     },
     pendingDoctrineProposalCountsByRisk: { low: 0, medium: 0, high: 0 },
     pendingDoctrineProposals: [],
+    prdReconciliation: {
+      status: 'missing',
+      proposal: null,
+      jsonPath: null,
+      markdownPath: null,
+      message: 'PRD/backlog reconciliation has not been generated yet.'
+    },
     preflightReport: {
       ready: true,
       summary: 'Preflight ready: no blocking diagnostics.',
@@ -142,6 +150,109 @@ function makeAgentSummary(
     activeClaimTaskTierSource: null,
   };
 }
+
+test('buildDashboardSnapshot projects clean PRD/backlog reconciliation as non-warning dashboard state', () => {
+  const result = buildDashboardSnapshot(minimalSnapshot({
+    prdReconciliation: {
+      status: 'available',
+      proposal: {
+        schemaVersion: 1,
+        kind: 'prdReconciliation',
+        generatedAt: '2026-06-02T00:00:00.000Z',
+        findingCount: 0,
+        findings: []
+      },
+      jsonPath: '/workspace/.ralph/artifacts/prd-reconciliation.json',
+      markdownPath: '/workspace/.ralph/artifacts/prd-reconciliation.md',
+      message: null
+    }
+  }));
+
+  assert.equal(result.prdReconciliation.status, 'clean');
+  assert.equal(result.prdReconciliation.findingCount, 0);
+  assert.deepEqual(result.prdReconciliation.severityCounts, { info: 0, warning: 0 });
+  assert.equal(result.prdReconciliation.message, 'No drift detected between PRD and backlog.');
+  assert.equal(result.prdReconciliation.proposalMarkdownPath, '/workspace/.ralph/artifacts/prd-reconciliation.md');
+});
+
+test('buildDashboardSnapshot projects PRD/backlog findings with severity and concise details', () => {
+  const result = buildDashboardSnapshot(minimalSnapshot({
+    prdReconciliation: {
+      status: 'available',
+      proposal: {
+        schemaVersion: 1,
+        kind: 'prdReconciliation',
+        generatedAt: '2026-06-02T00:00:00.000Z',
+        findingCount: 2,
+        findings: [
+          {
+            type: 'stale_prd_task_reference',
+            severity: 'warning',
+            message: 'PRD references task T404, which is absent from the backlog. Reconcile the PRD reference or restore the task.',
+            taskIds: ['T404']
+          },
+          {
+            type: 'orphan_active_task',
+            severity: 'info',
+            message: 'Active task T12 ("Dashboard reconciliation") is not traceable to any PRD scope. Add it to the PRD or confirm it is still in scope.',
+            taskIds: ['T12']
+          }
+        ]
+      },
+      jsonPath: '/workspace/.ralph/artifacts/prd-reconciliation.json',
+      markdownPath: '/workspace/.ralph/artifacts/prd-reconciliation.md',
+      message: null
+    }
+  }));
+
+  assert.equal(result.prdReconciliation.status, 'findings');
+  assert.equal(result.prdReconciliation.findingCount, 2);
+  assert.deepEqual(result.prdReconciliation.severityCounts, { info: 1, warning: 1 });
+  assert.equal(result.prdReconciliation.findings[0].type, 'stale_prd_task_reference');
+  assert.equal(result.prdReconciliation.findings[0].summary, 'PRD references task T404, which is absent from the backlog.');
+  assert.deepEqual(result.prdReconciliation.findings[1].taskIds, ['T12']);
+});
+
+test('buildDashboardSnapshot projects missing, stale, and unreadable PRD/backlog reconciliation as actionable unavailable states', () => {
+  const missing = buildDashboardSnapshot(minimalSnapshot({
+    prdReconciliation: {
+      status: 'missing',
+      proposal: null,
+      jsonPath: '/workspace/.ralph/artifacts/prd-reconciliation.json',
+      markdownPath: '/workspace/.ralph/artifacts/prd-reconciliation.md',
+      message: 'PRD file is missing; create .ralph/prd.md or regenerate the PRD.'
+    }
+  }));
+  assert.equal(missing.prdReconciliation.status, 'unavailable');
+  assert.equal(missing.prdReconciliation.availability, 'missing');
+  assert.match(missing.prdReconciliation.message, /create \.ralph\/prd\.md/i);
+
+  const stale = buildDashboardSnapshot(minimalSnapshot({
+    prdReconciliation: {
+      status: 'stale',
+      proposal: null,
+      jsonPath: '/workspace/.ralph/artifacts/prd-reconciliation.json',
+      markdownPath: '/workspace/.ralph/artifacts/prd-reconciliation.md',
+      message: 'Latest reconciliation proposal is stale; refresh the dashboard or run Show Status.'
+    }
+  }));
+  assert.equal(stale.prdReconciliation.status, 'unavailable');
+  assert.equal(stale.prdReconciliation.availability, 'stale');
+  assert.match(stale.prdReconciliation.message, /refresh/i);
+
+  const unreadable = buildDashboardSnapshot(minimalSnapshot({
+    prdReconciliation: {
+      status: 'unreadable',
+      proposal: null,
+      jsonPath: '/workspace/.ralph/artifacts/prd-reconciliation.json',
+      markdownPath: '/workspace/.ralph/artifacts/prd-reconciliation.md',
+      message: 'Unable to write PRD/backlog reconciliation proposal: disk full'
+    }
+  }));
+  assert.equal(unreadable.prdReconciliation.status, 'unavailable');
+  assert.equal(unreadable.prdReconciliation.availability, 'unreadable');
+  assert.match(unreadable.prdReconciliation.message, /unable to write/i);
+});
 
 function makeHandoff(
   iteration: number,
