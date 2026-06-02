@@ -44,6 +44,7 @@ exports.queryArtifacts = queryArtifacts;
 exports.buildArtifactEntry = buildArtifactEntry;
 exports.readArtifactRegistry = readArtifactRegistry;
 exports.registerArtifacts = registerArtifacts;
+exports.registerArtifactsBestEffort = registerArtifactsBestEffort;
 exports.reconcileArtifactRegistry = reconcileArtifactRegistry;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
@@ -249,6 +250,19 @@ async function registerArtifacts(artifactsDir, inputs, options = {}) {
         throw new Error(`Timed out acquiring artifact-registry lock at ${result.lockPath} after ${result.attempts} attempts`);
     }
     return result.value;
+}
+/**
+ * Best-effort variant for additive registry adoption. Artifact files and latest
+ * pointers remain authoritative; callers use this when a registry problem must
+ * not fail the primary artifact write.
+ */
+async function registerArtifactsBestEffort(artifactsDir, inputs, options = {}) {
+    try {
+        await registerArtifacts(artifactsDir, inputs, options);
+    }
+    catch {
+        // Reconciliation can rebuild the additive index from disk later.
+    }
 }
 /**
  * Reconciles the registry against the filesystem: drops entries whose backing

@@ -264,6 +264,20 @@ async function writeDoctrineProposalReviewArtifact(input) {
         fs.writeFile(reviewPaths.reviewJsonPath, (0, integrity_1.stableJson)(input.review), 'utf8'),
         fs.writeFile(reviewPaths.reviewMdPath, `${markdown.trimEnd()}\n`, 'utf8')
     ]);
+    await (0, artifactRegistry_1.registerArtifactsBestEffort)(input.artifactRootDir, [
+        {
+            type: 'doctrine-proposal-review',
+            path: reviewPaths.reviewJsonPath,
+            retentionClass: 'durable',
+            related: { reviewOf: toRegistryRelative(input.artifactRootDir, resolveDoctrineProposalCanonicalPaths(input.artifactRootDir, input.review.proposalId).jsonPath) }
+        },
+        {
+            type: 'doctrine-proposal-review-summary',
+            path: reviewPaths.reviewMdPath,
+            retentionClass: 'durable',
+            related: { generatedFrom: toRegistryRelative(input.artifactRootDir, reviewPaths.reviewJsonPath) }
+        }
+    ]);
     return { reviewJsonPath: reviewPaths.reviewJsonPath, reviewMdPath: reviewPaths.reviewMdPath };
 }
 async function writeUpdatedDoctrineProposalArtifact(input) {
@@ -277,6 +291,12 @@ async function writeUpdatedDoctrineProposalArtifact(input) {
         fs.writeFile(canonicalPaths.mdPath, `${markdown.trimEnd()}\n`, 'utf8'),
         fs.writeFile(latestPaths.latestDoctrineProposalPath, json, 'utf8'),
         fs.writeFile(latestPaths.latestDoctrineProposalMdPath, `${markdown.trimEnd()}\n`, 'utf8')
+    ]);
+    await (0, artifactRegistry_1.registerArtifactsBestEffort)(input.artifactRootDir, [
+        { type: 'doctrine-proposal', path: canonicalPaths.jsonPath, retentionClass: 'durable' },
+        { type: 'doctrine-proposal-summary', path: canonicalPaths.mdPath, retentionClass: 'durable' },
+        { type: 'latest-doctrine-proposal', path: latestPaths.latestDoctrineProposalPath, retentionClass: 'latest' },
+        { type: 'latest-doctrine-proposal-summary', path: latestPaths.latestDoctrineProposalMdPath, retentionClass: 'latest' }
     ]);
 }
 /**
@@ -377,6 +397,18 @@ async function writeDoctrineProposalArtifact(input) {
         fs.writeFile(canonicalPaths.mdPath, `${markdown.trimEnd()}\n`, 'utf8'),
         fs.writeFile(latestPaths.latestDoctrineProposalPath, json, 'utf8'),
         fs.writeFile(latestPaths.latestDoctrineProposalMdPath, `${markdown.trimEnd()}\n`, 'utf8')
+    ]);
+    await (0, artifactRegistry_1.registerArtifactsBestEffort)(input.artifactRootDir, [
+        { type: 'doctrine-proposal-draft', path: input.paths.doctrineProposalPath, retentionClass: 'iteration' },
+        {
+            type: 'doctrine-proposal',
+            path: canonicalPaths.jsonPath,
+            retentionClass: 'durable',
+            related: { generatedFrom: toRegistryRelative(input.artifactRootDir, input.paths.doctrineProposalPath) }
+        },
+        { type: 'doctrine-proposal-summary', path: canonicalPaths.mdPath, retentionClass: 'durable' },
+        { type: 'latest-doctrine-proposal', path: latestPaths.latestDoctrineProposalPath, retentionClass: 'latest' },
+        { type: 'latest-doctrine-proposal-summary', path: latestPaths.latestDoctrineProposalMdPath, retentionClass: 'latest' }
     ]);
     return canonicalPaths.jsonPath;
 }
@@ -675,6 +707,10 @@ async function writeCleanupManifestArtifact(artifactRootDir, manifest) {
         fs.writeFile(paths.jsonPath, (0, integrity_1.stableJson)(manifest), 'utf8'),
         fs.writeFile(paths.markdownPath, `${(0, cleanupManifest_1.renderCleanupManifestMarkdown)(manifest).trimEnd()}\n`, 'utf8')
     ]);
+    await (0, artifactRegistry_1.registerArtifactsBestEffort)(artifactRootDir, [
+        { type: 'cleanup-manifest', path: paths.jsonPath, retentionClass: 'durable' },
+        { type: 'cleanup-manifest-summary', path: paths.markdownPath, retentionClass: 'durable' }
+    ]);
     return paths;
 }
 async function writeWatchdogDiagnosticArtifact(input) {
@@ -694,6 +730,16 @@ async function writeWatchdogDiagnosticArtifact(input) {
         actions: input.actions
     };
     await fs.writeFile(filePath, (0, integrity_1.stableJson)(artifact), 'utf8');
+    await (0, artifactRegistry_1.registerArtifactsBestEffort)(input.artifactRootDir, [
+        {
+            type: 'watchdog-diagnostic',
+            path: filePath,
+            runId: input.provenanceId,
+            agentId: input.agentId,
+            iteration: input.iteration,
+            retentionClass: 'iteration'
+        }
+    ]);
     return filePath;
 }
 /** Resolves the PRD/backlog reconciliation proposal artifact locations (issue #71). */
@@ -714,6 +760,10 @@ async function writePrdReconciliationProposal(artifactRootDir, proposal) {
     await Promise.all([
         fs.writeFile(paths.jsonPath, (0, integrity_1.stableJson)(proposal), 'utf8'),
         fs.writeFile(paths.markdownPath, `${(0, prdReconciliation_1.renderPrdReconciliationMarkdown)(proposal).trimEnd()}\n`, 'utf8')
+    ]);
+    await (0, artifactRegistry_1.registerArtifactsBestEffort)(artifactRootDir, [
+        { type: 'prd-reconciliation', path: paths.jsonPath, retentionClass: 'durable' },
+        { type: 'prd-reconciliation-summary', path: paths.markdownPath, retentionClass: 'durable' }
     ]);
     return paths;
 }

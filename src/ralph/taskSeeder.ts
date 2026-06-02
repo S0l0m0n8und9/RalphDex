@@ -3,6 +3,7 @@ import * as path from 'path';
 import type { RalphCodexConfig } from '../config/types';
 import { scanWorkspace } from '../services/workspaceScanner';
 import { stableJson } from './integrity';
+import { registerArtifactsBestEffort } from './artifactRegistry';
 import { normalizeTaskInputsForPersistence } from './taskCreation';
 import type { RalphNewTaskInput } from './taskNormalization';
 import { ProjectGenerationError, runPromptThroughConfiguredProvider } from './projectGenerator';
@@ -233,6 +234,12 @@ async function writeTaskSeedingArtifact(
   const compactTimestamp = artifact.createdAt.replace(/[:.]/g, '-');
   const artifactPath = path.join(targetDir, `task-seeding-${compactTimestamp}.json`);
   await fs.writeFile(artifactPath, stableJson(artifact), 'utf8');
+  await registerArtifactsBestEffort(artifactRootDir, [{
+    type: 'task-seeding',
+    path: artifactPath,
+    provider: artifact.provider.id,
+    retentionClass: 'durable'
+  }]);
   return artifactPath;
 }
 

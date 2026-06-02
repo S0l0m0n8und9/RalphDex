@@ -341,6 +341,23 @@ export async function registerArtifacts(
 }
 
 /**
+ * Best-effort variant for additive registry adoption. Artifact files and latest
+ * pointers remain authoritative; callers use this when a registry problem must
+ * not fail the primary artifact write.
+ */
+export async function registerArtifactsBestEffort(
+  artifactsDir: string,
+  inputs: readonly ArtifactRegistryEntryInput[],
+  options: RegistryWriteOptions = {}
+): Promise<void> {
+  try {
+    await registerArtifacts(artifactsDir, inputs, options);
+  } catch {
+    // Reconciliation can rebuild the additive index from disk later.
+  }
+}
+
+/**
  * Reconciles the registry against the filesystem: drops entries whose backing
  * file no longer exists, so the index stays consistent after cleanup/reset.
  * Lock-guarded. Returns the reconciled registry plus the dropped relative paths.
