@@ -1189,6 +1189,45 @@ test('repeated human-review with VARYING reasons on a NON-seed task still hard-s
   assert.equal(decision.stopReason, 'repeated_identical_failure');
 });
 
+test('detectNoProgressSignals does NOT flag validation_failed_despite_execution_success when no files changed', () => {
+  const sig = 'validation::exit:1::is not recognized';
+  const previous = iterationResult({
+    selectedTaskId: 'T4', executionStatus: 'succeeded', verificationStatus: 'failed',
+    verification: { ...iterationResult().verification, validationFailureSignature: sig }
+  });
+  const signals = detectNoProgressSignals({
+    selectedTaskId: 'T4',
+    selectedTaskCompleted: false, selectedTaskBlocked: false, humanReviewNeeded: false,
+    remainingSubtaskCount: 0, remainingTaskCount: 1,
+    executionStatus: 'succeeded', verificationStatus: 'failed',
+    validationFailureSignature: sig,
+    relevantFileChanges: [],
+    progressChanged: false, taskFileChanged: false,
+    previousIterations: [previous]
+  }, 'partial_progress');
+  assert.ok(!signals.includes('validation_failed_despite_execution_success'));
+});
+
+test('decideLoopContinuation does NOT stop with verifier_suspect after only one iteration with the signal', () => {
+  const sig = 'validation::exit:1::is not recognized';
+  const current = iterationResult({
+    selectedTaskId: 'T4', executionStatus: 'succeeded', verificationStatus: 'failed',
+    completionClassification: 'partial_progress',
+    noProgressSignals: ['validation_failed_despite_execution_success'],
+    verification: { ...iterationResult().verification, validationFailureSignature: sig }
+  });
+  const decision = decideLoopContinuation(stopDecisionInput({
+    currentResult: current,
+    previousIterations: [],
+    hasActionableTask: true,
+    stopOnHumanReviewNeeded: false,
+    noProgressThreshold: 10,
+    repeatedFailureThreshold: 10
+  }));
+  assert.notEqual(decision.stopReason, 'verifier_suspect');
+  assert.equal(decision.shouldContinue, true);
+});
+
 test('classifyIterationOutcome: validation passed + gitDiff passed remains partial_progress', () => {
   const outcome = classifyIterationOutcome({
     selectedTaskId: 'T1',
@@ -1247,7 +1286,18 @@ test('detectNoProgressSignals flags validation_failed_despite_execution_success'
 
 test('decideLoopContinuation stops with verifier_suspect after repeated success+identical-validation-failure', () => {
   const sig = 'validation::exit:1::is not recognized';
-  const prior = iterationResult({
+  const prior1 = iterationResult({
+    selectedTaskId: 'T4',
+    executionStatus: 'succeeded',
+    verificationStatus: 'failed',
+    completionClassification: 'partial_progress',
+    noProgressSignals: ['validation_failed_despite_execution_success'],
+    verification: {
+      ...iterationResult().verification,
+      validationFailureSignature: sig
+    }
+  });
+  const prior2 = iterationResult({
     selectedTaskId: 'T4',
     executionStatus: 'succeeded',
     verificationStatus: 'failed',
@@ -1271,7 +1321,7 @@ test('decideLoopContinuation stops with verifier_suspect after repeated success+
   });
   const decision = decideLoopContinuation(stopDecisionInput({
     currentResult: current,
-    previousIterations: [prior, prior],
+    previousIterations: [prior1, prior2],
     hasActionableTask: true,
     stopOnHumanReviewNeeded: false,
     noProgressThreshold: 10,
