@@ -920,10 +920,10 @@ function buildPreflightReport(input) {
         else {
             diagnostics.push(createDiagnostic('validationVerifier', 'info', 'validation_command_selected_not_confirmed', `Validation command was selected but preflight could not confirm its executable cheaply: ${input.validationCommand}.`));
         }
-    }
-    const shellMismatch = detectShellMismatchDiagnostic(input.validationCommand);
-    if (shellMismatch) {
-        diagnostics.push(shellMismatch);
+        const shellMismatch = detectShellMismatchDiagnostic(input.validationCommand);
+        if (shellMismatch) {
+            diagnostics.push(shellMismatch);
+        }
     }
     if (input.normalizedValidationCommandFrom && input.validationCommand) {
         diagnostics.push(createDiagnostic('validationVerifier', 'info', 'validation_command_normalized', `Normalized the selected validation command from "${input.normalizedValidationCommandFrom}" to "${input.validationCommand}" because the verifier root already matches the nested repo target.`));
