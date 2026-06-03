@@ -4,6 +4,7 @@ import type { CliProviderId, CodexReasoningEffort } from '../../config/types';
 import type { CodexExecResult } from '../../codex/types';
 import type { CodexStrategyRegistry } from '../../codex/providerFactory';
 import { Logger } from '../../services/logger';
+import { classifyProviderError } from '../failureDiagnostics';
 import { formatClaudeStreamLine } from '../cliOutputFormatter';
 import {
   readVerifiedExecutionPlanArtifact,
@@ -40,6 +41,7 @@ export interface IterationExecutionResult {
   stdout: string;
   stderr: string;
   exitCode: number | null;
+  providerErrorKind: import('../failureDiagnostics').ProviderErrorKind;
   stdinHash: string | null;
   transcriptPath: string | undefined;
   lastMessagePath: string | undefined;
@@ -67,6 +69,7 @@ export class IterationExecutor {
     let stdout = '';
     let stderr = '';
     let exitCode: number | null = null;
+    let providerErrorKind: import('../failureDiagnostics').ProviderErrorKind = 'unknown';
     let stdinHash: string | null = null;
     let promptCacheStats: PromptCacheStats | null = null;
     let executionCostUsd: number | null = null;
@@ -96,6 +99,7 @@ export class IterationExecutor {
         stdout,
         stderr,
         exitCode,
+        providerErrorKind: 'unknown',
         stdinHash,
         transcriptPath,
         lastMessagePath,
@@ -234,6 +238,9 @@ export class IterationExecutor {
       executionStatus = execResult.exitCode === 0 ? 'succeeded' : 'failed';
       executionWarnings = fallbackWarning ? [fallbackWarning, ...execResult.warnings] : execResult.warnings;
       executionErrors = execResult.exitCode === 0 ? [] : [execResult.message];
+      providerErrorKind = execResult.exitCode === 0
+        ? 'unknown'
+        : classifyProviderError({ exitCode: execResult.exitCode, message: execResult.message }).kind;
       stdout = execResult.stdout;
       stderr = execResult.stderr;
       exitCode = execResult.exitCode;
@@ -299,6 +306,7 @@ export class IterationExecutor {
       stdout,
       stderr,
       exitCode,
+      providerErrorKind,
       stdinHash,
       transcriptPath,
         lastMessagePath,
