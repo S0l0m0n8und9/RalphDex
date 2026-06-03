@@ -581,21 +581,19 @@ export function decideLoopContinuation(input: RalphStopDecisionInput): RalphLoop
     };
   }
 
-  const currentSignalsVerifierSuspect = input.currentResult.noProgressSignals.includes('validation_failed_despite_execution_success');
-  if (currentSignalsVerifierSuspect) {
-    const verifierSuspectCount = countTrailingSameTaskClassifications(
-      history,
-      input.currentResult.selectedTaskId,
-      agentId,
-      ['partial_progress']
-    );
-    if (verifierSuspectCount >= 2) {
-      return {
-        shouldContinue: false,
-        stopReason: 'verifier_suspect',
-        message: 'Execution succeeded and files changed, but validation failed identically across iterations. The validation command itself is the likely culprit — review it before retrying.'
-      };
-    }
+  const verifierSuspectCount = countTrailingMatches(
+    history,
+    (item) =>
+      item.selectedTaskId === input.currentResult.selectedTaskId
+      && (item.agentId ?? DEFAULT_RALPH_AGENT_ID) === agentId
+      && item.noProgressSignals.includes('validation_failed_despite_execution_success')
+  );
+  if (verifierSuspectCount >= 2) {
+    return {
+      shouldContinue: false,
+      stopReason: 'verifier_suspect',
+      message: 'Execution succeeded and files changed, but validation failed identically across iterations. The validation command itself is the likely culprit — review it before retrying.'
+    };
   }
 
   const currentFailureSignature = failureSignature(input.currentResult);
