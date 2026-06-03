@@ -76,7 +76,7 @@ const PRESENTATIONS: Record<RalphStopReason, StopReasonPresentation> = {
   },
   execution_failed: {
     label: 'Execution failed',
-    explanation: 'The provider invocation failed for this iteration (for example a CLI error, timeout, or auth failure).',
+    explanation: 'The provider invocation failed for this iteration (for example a CLI error or timeout).',
     nextAction: 'Check provider readiness and the latest CLI transcript, then retry.'
   },
   non_retryable_provider_error: {

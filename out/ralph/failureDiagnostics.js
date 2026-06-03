@@ -34,6 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.classifyTransientFailure = classifyTransientFailure;
+exports.classifyProviderError = classifyProviderError;
 exports.parseFailureDiagnosticResponse = parseFailureDiagnosticResponse;
 exports.getFailureAnalysisPath = getFailureAnalysisPath;
 exports.buildFailureDiagnosticPrompt = buildFailureDiagnosticPrompt;
@@ -55,6 +56,40 @@ const TRANSIENT_PATTERNS = [
  */
 function classifyTransientFailure(signal) {
     return TRANSIENT_PATTERNS.some((p) => p.test(signal)) ? 'transient' : null;
+}
+/**
+ * Patterns that indicate a *configuration / authorization* rejection by the
+ * provider CLI. These never succeed on a byte-identical retry — the operator
+ * must change config — so they are classified non_retryable and escalated.
+ */
+const NON_RETRYABLE_PROVIDER_PATTERNS = [
+    // Claude CLI's specific phrasing; kept separate from the generic model-rejection pattern below.
+    { re: /issue with the selected model/i, reason: 'Provider rejected the selected model — check the model ID for typos.' },
+    { re: /model.*(may not exist|do(?:es)?n'?t exist|not found|invalid)/i, reason: 'Provider reported an unknown or invalid model ID.' },
+    { re: /(unauthor|forbidden|invalid api key|authentication failed|not logged in|permission denied)/i, reason: 'Provider rejected the request for authentication/authorization reasons.' }
+];
+/**
+ * Classifies a provider CLI failure into retryable / non_retryable / unknown.
+ * Pure: matches on exit code + message only. Defaults to `unknown` so that
+ * unrecognized failures preserve the existing retry behavior.
+ */
+function classifyProviderError(input) {
+    if (input.exitCode === null) {
+        return { kind: 'unknown', reason: 'Provider process did not produce an exit code.', matchedPattern: null };
+    }
+    if (input.exitCode === 0) {
+        return { kind: 'unknown', reason: 'No non-zero provider exit code.', matchedPattern: null };
+    }
+    const message = input.message ?? '';
+    for (const pattern of NON_RETRYABLE_PROVIDER_PATTERNS) {
+        if (pattern.re.test(message)) {
+            return { kind: 'non_retryable', reason: pattern.reason, matchedPattern: pattern.re.source };
+        }
+    }
+    if (classifyTransientFailure(message) === 'transient') {
+        return { kind: 'retryable', reason: 'Transient provider failure; a retry may succeed.', matchedPattern: null };
+    }
+    return { kind: 'unknown', reason: 'Unrecognized provider failure.', matchedPattern: null };
 }
 /**
  * Parses a FailureAnalysis from a diagnostic CLI response.

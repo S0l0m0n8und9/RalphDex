@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.IterationExecutor = void 0;
 const fs = __importStar(require("fs/promises"));
 const providers_1 = require("../../config/providers");
+const failureDiagnostics_1 = require("../failureDiagnostics");
 const cliOutputFormatter_1 = require("../cliOutputFormatter");
 const executionIntegrity_1 = require("../executionIntegrity");
 const taskFile_1 = require("../taskFile");
@@ -57,6 +58,7 @@ class IterationExecutor {
         let stdout = '';
         let stderr = '';
         let exitCode = null;
+        let providerErrorKind = 'unknown';
         let stdinHash = null;
         let promptCacheStats = null;
         let executionCostUsd = null;
@@ -84,6 +86,7 @@ class IterationExecutor {
                 stdout,
                 stderr,
                 exitCode,
+                providerErrorKind: 'unknown',
                 stdinHash,
                 transcriptPath,
                 lastMessagePath,
@@ -205,6 +208,9 @@ class IterationExecutor {
             executionStatus = execResult.exitCode === 0 ? 'succeeded' : 'failed';
             executionWarnings = fallbackWarning ? [fallbackWarning, ...execResult.warnings] : execResult.warnings;
             executionErrors = execResult.exitCode === 0 ? [] : [execResult.message];
+            providerErrorKind = execResult.exitCode === 0
+                ? 'unknown'
+                : (0, failureDiagnostics_1.classifyProviderError)({ exitCode: execResult.exitCode, message: execResult.message }).kind;
             stdout = execResult.stdout;
             stderr = execResult.stderr;
             exitCode = execResult.exitCode;
@@ -268,6 +274,7 @@ class IterationExecutor {
             stdout,
             stderr,
             exitCode,
+            providerErrorKind,
             stdinHash,
             transcriptPath,
             lastMessagePath,
