@@ -205,6 +205,7 @@ export class OutcomeClassifier {
       execution: {
         exitCode: input.execution.exitCode,
         message: input.prepared.selectedTask ? input.execution.executionErrors[0] ?? undefined : undefined,
+        providerErrorKind: input.execution.providerErrorKind,
         transcriptPath: input.execution.transcriptPath,
         lastMessagePath: input.execution.lastMessagePath,
         stdoutPath: input.artifactPaths.stdoutPath,

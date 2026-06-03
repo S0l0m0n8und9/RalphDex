@@ -550,6 +550,8 @@ export interface RalphIterationVerificationSummary {
 export interface RalphIterationExecutionSummary {
   exitCode: number | null;
   message?: string;
+  /** Classification of a non-zero provider exit. Absent on success/skip. */
+  providerErrorKind?: import('./failureDiagnostics').ProviderErrorKind;
   transcriptPath?: string;
   lastMessagePath?: string;
   stdoutPath?: string;
