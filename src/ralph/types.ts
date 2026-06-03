@@ -225,6 +225,7 @@ export type RalphStopReason =
   | 'repeated_identical_failure'
   | 'human_review_needed'
   | 'execution_failed'
+  | 'non_retryable_provider_error'
   | 'no_actionable_task'
   | 'cancelled';
 export type RalphVerifierId = 'validationCommand' | 'gitDiff' | 'taskState';

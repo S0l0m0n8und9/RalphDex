@@ -79,6 +79,11 @@ const PRESENTATIONS: Record<RalphStopReason, StopReasonPresentation> = {
     explanation: 'The provider invocation failed for this iteration (for example a CLI error, timeout, or auth failure).',
     nextAction: 'Check provider readiness and the latest CLI transcript, then retry.'
   },
+  non_retryable_provider_error: {
+    label: 'Non-retryable provider error',
+    explanation: 'The provider rejected the request with a non-retryable error (e.g. unknown model ID or auth failure); a byte-identical retry cannot succeed.',
+    nextAction: 'Check the provider configuration (model ID, API key, and permissions), fix the underlying cause, then restart the loop.'
+  },
   no_actionable_task: {
     label: 'No actionable task',
     explanation: 'No executable task remains in the backlog.',

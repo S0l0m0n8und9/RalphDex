@@ -17,6 +17,7 @@ const ALL_STOP_REASONS: RalphStopReason[] = [
   'repeated_identical_failure',
   'human_review_needed',
   'execution_failed',
+  'non_retryable_provider_error',
   'no_actionable_task',
   'cancelled'
 ];

@@ -943,6 +943,12 @@ function decidePromptKind(state, target, context) {
             reason: 'The previous iteration completed and stopped because no executable Ralph task remains, so no failure-focused follow-up prompt is needed.'
         };
     }
+    if (lastIteration?.stopReason === 'non_retryable_provider_error') {
+        return {
+            kind: 'human-review-handoff',
+            reason: 'The previous iteration failed with a non-retryable provider error (e.g. unknown model ID or auth failure); a byte-identical retry cannot succeed, so the next prompt must surface the blocker for human action.'
+        };
+    }
     if (lastIteration
         && (lastIteration.executionStatus === 'failed'
             || lastIteration.verificationStatus === 'failed'
