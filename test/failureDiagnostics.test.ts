@@ -5,6 +5,7 @@ import * as path from 'node:path';
 import test from 'node:test';
 import {
   buildFailureDiagnosticPrompt,
+  classifyProviderError,
   classifyTransientFailure,
   parseFailureDiagnosticResponse,
   writeFailureAnalysis
@@ -222,4 +223,37 @@ test('buildFailureDiagnosticPrompt truncates long prompts', () => {
     recentHistory: []
   });
   assert.ok(prompt.includes('[truncated]'));
+});
+
+// ---------------------------------------------------------------------------
+// classifyProviderError
+// ---------------------------------------------------------------------------
+
+test('classifyProviderError flags an unknown/typo model ID as non_retryable', () => {
+  const out = classifyProviderError({
+    exitCode: 1,
+    message: "claude exited with code 1: There's an issue with the selected model (caude-opus-4-8). It may not exist or you may not have access to it."
+  });
+  assert.equal(out.kind, 'non_retryable');
+  assert.match(out.reason, /model/i);
+});
+
+test('classifyProviderError flags an auth rejection as non_retryable', () => {
+  const out = classifyProviderError({ exitCode: 1, message: 'Error: invalid api key / authentication failed' });
+  assert.equal(out.kind, 'non_retryable');
+});
+
+test('classifyProviderError leaves a transient network failure as retryable', () => {
+  const out = classifyProviderError({ exitCode: 1, message: 'connect ECONNREFUSED 127.0.0.1:443' });
+  assert.equal(out.kind, 'retryable');
+});
+
+test('classifyProviderError returns unknown for an unrecognized non-zero failure', () => {
+  const out = classifyProviderError({ exitCode: 1, message: 'TypeScript compile error TS2345' });
+  assert.equal(out.kind, 'unknown');
+});
+
+test('classifyProviderError returns unknown for a clean exit', () => {
+  const out = classifyProviderError({ exitCode: 0, message: 'done' });
+  assert.equal(out.kind, 'unknown');
 });
