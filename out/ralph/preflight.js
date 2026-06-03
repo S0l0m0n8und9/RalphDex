@@ -110,7 +110,7 @@ function detectShellMismatchDiagnostic(command, platform = process.platform) {
     }
     const bashIdioms = [
         /\bnode\s+-e\s+"/, // node -e with an outer double-quote (BUG-003 signature)
-        /'[^']*\$\([^)]*\)[^']*'/, // single-quoted command substitution
+        /'[^']*\$\([^)]*\)[^']*'/, // $(...) inside single-quoted argument (bash subshell pattern)
         /\$\{?\w+\}?/, // $VAR / ${VAR} POSIX expansion
         /\|\s*grep\b/, // pipe to grep
         /\bsh\s+-c\b/ // sh -c wrapper

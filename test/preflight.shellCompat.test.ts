@@ -23,3 +23,9 @@ test('does not flag a plain npm command on win32', () => {
   const d = detectShellMismatchDiagnostic('npm run validate', 'win32');
   assert.equal(d, null);
 });
+
+test('flags a pipe-to-grep command on win32', () => {
+  const d = detectShellMismatchDiagnostic('npm test 2>&1 | grep PASS', 'win32');
+  assert.ok(d);
+  assert.equal(d!.code, 'validation_command_shell_mismatch');
+});
