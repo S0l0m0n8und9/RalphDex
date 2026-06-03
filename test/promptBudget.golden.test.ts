@@ -84,6 +84,7 @@ function buildScenarioPromptInput(options: {
       summary: `Fixture scenario ${options.scenario.name} is ready for golden prompt rendering.`,
       diagnostics: []
     },
+    hostShell: 'win32', // pin so output is host-independent
     config: {
       promptTemplateDirectory: '',
       promptIncludeVerifierFeedback: true,

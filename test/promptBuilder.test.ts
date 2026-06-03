@@ -1711,6 +1711,7 @@ test('buildPrompt is deterministic across equivalent inputs', async () => {
       summary: 'Preflight completed without blocking errors.',
       diagnostics: []
     },
+    hostShell: 'win32', // pin so output is host-independent
     config: {
       promptTemplateDirectory: templateDir,
       promptIncludeVerifierFeedback: true,
