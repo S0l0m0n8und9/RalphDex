@@ -1447,11 +1447,11 @@ export function buildPreflightReport(input: RalphPreflightInput): RalphPreflight
         `Validation command was selected but preflight could not confirm its executable cheaply: ${input.validationCommand}.`
       ));
     }
-  }
 
-  const shellMismatch = detectShellMismatchDiagnostic(input.validationCommand);
-  if (shellMismatch) {
-    diagnostics.push(shellMismatch);
+    const shellMismatch = detectShellMismatchDiagnostic(input.validationCommand);
+    if (shellMismatch) {
+      diagnostics.push(shellMismatch);
+    }
   }
 
   if (input.normalizedValidationCommandFrom && input.validationCommand) {
