@@ -1066,6 +1066,23 @@ test('decideLoopContinuation routes a seed-only backlog into replenishment when 
   assert.match(decision.message, /replenish/i);
 });
 
+test('decideLoopContinuation hard-stops a seed-only backlog when auto-replenish is off', () => {
+  const current = iterationResult({
+    selectedTaskId: 'T2',
+    completionClassification: 'needs_human_review',
+    backlog: { remainingTaskCount: 1, actionableTaskAvailable: true }
+  });
+  const decision = decideLoopContinuation(stopDecisionInput({
+    currentResult: current,
+    hasActionableTask: true,
+    autoReplenishBacklog: false,
+    onlyActionableTasksRequireReplacement: true
+  }));
+  assert.equal(decision.shouldContinue, false);
+  assert.equal(decision.stopReason, 'no_actionable_task');
+  assert.match(decision.message, /auto-replenishment is disabled/i);
+});
+
 test('decideLoopContinuation stops with non_retryable_provider_error on a non-retryable failure', () => {
   const current = iterationResult({
     executionStatus: 'failed',

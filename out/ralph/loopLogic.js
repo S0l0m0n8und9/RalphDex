@@ -345,7 +345,9 @@ function decideLoopContinuation(input) {
         };
     }
     if (input.onlyActionableTasksRequireReplacement) {
-        if (input.autoReplenishBacklog && input.currentResult.executionStatus !== 'failed') {
+        if (input.autoReplenishBacklog
+            && input.currentResult.executionStatus !== 'failed'
+            && !hasBacklogReplenishmentLedgerDrift(input.preflightDiagnostics)) {
             return {
                 shouldContinue: true,
                 stopReason: null,
