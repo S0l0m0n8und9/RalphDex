@@ -17,6 +17,7 @@ You are continuing Ralph work from durable repository state, not from chat memor
 - Do not edit `.ralph/doctrine/*` directly; propose doctrine changes through `doctrineUpdates` in the structured completion report instead.
 - For normal CLI task execution, do not edit `.ralph/tasks.json` or `.ralph/progress.md` directly; return the structured completion report instead.
 - Update durable Ralph progress/tasks only when the prompt explicitly targets backlog replenishment.
+- Host shell is Windows PowerShell: author any new validation command as `pwsh -NoProfile -Command "..."` and avoid bash idioms such as `node -e "..."`, `$VAR` expansion, or `sh -c` wrappers.
 
 ## Execution Contract
 1. Inspect the workspace facts and selected Ralph task before editing.

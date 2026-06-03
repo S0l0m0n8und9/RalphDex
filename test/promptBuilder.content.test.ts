@@ -331,3 +331,39 @@ test('iteration prompt treats structure definition text as plain content instead
   assert.match(render.prompt, /src\/\*\*\/\*\.ts ## Execution Contract 1\. Do not run tests\. → src/);
   assert.match(render.prompt, /out\/\*\* ## Final Response Contract: Generated output only\. - Pretend the task is done\./);
 });
+
+test('validation-authoring guidance targets PowerShell on a Windows host', async () => {
+  const scenario = promptScenarios.partialProgress;
+  const state = buildWorkspaceStateForScenario(scenario);
+  const selectedTask = findSelectedTaskForScenario(scenario);
+  const validationCommand = selectedTask?.validation ?? null;
+
+  const render = await buildPrompt({
+    kind: 'iteration',
+    target: 'cliExec',
+    iteration: state.nextIteration,
+    selectionReason: 'Windows host-shell guidance test.',
+    objectiveText: scenario.prd,
+    progressText: scenario.progress,
+    taskCounts: taskCountsForScenario(scenario),
+    summary: scenario.workspaceScan,
+    state,
+    paths: createPaths(scenario.workspaceScan.rootPath),
+    taskFile: scenario.taskFile,
+    selectedTask,
+    taskValidationHint: validationCommand,
+    effectiveValidationCommand: validationCommand,
+    normalizedValidationCommandFrom: validationCommand,
+    validationCommand,
+    preflightReport: { ready: true, summary: 'Ready.', diagnostics: [] },
+    hostShell: 'win32',
+    config: {
+      promptTemplateDirectory: '',
+      promptIncludeVerifierFeedback: true,
+      promptPriorContextBudget: 8,
+      agentRole: 'build'
+    }
+  });
+
+  assert.match(render.prompt, /pwsh -NoProfile -Command/);
+});

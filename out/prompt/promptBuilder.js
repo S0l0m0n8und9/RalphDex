@@ -472,7 +472,7 @@ function buildPriorIterationContext(state, includeVerifierFeedback, budget, root
             .map((entry) => entry.text)
     ], budget);
 }
-function buildOperatingRules(agentRole, taskMode) {
+function buildOperatingRules(agentRole, taskMode, hostShell) {
     if (agentRole === 'planner') {
         return [
             '- Read AGENTS.md plus the durable Ralph files before producing any plan.',
@@ -515,7 +515,7 @@ function buildOperatingRules(agentRole, taskMode) {
             '- Update durable Ralph progress/tasks only when the prompt explicitly targets backlog replenishment.'
         ];
     }
-    return [
+    const defaultRules = [
         '- Read AGENTS.md plus the durable Ralph files before making non-trivial changes.',
         '- Do not invent unsupported IDE APIs or hidden handoff channels.',
         '- Keep architecture thin, deterministic, and file-backed.',
@@ -525,6 +525,10 @@ function buildOperatingRules(agentRole, taskMode) {
         '- For normal CLI task execution, do not edit `.ralph/tasks.json` or `.ralph/progress.md` directly; return the structured completion report instead.',
         '- Update durable Ralph progress/tasks only when the prompt explicitly targets backlog replenishment.'
     ];
+    if (hostShell === 'win32') {
+        defaultRules.push('- Host shell is Windows PowerShell: author any new validation command as `pwsh -NoProfile -Command "..."` and avoid bash idioms such as `node -e "..."`, `$VAR` expansion, or `sh -c` wrappers.');
+    }
+    return defaultRules;
 }
 function buildStructureContext(definition) {
     if (!definition || definition.directories.length === 0) {
@@ -1001,7 +1005,7 @@ async function buildPrompt(input) {
     // They must be assembled before all per-iteration dynamic sections (see template order).
     const staticSectionBodies = {
         strategyContext: (0, contextSections_1.buildStrategyContext)(input.target, input.kind, agentRole, taskLedgerDriftMessages),
-        operatingRules: buildOperatingRules(agentRole, input.selectedTask?.mode),
+        operatingRules: buildOperatingRules(agentRole, input.selectedTask?.mode, input.hostShell ?? process.platform),
         executionContract: buildExecutionContract(input.target, input.kind, agentRole, input.selectedTask?.mode),
         finalResponseContract: buildFinalResponseContract(input.target, input.kind, agentRole, input.selectedTask?.mode)
     };
