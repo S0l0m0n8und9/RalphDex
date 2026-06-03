@@ -84,6 +84,41 @@ function hasUntrackedProjectBaseline(status: GitStatusSnapshot | null | undefine
   return untrackedNonRalph.length >= 2;
 }
 
+/**
+ * Detects a validation command that uses POSIX/bash idioms while the host shell
+ * is Windows. Returns a warning diagnostic, or null when the command looks
+ * shell-appropriate. Heuristic and conservative — only well-known bash idioms
+ * trip it, so legitimate cross-platform commands (npm, git, pwsh) pass clean.
+ */
+export function detectShellMismatchDiagnostic(
+  command: string | null | undefined,
+  platform: NodeJS.Platform = process.platform
+): RalphPreflightDiagnostic | null {
+  if (!command || platform !== 'win32') {
+    return null;
+  }
+  const trimmed = command.trim();
+  if (/^pwsh\b|^powershell\b/i.test(trimmed)) {
+    return null;
+  }
+  const bashIdioms: RegExp[] = [
+    /\bnode\s+-e\s+"/,           // node -e with an outer double-quote (BUG-003 signature)
+    /'[^']*\$\([^)]*\)[^']*'/,    // single-quoted command substitution
+    /\$\{?\w+\}?/,                // $VAR / ${VAR} POSIX expansion
+    /\|\s*grep\b/,                // pipe to grep
+    /\bsh\s+-c\b/                 // sh -c wrapper
+  ];
+  if (bashIdioms.some((re) => re.test(trimmed))) {
+    return createDiagnostic(
+      'validationVerifier',
+      'warning',
+      'validation_command_shell_mismatch',
+      `Validation command appears to use bash/POSIX syntax but the host shell is Windows PowerShell. Prefer the pwsh pattern, e.g. pwsh -NoProfile -Command "...". Command: ${trimmed}`
+    );
+  }
+  return null;
+}
+
 function sectionSummary(category: RalphPreflightCategory, diagnostics: RalphPreflightDiagnostic[]): string {
   const errors = diagnostics.filter((diagnostic) => diagnostic.severity === 'error').length;
   const warnings = diagnostics.filter((diagnostic) => diagnostic.severity === 'warning').length;
@@ -1412,6 +1447,11 @@ export function buildPreflightReport(input: RalphPreflightInput): RalphPreflight
         `Validation command was selected but preflight could not confirm its executable cheaply: ${input.validationCommand}.`
       ));
     }
+  }
+
+  const shellMismatch = detectShellMismatchDiagnostic(input.validationCommand);
+  if (shellMismatch) {
+    diagnostics.push(shellMismatch);
   }
 
   if (input.normalizedValidationCommandFrom && input.validationCommand) {
