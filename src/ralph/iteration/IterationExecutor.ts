@@ -4,7 +4,7 @@ import type { CliProviderId, CodexReasoningEffort } from '../../config/types';
 import type { CodexExecResult } from '../../codex/types';
 import type { CodexStrategyRegistry } from '../../codex/providerFactory';
 import { Logger } from '../../services/logger';
-import { classifyProviderError } from '../failureDiagnostics';
+import { classifyProviderError, type ProviderErrorKind } from '../failureDiagnostics';
 import { formatClaudeStreamLine } from '../cliOutputFormatter';
 import {
   readVerifiedExecutionPlanArtifact,
@@ -41,7 +41,7 @@ export interface IterationExecutionResult {
   stdout: string;
   stderr: string;
   exitCode: number | null;
-  providerErrorKind: import('../failureDiagnostics').ProviderErrorKind;
+  providerErrorKind: ProviderErrorKind;
   stdinHash: string | null;
   transcriptPath: string | undefined;
   lastMessagePath: string | undefined;
@@ -69,7 +69,7 @@ export class IterationExecutor {
     let stdout = '';
     let stderr = '';
     let exitCode: number | null = null;
-    let providerErrorKind: import('../failureDiagnostics').ProviderErrorKind = 'unknown';
+    let providerErrorKind: ProviderErrorKind = 'unknown';
     let stdinHash: string | null = null;
     let promptCacheStats: PromptCacheStats | null = null;
     let executionCostUsd: number | null = null;
