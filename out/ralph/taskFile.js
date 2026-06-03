@@ -162,6 +162,9 @@ function normalizeVerifierResult(value) {
  * filters out empties, and returns `undefined` when the result array is empty.
  * See docs/invariants.md § Normalized Task Contract — Coercion Invariants.
  */
+function normalizeOptionalBoolean(record, key) {
+    return record[key] === true ? true : undefined;
+}
 function normalizeOptionalStringArray(record, key) {
     if (!Array.isArray(record[key])) {
         return undefined;
@@ -261,7 +264,7 @@ function normalizeTask(candidate, source) {
         writeRiskLabels: normalizeOptionalStringArray(record, 'writeRiskLabels'),
         lastVerifierResult: normalizeVerifierResult(record.lastVerifierResult),
         lastReconciliationWarning: normalizeOptionalString(record, 'lastReconciliationWarning'),
-        requiresReplacement: record.requiresReplacement === true ? true : undefined,
+        requiresReplacement: normalizeOptionalBoolean(record, 'requiresReplacement'),
         source
     };
 }
