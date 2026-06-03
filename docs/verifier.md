@@ -110,6 +110,7 @@ The loop may stop for:
 - `repeated_identical_failure`
 - `human_review_needed`
 - `execution_failed`
+- `non_retryable_provider_error`
 - `no_actionable_task`
 - `cancelled`
 

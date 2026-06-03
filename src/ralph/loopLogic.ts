@@ -506,6 +506,13 @@ export function decideLoopContinuation(input: RalphStopDecisionInput): RalphLoop
   }
 
   if (input.currentResult.executionStatus === 'failed') {
+    if (input.currentResult.execution.providerErrorKind === 'non_retryable') {
+      return {
+        shouldContinue: false,
+        stopReason: 'non_retryable_provider_error',
+        message: 'Provider rejected the request with a non-retryable error (e.g. unknown model ID or auth failure); escalating to human instead of retrying identical config.'
+      };
+    }
     return {
       shouldContinue: false,
       stopReason: 'execution_failed',
