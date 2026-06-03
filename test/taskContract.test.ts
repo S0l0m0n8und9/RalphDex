@@ -227,7 +227,8 @@ const PERSISTED_RALPH_TASK_FIELDS = new Set([
   'parentId', 'dependsOn', 'notes', 'validation', 'blocker',
   'priority', 'mode', 'tier',
   'acceptance', 'constraints', 'context',
-  'writeRiskLabels', 'lastVerifierResult', 'lastReconciliationWarning'
+  'writeRiskLabels', 'lastVerifierResult', 'lastReconciliationWarning',
+  'requiresReplacement'
 ]);
 
 test('schema guard: SUPPORTED_TASK_FIELDS covers every persisted RalphTask field', () => {
@@ -282,7 +283,8 @@ test('serialization: all persisted RalphTask fields survive stringify → parse 
     context: ['src/ralph/types.ts'],
     writeRiskLabels: ['wave-1'],
     lastVerifierResult: 'passed',
-    lastReconciliationWarning: 'Conflict detected'
+    lastReconciliationWarning: 'Conflict detected',
+    requiresReplacement: true
   };
 
   // Parent is in_progress so the graph is valid (done parent with unfinished child is blocked).
@@ -308,6 +310,7 @@ test('serialization: all persisted RalphTask fields survive stringify → parse 
   assert.deepEqual(task.writeRiskLabels, ['wave-1']);
   assert.equal(task.lastVerifierResult, 'passed');
   assert.equal(task.lastReconciliationWarning, 'Conflict detected');
+  assert.equal(task.requiresReplacement, true);
 });
 
 // --- Serialization: source is stripped, never persisted ---
