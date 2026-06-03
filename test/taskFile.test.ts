@@ -9,6 +9,7 @@ import {
   applySuggestedChildTasksToFile,
   applySuggestedChildTasks,
   countTaskStatuses,
+  createDefaultTaskFile,
   inspectTaskFileText,
   isDocumentationMode,
   markTaskInProgress,
@@ -1542,4 +1543,15 @@ test('selectNextTaskForRole implementer: falls back to any selectable task when 
     const selected = await selectNextTaskForRole(taskFile, 'implementer', artifactsDir);
     assert.equal(selected?.id, 'T1', 'implementer should fall back to first selectable task when no plans exist');
   });
+});
+
+test('createDefaultTaskFile marks the seed tasks requiresReplacement', () => {
+  const file = createDefaultTaskFile();
+  assert.equal(file.tasks.every((t) => t.requiresReplacement === true), true);
+});
+
+test('requiresReplacement round-trips through parse and serialize', () => {
+  const text = JSON.stringify({ version: 2, tasks: [{ id: 'T1', title: 'x', status: 'todo', requiresReplacement: true }] });
+  const parsed = parseTaskFile(text);
+  assert.equal(parsed.tasks[0].requiresReplacement, true);
 });
