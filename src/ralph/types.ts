@@ -229,7 +229,8 @@ export type RalphStopReason =
   | 'execution_failed'
   | 'non_retryable_provider_error'
   | 'no_actionable_task'
-  | 'cancelled';
+  | 'cancelled'
+  | 'verifier_suspect';
 export type RalphVerifierId = 'validationCommand' | 'gitDiff' | 'taskState';
 export type RalphTaskRemediationAction =
   | 'decompose_task'

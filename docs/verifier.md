@@ -113,6 +113,7 @@ The loop may stop for:
 - `non_retryable_provider_error`
 - `no_actionable_task`
 - `cancelled`
+- `verifier_suspect`
 
 The stop decision uses durable task state, verifier results, and configured thresholds such as `noProgressThreshold`, `repeatedFailureThreshold`, and `stopOnHumanReviewNeeded`.
 
