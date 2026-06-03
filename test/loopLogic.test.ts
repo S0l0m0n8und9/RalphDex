@@ -1127,13 +1127,59 @@ test('repeated human-review on a seed task auto-replenishes rather than hard-sto
   assert.match(decision.message, /replenish/i);
 });
 
-test('repeated human-review on a NON-seed task hard-stops with repeated_identical_failure', () => {
+test('repeated identical-failure-signature human-review on a NON-seed task hard-stops with repeated_identical_failure', () => {
   const prior = iterationResult({ selectedTaskId: 'T9', completionClassification: 'needs_human_review' });
   const current = iterationResult({ selectedTaskId: 'T9', completionClassification: 'needs_human_review' });
   const decision = decideLoopContinuation(stopDecisionInput({
     currentResult: current,
     previousIterations: [prior, prior],
     repeatedFailureThreshold: 2,
+    hasActionableTask: true,
+    onlyActionableTasksRequireReplacement: false,
+    stopOnHumanReviewNeeded: false
+  }));
+  assert.equal(decision.shouldContinue, false);
+  assert.equal(decision.stopReason, 'repeated_identical_failure');
+});
+
+test('repeated human-review with VARYING reasons on a NON-seed task still hard-stops (terminal-review branch)', () => {
+  // Branch 8 (countTrailingSameTaskClassifications) test:
+  // Each iteration has a DISTINCT validationFailureSignature, so failureSignature()
+  // differs per iteration. With threshold=3 and 3 iterations in history, the
+  // trailing-identical-signature count (Branch 7) is only 1 (just the current
+  // iteration), which is below threshold. But the trailing-same-classification
+  // count (Branch 8) is 3 (all needs_human_review on T9), which hits the threshold.
+  const iter1 = iterationResult({
+    selectedTaskId: 'T9',
+    completionClassification: 'needs_human_review',
+    verification: {
+      ...iterationResult().verification,
+      validationFailureSignature: 'npm test::exit:1::sig-a'
+    }
+  });
+  const iter2 = iterationResult({
+    selectedTaskId: 'T9',
+    completionClassification: 'needs_human_review',
+    verification: {
+      ...iterationResult().verification,
+      validationFailureSignature: 'npm test::exit:1::sig-b'
+    }
+  });
+  const current = iterationResult({
+    selectedTaskId: 'T9',
+    completionClassification: 'needs_human_review',
+    verification: {
+      ...iterationResult().verification,
+      validationFailureSignature: 'npm test::exit:1::sig-c'
+    }
+  });
+  // threshold=3: Branch 7 sees trailing run of length 1 (only current has sig-c),
+  // so it does NOT fire. Branch 8 sees trailing run of length 3 (all needs_human_review
+  // on T9), which equals the threshold and fires.
+  const decision = decideLoopContinuation(stopDecisionInput({
+    currentResult: current,
+    previousIterations: [iter1, iter2],
+    repeatedFailureThreshold: 3,
     hasActionableTask: true,
     onlyActionableTasksRequireReplacement: false,
     stopOnHumanReviewNeeded: false
