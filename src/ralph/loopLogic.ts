@@ -55,7 +55,7 @@ export interface RalphStopDecisionInput {
   remainingSubtaskCount: number;
   remainingTaskCount: number;
   hasActionableTask: boolean;
-  /** True when every currently-actionable task is a requiresReplacement seed placeholder. */
+  /** True when every currently-actionable task is a requiresReplacement seed placeholder. Absent is treated as false. */
   onlyActionableTasksRequireReplacement?: boolean;
   preflightDiagnostics: RalphPreflightDiagnostic[];
   noProgressThreshold: number;
@@ -508,7 +508,9 @@ export function decideLoopContinuation(input: RalphStopDecisionInput): RalphLoop
   }
 
   if (input.onlyActionableTasksRequireReplacement) {
-    if (input.autoReplenishBacklog && input.currentResult.executionStatus !== 'failed') {
+    if (input.autoReplenishBacklog
+      && input.currentResult.executionStatus !== 'failed'
+      && !hasBacklogReplenishmentLedgerDrift(input.preflightDiagnostics)) {
       return {
         shouldContinue: true,
         stopReason: null,
