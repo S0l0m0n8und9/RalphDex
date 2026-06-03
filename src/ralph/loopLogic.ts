@@ -55,6 +55,8 @@ export interface RalphStopDecisionInput {
   remainingSubtaskCount: number;
   remainingTaskCount: number;
   hasActionableTask: boolean;
+  /** True when every currently-actionable task is a requiresReplacement seed placeholder. */
+  onlyActionableTasksRequireReplacement?: boolean;
   preflightDiagnostics: RalphPreflightDiagnostic[];
   noProgressThreshold: number;
   repeatedFailureThreshold: number;
@@ -502,6 +504,21 @@ export function decideLoopContinuation(input: RalphStopDecisionInput): RalphLoop
       shouldContinue: false,
       stopReason: 'no_actionable_task',
       message: 'No executable Ralph task remains.'
+    };
+  }
+
+  if (input.onlyActionableTasksRequireReplacement) {
+    if (input.autoReplenishBacklog && input.currentResult.executionStatus !== 'failed') {
+      return {
+        shouldContinue: true,
+        stopReason: null,
+        message: 'Only seed/placeholder tasks remain; continuing into backlog replenishment instead of the planning gate.'
+      };
+    }
+    return {
+      shouldContinue: false,
+      stopReason: 'no_actionable_task',
+      message: 'Only seed/placeholder tasks remain and auto-replenishment is disabled; replace the seed backlog with real work.'
     };
   }
 

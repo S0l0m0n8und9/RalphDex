@@ -344,6 +344,20 @@ function decideLoopContinuation(input) {
             message: 'No executable Ralph task remains.'
         };
     }
+    if (input.onlyActionableTasksRequireReplacement) {
+        if (input.autoReplenishBacklog && input.currentResult.executionStatus !== 'failed') {
+            return {
+                shouldContinue: true,
+                stopReason: null,
+                message: 'Only seed/placeholder tasks remain; continuing into backlog replenishment instead of the planning gate.'
+            };
+        }
+        return {
+            shouldContinue: false,
+            stopReason: 'no_actionable_task',
+            message: 'Only seed/placeholder tasks remain and auto-replenishment is disabled; replace the seed backlog with real work.'
+        };
+    }
     if (input.currentResult.executionStatus === 'failed') {
         if (input.currentResult.execution.providerErrorKind === 'non_retryable') {
             return {

@@ -10,6 +10,7 @@ class LoopDecisionService {
             remainingSubtaskCount: input.remainingSubtaskCount,
             remainingTaskCount: input.remainingTaskCount,
             hasActionableTask: input.hasActionableTask,
+            onlyActionableTasksRequireReplacement: input.onlyActionableTasksRequireReplacement,
             preflightDiagnostics: input.prepared.preflightReport.diagnostics,
             noProgressThreshold: input.prepared.config.noProgressThreshold,
             repeatedFailureThreshold: input.prepared.config.repeatedFailureThreshold,

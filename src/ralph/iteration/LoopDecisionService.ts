@@ -10,6 +10,8 @@ export interface EvaluateLoopDecisionInput {
   remainingSubtaskCount: number;
   remainingTaskCount: number;
   hasActionableTask: boolean;
+  /** True when every currently-actionable task is a requiresReplacement seed placeholder. */
+  onlyActionableTasksRequireReplacement: boolean;
   reachedIterationCap: boolean;
   completionReconciliation: CompletionReconciliationOutcome;
 }
@@ -28,6 +30,7 @@ export class LoopDecisionService {
       remainingSubtaskCount: input.remainingSubtaskCount,
       remainingTaskCount: input.remainingTaskCount,
       hasActionableTask: input.hasActionableTask,
+      onlyActionableTasksRequireReplacement: input.onlyActionableTasksRequireReplacement,
       preflightDiagnostics: input.prepared.preflightReport.diagnostics,
       noProgressThreshold: input.prepared.config.noProgressThreshold,
       repeatedFailureThreshold: input.prepared.config.repeatedFailureThreshold,

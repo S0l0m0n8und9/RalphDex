@@ -1050,6 +1050,22 @@ test('classifyIterationOutcome: validation failed + gitDiff failed remains no_pr
   assert.equal(outcome.classification, 'no_progress');
 });
 
+test('decideLoopContinuation routes a seed-only backlog into replenishment when auto-replenish is on', () => {
+  const current = iterationResult({
+    selectedTaskId: 'T2',
+    completionClassification: 'needs_human_review',
+    backlog: { remainingTaskCount: 1, actionableTaskAvailable: true }
+  });
+  const decision = decideLoopContinuation(stopDecisionInput({
+    currentResult: current,
+    hasActionableTask: true,
+    autoReplenishBacklog: true,
+    onlyActionableTasksRequireReplacement: true
+  }));
+  assert.equal(decision.shouldContinue, true);
+  assert.match(decision.message, /replenish/i);
+});
+
 test('decideLoopContinuation stops with non_retryable_provider_error on a non-retryable failure', () => {
   const current = iterationResult({
     executionStatus: 'failed',

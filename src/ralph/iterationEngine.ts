@@ -24,6 +24,7 @@ import {
 } from './types';
 import {
   releaseClaim,
+  listSelectableTasks,
   parseTaskFile,
   stringifyTaskFile,
 } from './taskFile';
@@ -883,6 +884,9 @@ export class RalphIterationEngine {
           reason: completionReconciliation.artifact.status
         });
       }
+      const actionableTasks = listSelectableTasks(afterCoreState.taskFile);
+      const onlyActionableTasksRequireReplacement =
+        actionableTasks.length > 0 && actionableTasks.every((t) => t.requiresReplacement === true);
       const loopEvaluation = this.loopDecisionService.evaluate({
         prepared,
         result,
@@ -890,6 +894,7 @@ export class RalphIterationEngine {
         remainingSubtaskCount: classified.remainingSubtaskList.length,
         remainingTaskCount: classified.remainingTaskCount,
         hasActionableTask: Boolean(classified.nextActionableTask),
+        onlyActionableTasksRequireReplacement,
         reachedIterationCap: options.reachedIterationCap,
         completionReconciliation
       });
