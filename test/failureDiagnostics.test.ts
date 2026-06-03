@@ -257,3 +257,8 @@ test('classifyProviderError returns unknown for a clean exit', () => {
   const out = classifyProviderError({ exitCode: 0, message: 'done' });
   assert.equal(out.kind, 'unknown');
 });
+
+test('classifyProviderError returns unknown when exitCode is null', () => {
+  const out = classifyProviderError({ exitCode: null, message: 'process killed' });
+  assert.equal(out.kind, 'unknown');
+});
