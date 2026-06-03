@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict';
+import { execFile as execFileCb } from 'node:child_process';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import test from 'node:test';
+import { promisify } from 'node:util';
 import { setProcessRunnerOverride } from '../src/services/processRunner';
 import {
+  captureGitStatus,
   collectRelevantWorkspaceChanges,
   inspectValidationCommandReadiness,
   normalizeValidationCommand,
@@ -14,6 +17,8 @@ import {
   type GitStatusSnapshot,
   type RalphCoreStateSnapshot
 } from '../src/ralph/verifier';
+
+const execFile = promisify(execFileCb);
 
 // ---------------------------------------------------------------------------
 // parseGitStatusPorcelainZ — null-terminated safe path parsing
@@ -238,6 +243,43 @@ test('runFileChangeVerifier: deep untracked path (nested directory) is detected'
 
   assert.ok(diffSummary.relevantChangedFiles.includes('frontend/src/screens/project-list.tsx'), 'deeply nested new ?? file should be in relevantChangedFiles');
   assert.equal(result.status, 'passed');
+});
+
+// ---------------------------------------------------------------------------
+// captureGitStatus + collectRelevantWorkspaceChanges — regression: untracked
+// files must always be detected (BUG-003)
+// ---------------------------------------------------------------------------
+
+test('an untracked-only new file is counted as relevant workspace progress', async () => {
+  // Arrange: create a temp git repo with a clean baseline commit
+  const repoDir = await makeTempRoot();
+  const git = (args: string[]) =>
+    execFile('git', ['-c', 'user.email=test@test.com', '-c', 'user.name=Test', ...args], {
+      cwd: repoDir
+    });
+
+  await git(['init']);
+  // Write a placeholder file and commit so the working tree is clean
+  const placeholder = path.join(repoDir, 'README.md');
+  await fs.writeFile(placeholder, '# test\n', 'utf8');
+  await git(['add', 'README.md']);
+  await git(['commit', '-m', 'initial']);
+
+  // Act: capture "before", write an untracked file, capture "after"
+  const before = await captureGitStatus(repoDir);
+
+  const schemasDir = path.join(repoDir, 'Schemas');
+  await fs.mkdir(schemasDir, { recursive: true });
+  await fs.writeFile(path.join(schemasDir, 'antecedent.schema.json'), '{"type":"object"}', 'utf8');
+
+  const after = await captureGitStatus(repoDir);
+
+  // Assert: the untracked file is detected as a relevant workspace change
+  const changes = collectRelevantWorkspaceChanges(before, after);
+  assert.ok(
+    changes.some((c) => c.endsWith('antecedent.schema.json')),
+    `expected antecedent.schema.json in changes but got: ${JSON.stringify(changes)}`
+  );
 });
 
 async function makeTempRoot(): Promise<string> {
