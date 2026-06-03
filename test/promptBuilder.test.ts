@@ -1804,6 +1804,7 @@ test('static prefix is byte-identical across two prompt builds that differ only 
     normalizedValidationCommandFrom: validationProvenance.normalizedValidationCommandFrom,
     validationCommand: 'npm run validate',
     preflightReport: { ready: true, summary: 'Preflight completed.', diagnostics: [] },
+    hostShell: 'win32' as const, // pin so fixtures are host-independent
     config: {
       promptTemplateDirectory: '',
       promptIncludeVerifierFeedback: true,
@@ -1952,6 +1953,7 @@ test('static prefix is byte-identical across two sliding-window builds with diff
     normalizedValidationCommandFrom: null,
     validationCommand: null,
     preflightReport: { ready: true, summary: 'Preflight ok.', diagnostics: [] },
+    hostShell: 'win32' as const, // pin so fixtures are host-independent
     config: {
       promptTemplateDirectory: '',
       promptIncludeVerifierFeedback: true,
