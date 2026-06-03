@@ -46,6 +46,7 @@ export interface ProviderErrorClassification {
  * must change config — so they are classified non_retryable and escalated.
  */
 const NON_RETRYABLE_PROVIDER_PATTERNS: Array<{ re: RegExp; reason: string }> = [
+  // Claude CLI's specific phrasing; kept separate from the generic model-rejection pattern below.
   { re: /issue with the selected model/i, reason: 'Provider rejected the selected model — check the model ID for typos.' },
   { re: /model.*(may not exist|do(?:es)?n'?t exist|not found|invalid)/i, reason: 'Provider reported an unknown or invalid model ID.' },
   { re: /(unauthor|forbidden|invalid api key|authentication failed|not logged in|permission denied)/i, reason: 'Provider rejected the request for authentication/authorization reasons.' }
@@ -56,8 +57,11 @@ const NON_RETRYABLE_PROVIDER_PATTERNS: Array<{ re: RegExp; reason: string }> = [
  * Pure: matches on exit code + message only. Defaults to `unknown` so that
  * unrecognized failures preserve the existing retry behavior.
  */
-export function classifyProviderError(input: { exitCode: number | null; message: string }): ProviderErrorClassification {
-  if (input.exitCode === 0 || input.exitCode === null) {
+export function classifyProviderError(input: { exitCode: number | null; message: string | null | undefined }): ProviderErrorClassification {
+  if (input.exitCode === null) {
+    return { kind: 'unknown', reason: 'Provider process did not produce an exit code.', matchedPattern: null };
+  }
+  if (input.exitCode === 0) {
     return { kind: 'unknown', reason: 'No non-zero provider exit code.', matchedPattern: null };
   }
   const message = input.message ?? '';
