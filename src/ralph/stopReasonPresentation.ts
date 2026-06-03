@@ -93,6 +93,11 @@ const PRESENTATIONS: Record<RalphStopReason, StopReasonPresentation> = {
     label: 'Cancelled',
     explanation: 'The run was cancelled before reaching a natural stop.',
     nextAction: 'Run the loop again when you are ready to resume.'
+  },
+  verifier_suspect: {
+    label: 'Verifier suspect',
+    explanation: 'Execution succeeded and relevant files changed, but the validation command failed identically across consecutive iterations — the validation command itself is the likely culprit.',
+    nextAction: 'Run the validation command manually and inspect its output; fix or replace the validation command before retrying.'
   }
 };
 

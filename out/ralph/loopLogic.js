@@ -145,6 +145,17 @@ function detectNoProgressSignals(input, currentClassification) {
         && (currentClassification === 'failed' || currentClassification === 'no_progress' || currentClassification === 'blocked')) {
         signals.push('same_failure_classification');
     }
+    if (input.executionStatus === 'succeeded'
+        && input.verificationStatus === 'failed'
+        && input.relevantFileChanges.length > 0
+        && previous?.executionStatus === 'succeeded'
+        && previous?.verificationStatus === 'failed'
+        && input.validationFailureSignature
+        && previous?.verification.validationFailureSignature != null
+        && normalizeFailureMessage(previous.verification.validationFailureSignature)
+            === normalizeFailureMessage(input.validationFailureSignature)) {
+        signals.push('validation_failed_despite_execution_success');
+    }
     return uniqueOrdered(signals);
 }
 function classifyIterationOutcome(input) {
@@ -395,6 +406,17 @@ function decideLoopContinuation(input) {
             stopReason: 'repeated_no_progress',
             message: `Detected ${noProgressCount} consecutive no-progress iterations.`
         };
+    }
+    const currentSignalsVerifierSuspect = input.currentResult.noProgressSignals.includes('validation_failed_despite_execution_success');
+    if (currentSignalsVerifierSuspect) {
+        const verifierSuspectCount = countTrailingSameTaskClassifications(history, input.currentResult.selectedTaskId, agentId, ['partial_progress']);
+        if (verifierSuspectCount >= 2) {
+            return {
+                shouldContinue: false,
+                stopReason: 'verifier_suspect',
+                message: 'Execution succeeded and files changed, but validation failed identically across iterations. The validation command itself is the likely culprit — review it before retrying.'
+            };
+        }
     }
     const currentFailureSignature = failureSignature(input.currentResult);
     if (currentFailureSignature) {

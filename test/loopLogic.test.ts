@@ -4,7 +4,8 @@ import {
   buildTaskRemediation,
   buildValidationFailureSignature,
   classifyIterationOutcome,
-  decideLoopContinuation
+  decideLoopContinuation,
+  detectNoProgressSignals
 } from '../src/ralph/loopLogic';
 import { reportsAlreadySatisfied } from '../src/ralph/iteration/OutcomeClassifier';
 import { DEFAULT_RALPH_AGENT_ID, RalphIterationResult, RalphPreflightDiagnostic } from '../src/ralph/types';
@@ -1208,4 +1209,75 @@ test('classifyIterationOutcome: validation passed + gitDiff passed remains parti
   } as any);
 
   assert.equal(outcome.classification, 'partial_progress');
+});
+
+// ---------------------------------------------------------------------------
+// BUG-003: verifier_suspect — execution succeeded but validation failed identically
+// ---------------------------------------------------------------------------
+
+test('detectNoProgressSignals flags validation_failed_despite_execution_success', () => {
+  const sig = 'validation::exit:1::is not recognized';
+  const previous = iterationResult({
+    selectedTaskId: 'T4',
+    executionStatus: 'succeeded',
+    verificationStatus: 'failed',
+    verification: {
+      ...iterationResult().verification,
+      validationFailureSignature: sig
+    }
+  });
+  const signals = detectNoProgressSignals({
+    selectedTaskId: 'T4',
+    selectedTaskCompleted: false,
+    selectedTaskBlocked: false,
+    humanReviewNeeded: false,
+    remainingSubtaskCount: 0,
+    remainingTaskCount: 1,
+    executionStatus: 'succeeded',
+    verificationStatus: 'failed',
+    validationFailureSignature: sig,
+    relevantFileChanges: ['Schemas/antecedent.schema.json'],
+    progressChanged: false,
+    taskFileChanged: false,
+    previousIterations: [previous]
+  }, 'partial_progress');
+
+  assert.ok(signals.includes('validation_failed_despite_execution_success'));
+});
+
+test('decideLoopContinuation stops with verifier_suspect after repeated success+identical-validation-failure', () => {
+  const sig = 'validation::exit:1::is not recognized';
+  const prior = iterationResult({
+    selectedTaskId: 'T4',
+    executionStatus: 'succeeded',
+    verificationStatus: 'failed',
+    completionClassification: 'partial_progress',
+    noProgressSignals: ['validation_failed_despite_execution_success'],
+    verification: {
+      ...iterationResult().verification,
+      validationFailureSignature: sig
+    }
+  });
+  const current = iterationResult({
+    selectedTaskId: 'T4',
+    executionStatus: 'succeeded',
+    verificationStatus: 'failed',
+    completionClassification: 'partial_progress',
+    noProgressSignals: ['validation_failed_despite_execution_success'],
+    verification: {
+      ...iterationResult().verification,
+      validationFailureSignature: sig
+    }
+  });
+  const decision = decideLoopContinuation(stopDecisionInput({
+    currentResult: current,
+    previousIterations: [prior, prior],
+    hasActionableTask: true,
+    stopOnHumanReviewNeeded: false,
+    noProgressThreshold: 10,
+    repeatedFailureThreshold: 10
+  }));
+
+  assert.equal(decision.stopReason, 'verifier_suspect');
+  assert.equal(decision.shouldContinue, false);
 });

@@ -19,7 +19,8 @@ const ALL_STOP_REASONS: RalphStopReason[] = [
   'execution_failed',
   'non_retryable_provider_error',
   'no_actionable_task',
-  'cancelled'
+  'cancelled',
+  'verifier_suspect'
 ];
 
 test('describeStopReason returns non-empty label, explanation, and nextAction for every reason', () => {
