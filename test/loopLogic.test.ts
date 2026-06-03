@@ -1112,6 +1112,36 @@ test('decideLoopContinuation falls through to execution_failed when providerErro
   assert.equal(decision.stopReason, 'execution_failed');
 });
 
+test('repeated human-review on a seed task auto-replenishes rather than hard-stopping', () => {
+  const prior = iterationResult({ selectedTaskId: 'T2', completionClassification: 'needs_human_review' });
+  const current = iterationResult({ selectedTaskId: 'T2', completionClassification: 'needs_human_review' });
+  const decision = decideLoopContinuation(stopDecisionInput({
+    currentResult: current,
+    previousIterations: [prior, prior],
+    repeatedFailureThreshold: 2,
+    autoReplenishBacklog: true,
+    hasActionableTask: true,
+    onlyActionableTasksRequireReplacement: true
+  }));
+  assert.equal(decision.shouldContinue, true);
+  assert.match(decision.message, /replenish/i);
+});
+
+test('repeated human-review on a NON-seed task hard-stops with repeated_identical_failure', () => {
+  const prior = iterationResult({ selectedTaskId: 'T9', completionClassification: 'needs_human_review' });
+  const current = iterationResult({ selectedTaskId: 'T9', completionClassification: 'needs_human_review' });
+  const decision = decideLoopContinuation(stopDecisionInput({
+    currentResult: current,
+    previousIterations: [prior, prior],
+    repeatedFailureThreshold: 2,
+    hasActionableTask: true,
+    onlyActionableTasksRequireReplacement: false,
+    stopOnHumanReviewNeeded: false
+  }));
+  assert.equal(decision.shouldContinue, false);
+  assert.equal(decision.stopReason, 'repeated_identical_failure');
+});
+
 test('classifyIterationOutcome: validation passed + gitDiff passed remains partial_progress', () => {
   const outcome = classifyIterationOutcome({
     selectedTaskId: 'T1',
