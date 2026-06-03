@@ -1066,6 +1066,19 @@ test('decideLoopContinuation stops with non_retryable_provider_error on a non-re
   assert.equal(decision.stopReason, 'non_retryable_provider_error');
 });
 
+test('decideLoopContinuation falls through to execution_failed when providerErrorKind is not non_retryable', () => {
+  const current = iterationResult({
+    executionStatus: 'failed',
+    execution: { exitCode: 1, providerErrorKind: 'unknown' }
+  });
+  const decision = decideLoopContinuation(stopDecisionInput({
+    currentResult: current,
+    hasActionableTask: true
+  }));
+  assert.equal(decision.shouldContinue, false);
+  assert.equal(decision.stopReason, 'execution_failed');
+});
+
 test('classifyIterationOutcome: validation passed + gitDiff passed remains partial_progress', () => {
   const outcome = classifyIterationOutcome({
     selectedTaskId: 'T1',
