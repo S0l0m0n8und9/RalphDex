@@ -72,6 +72,7 @@ async function renderScenario(
       summary: `Fixture scenario ${scenario.name} is ready for prompt rendering.`,
       diagnostics: []
     },
+    hostShell: 'win32', // pin so output is host-independent
     config: {
       promptTemplateDirectory: '',
       promptIncludeVerifierFeedback: true,

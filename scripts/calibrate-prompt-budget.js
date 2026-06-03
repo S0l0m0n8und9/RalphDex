@@ -357,6 +357,7 @@ async function main() {
         normalizedValidationCommandFrom: null,
         validationCommand,
         preflightReport: createPreflightReport(),
+        hostShell: 'win32', // pin so output is host-independent
         config
       });
 
