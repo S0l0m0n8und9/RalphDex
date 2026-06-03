@@ -125,6 +125,8 @@ test('prompt builder matches readable golden snapshots for each valid fixture sc
         summary: `Fixture scenario ${scenario.name} is ready for prompt rendering.`,
         diagnostics: []
       },
+      // pin so snapshots are host-independent
+      hostShell: 'win32',
       config: {
         promptTemplateDirectory: '',
         promptIncludeVerifierFeedback: true,
@@ -182,6 +184,8 @@ test('prompt builder snapshot includes Repo Structure section when structureDefi
       diagnostics: []
     },
     structureDefinition,
+    // pin so snapshots are host-independent
+    hostShell: 'win32',
     config: {
       promptTemplateDirectory: '',
       promptIncludeVerifierFeedback: true,

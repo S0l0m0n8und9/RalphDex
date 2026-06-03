@@ -121,6 +121,8 @@ async function renderAllScenarios() {
           summary: `Budget validation scenario ${scenario.name}.`,
           diagnostics: []
         },
+        // pin so budget baseline matches snapshot baseline (host-independent)
+        hostShell: 'win32',
         config: {
           promptTemplateDirectory: '',
           promptIncludeVerifierFeedback: true,
