@@ -73,6 +73,8 @@ export interface RalphTask {
   lastVerifierResult?: 'passed' | 'failed' | 'skipped';
   /** leave-absent. Last reconciliation warning snippet when a conflict was detected. */
   lastReconciliationWarning?: string;
+  /** leave-absent. True for non-executable seed/placeholder tasks that must be replaced before real work begins. Routes the loop to backlog replenishment instead of the planning gate. */
+  requiresReplacement?: boolean;
   /** preserve-source. Parser-injected diagnostic location. Not persisted to disk; stripped during serialization. */
   source?: RalphTaskSourceLocation;
 }

@@ -90,7 +90,8 @@ exports.SUPPORTED_TASK_FIELDS = new Set([
     'context',
     'writeRiskLabels',
     'lastVerifierResult',
-    'lastReconciliationWarning'
+    'lastReconciliationWarning',
+    'requiresReplacement'
 ]);
 const LIKELY_TASK_FIELD_MISTAKES = new Map([
     ['dependencies', 'dependsOn'],
@@ -260,6 +261,7 @@ function normalizeTask(candidate, source) {
         writeRiskLabels: normalizeOptionalStringArray(record, 'writeRiskLabels'),
         lastVerifierResult: normalizeVerifierResult(record.lastVerifierResult),
         lastReconciliationWarning: normalizeOptionalString(record, 'lastReconciliationWarning'),
+        requiresReplacement: record.requiresReplacement === true ? true : undefined,
         source
     };
 }
@@ -645,13 +647,15 @@ function createDefaultTaskFile() {
                 id: 'T1',
                 title: 'Write or refine the project objective in the PRD file',
                 status: 'todo',
-                notes: 'The prompt generator reads the PRD file directly.'
+                notes: 'The prompt generator reads the PRD file directly.',
+                requiresReplacement: true
             },
             {
                 id: 'T2',
                 title: 'Replace this seed task list with repo-specific work',
                 status: 'todo',
-                notes: 'Keep statuses current so fresh Codex runs can resume deterministically.'
+                notes: 'Keep statuses current so fresh Codex runs can resume deterministically.',
+                requiresReplacement: true
             }
         ]
     };
