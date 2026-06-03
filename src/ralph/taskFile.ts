@@ -154,6 +154,10 @@ function normalizeVerifierResult(value: unknown): RalphTask['lastVerifierResult'
  * filters out empties, and returns `undefined` when the result array is empty.
  * See docs/invariants.md § Normalized Task Contract — Coercion Invariants.
  */
+function normalizeOptionalBoolean(record: Record<string, unknown>, key: string): true | undefined {
+  return record[key] === true ? true : undefined;
+}
+
 function normalizeOptionalStringArray(record: Record<string, unknown>, key: string): string[] | undefined {
   if (!Array.isArray(record[key])) {
     return undefined;
@@ -272,7 +276,7 @@ export function normalizeTask(candidate: unknown, source?: RalphTaskSourceLocati
     writeRiskLabels: normalizeOptionalStringArray(record, 'writeRiskLabels'),
     lastVerifierResult: normalizeVerifierResult(record.lastVerifierResult),
     lastReconciliationWarning: normalizeOptionalString(record, 'lastReconciliationWarning'),
-    requiresReplacement: record.requiresReplacement === true ? true : undefined,
+    requiresReplacement: normalizeOptionalBoolean(record, 'requiresReplacement'),
     source
   };
 }

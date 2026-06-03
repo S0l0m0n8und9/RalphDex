@@ -1554,4 +1554,7 @@ test('requiresReplacement round-trips through parse and serialize', () => {
   const text = JSON.stringify({ version: 2, tasks: [{ id: 'T1', title: 'x', status: 'todo', requiresReplacement: true }] });
   const parsed = parseTaskFile(text);
   assert.equal(parsed.tasks[0].requiresReplacement, true);
+
+  const roundTripped = parseTaskFile(stringifyTaskFile(parsed));
+  assert.equal(roundTripped.tasks[0].requiresReplacement, true);
 });
