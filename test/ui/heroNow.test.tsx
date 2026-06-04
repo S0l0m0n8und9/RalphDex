@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
-import { renderToStaticMarkup } from 'react-dom/server';
+import test, { afterEach, beforeEach } from 'node:test';
+import { cleanup, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { HeroNow } from '../../src/webview-ui/components/hero/HeroNow';
 import type { RalphDashboardState } from '../../src/ui/uiTypes';
 import type { WebviewUiModel } from '../../src/webview-ui/viewModel';
@@ -26,71 +27,87 @@ function makeModel(overrides: Partial<WebviewUiModel> = {}): WebviewUiModel {
   };
 }
 
+const noop = () => {};
+
+beforeEach(() => { (globalThis as { __RALPH_WEBVIEW_API__?: { reset(): void } }).__RALPH_WEBVIEW_API__?.reset(); });
+afterEach(() => { cleanup(); });
+
 test('HeroNow shows Start button when loop is idle', () => {
-  const html = renderToStaticMarkup(
-    <HeroNow state={makeState({ loopState: 'idle' })} model={makeModel()}
-      onStartLoop={() => {}} onStopLoop={() => {}} onRunIteration={() => {}} />
-  );
-  assert.ok(html.includes('Start loop'));
-  assert.ok(!html.includes('Stop loop'));
+  render(<HeroNow state={makeState({ loopState: 'idle' })} model={makeModel()}
+    onStartLoop={noop} onStopLoop={noop} onRunIteration={noop} />);
+  assert.ok(screen.getByRole('button', { name: /start loop/i }));
+  assert.equal(screen.queryByRole('button', { name: /stop loop/i }), null);
 });
 
 test('HeroNow shows Stop button when loop is running', () => {
-  const html = renderToStaticMarkup(
-    <HeroNow state={makeState({ loopState: 'running' })} model={makeModel()}
-      onStartLoop={() => {}} onStopLoop={() => {}} onRunIteration={() => {}} />
-  );
-  assert.ok(html.includes('Stop loop'));
-  assert.ok(!html.includes('Start loop'));
+  render(<HeroNow state={makeState({ loopState: 'running' })} model={makeModel()}
+    onStartLoop={noop} onStopLoop={noop} onRunIteration={noop} />);
+  assert.ok(screen.getByRole('button', { name: /stop loop/i }));
+  assert.equal(screen.queryByRole('button', { name: /start loop/i }), null);
 });
 
 test('HeroNow shows readiness detail when no current task', () => {
-  const html = renderToStaticMarkup(
-    <HeroNow state={makeState()} model={makeModel({ readiness: { kind: 'ready', title: 'Ready', detail: 'Ralph is idle. 4 of 10 tasks done.' } })}
-      onStartLoop={() => {}} onStopLoop={() => {}} onRunIteration={() => {}} />
-  );
-  assert.ok(html.includes('Ralph is idle. 4 of 10 tasks done.'));
+  render(<HeroNow state={makeState()}
+    model={makeModel({ readiness: { kind: 'ready', title: 'Ready', detail: 'Ralph is idle. 4 of 10 tasks done.' } })}
+    onStartLoop={noop} onStopLoop={noop} onRunIteration={noop} />);
+  assert.ok(screen.getByText('Ralph is idle. 4 of 10 tasks done.'));
 });
 
 test('HeroNow shows task ID when current task is set', () => {
-  const html = renderToStaticMarkup(
-    <HeroNow state={makeState({ loopState: 'running' })}
-      model={makeModel({ currentTask: { id: 'T-42', title: 'Fix the thing', status: 'in_progress', isCurrent: true, priority: 'high', childIds: [], dependsOn: [] } })}
-      onStartLoop={() => {}} onStopLoop={() => {}} onRunIteration={() => {}} />
-  );
-  assert.ok(html.includes('T-42'));
-  assert.ok(html.includes('Fix the thing'));
+  render(<HeroNow state={makeState({ loopState: 'running' })}
+    model={makeModel({ currentTask: { id: 'T-42', title: 'Fix the thing', status: 'in_progress', isCurrent: true, priority: 'high', childIds: [], dependsOn: [] } })}
+    onStartLoop={noop} onStopLoop={noop} onRunIteration={noop} />);
+  assert.ok(screen.getByText(/T-42/));
+  assert.ok(screen.getByText(/Fix the thing/));
 });
 
 test('HeroNow always shows Run one iteration button', () => {
-  const html = renderToStaticMarkup(
-    <HeroNow state={makeState()} model={makeModel()}
-      onStartLoop={() => {}} onStopLoop={() => {}} onRunIteration={() => {}} />
-  );
-  assert.ok(html.includes('Run one iteration'));
+  render(<HeroNow state={makeState()} model={makeModel()}
+    onStartLoop={noop} onStopLoop={noop} onRunIteration={noop} />);
+  assert.ok(screen.getByRole('button', { name: /run one iteration/i }));
 });
 
 test('HeroNow renders health strip', () => {
-  const html = renderToStaticMarkup(
-    <HeroNow state={makeState()} model={makeModel()}
-      onStartLoop={() => {}} onStopLoop={() => {}} onRunIteration={() => {}} />
-  );
-  assert.ok(html.includes('PROGRESS'));
-  assert.ok(html.includes('ITERATION'));
-  assert.ok(html.includes('ATTENTION'));
+  render(<HeroNow state={makeState()} model={makeModel()}
+    onStartLoop={noop} onStopLoop={noop} onRunIteration={noop} />);
+  assert.ok(screen.getByText('PROGRESS'));
+  assert.ok(screen.getByText('ITERATION'));
+  assert.ok(screen.getByText('ATTENTION'));
 });
 
 test('HeroNow iteration counter uses loop-local iteration instead of global nextIteration', () => {
-  const html = renderToStaticMarkup(
-    <HeroNow
-      state={makeState({ loopState: 'running', nextIteration: 22, loopIteration: 2, iterationCap: 5 })}
-      model={makeModel()}
-      onStartLoop={() => {}}
-      onStopLoop={() => {}}
-      onRunIteration={() => {}}
-    />
-  );
+  render(<HeroNow
+    state={makeState({ loopState: 'running', nextIteration: 22, loopIteration: 2, iterationCap: 5 })}
+    model={makeModel()} onStartLoop={noop} onStopLoop={noop} onRunIteration={noop} />);
+  assert.ok(screen.getByText('2/5'));
+  assert.equal(screen.queryByText('22/5'), null);
+});
 
-  assert.ok(html.includes('2/5'));
-  assert.ok(!html.includes('22/5'));
+// --- Interaction coverage (only reachable with a real DOM + event dispatch) ---
+
+test('HeroNow Start button invokes onStartLoop when clicked', async () => {
+  const user = userEvent.setup();
+  let started = 0;
+  render(<HeroNow state={makeState({ loopState: 'idle' })} model={makeModel()}
+    onStartLoop={() => { started++; }} onStopLoop={noop} onRunIteration={noop} />);
+  await user.click(screen.getByRole('button', { name: /start loop/i }));
+  assert.equal(started, 1);
+});
+
+test('HeroNow Stop button invokes onStopLoop when clicked', async () => {
+  const user = userEvent.setup();
+  let stopped = 0;
+  render(<HeroNow state={makeState({ loopState: 'running' })} model={makeModel()}
+    onStartLoop={noop} onStopLoop={() => { stopped++; }} onRunIteration={noop} />);
+  await user.click(screen.getByRole('button', { name: /stop loop/i }));
+  assert.equal(stopped, 1);
+});
+
+test('HeroNow Run one iteration button invokes onRunIteration when clicked', async () => {
+  const user = userEvent.setup();
+  let ran = 0;
+  render(<HeroNow state={makeState()} model={makeModel()}
+    onStartLoop={noop} onStopLoop={noop} onRunIteration={() => { ran++; }} />);
+  await user.click(screen.getByRole('button', { name: /run one iteration/i }));
+  assert.equal(ran, 1);
 });
