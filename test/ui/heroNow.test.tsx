@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import test, { afterEach, beforeEach } from 'node:test';
+import test, { afterEach } from 'node:test';
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HeroNow } from '../../src/webview-ui/components/hero/HeroNow';
@@ -29,7 +29,8 @@ function makeModel(overrides: Partial<WebviewUiModel> = {}): WebviewUiModel {
 
 const noop = () => {};
 
-beforeEach(() => { (globalThis as { __RALPH_WEBVIEW_API__?: { reset(): void } }).__RALPH_WEBVIEW_API__?.reset(); });
+// HeroNow takes its handlers as direct props, so these tests never read the posted-message
+// probe — no reset needed. The full webview<->host round-trip is covered by appRoundTrip.test.tsx.
 afterEach(() => { cleanup(); });
 
 test('HeroNow shows Start button when loop is idle', () => {

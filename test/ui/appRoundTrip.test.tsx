@@ -17,7 +17,13 @@ interface WebviewApiProbe {
   lastPosted(type: string): { type?: string;[key: string]: unknown } | undefined;
   reset(): void;
 }
-const api = () => (globalThis as unknown as { __RALPH_WEBVIEW_API__: WebviewApiProbe }).__RALPH_WEBVIEW_API__;
+const api = (): WebviewApiProbe => {
+  const probe = (globalThis as unknown as { __RALPH_WEBVIEW_API__?: WebviewApiProbe }).__RALPH_WEBVIEW_API__;
+  if (!probe) {
+    throw new Error('register-dom.cjs harness not loaded: __RALPH_WEBVIEW_API__ is undefined. Run this suite via the `test` / `test:ui` npm script.');
+  }
+  return probe;
+};
 
 function makeState(overrides: Partial<RalphDashboardState> = {}): RalphDashboardState {
   return {
