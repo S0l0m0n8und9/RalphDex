@@ -107,12 +107,31 @@ function crossValidate(
 // Setting control
 // ---------------------------------------------------------------------------
 
+/**
+ * Settings whose effective value is force-derived in readConfig when
+ * autonomyMode is 'autonomous' (see readConfig effectiveAutonomy). Editing them
+ * directly while autonomous has no effect — the resolved value is overridden —
+ * so the panel disables them and explains how to take control.
+ */
+const AUTONOMY_MANAGED_KEYS = new Set(['autoReplenishBacklog', 'autoApplyRemediation']);
+
+function autonomyManagedNote(
+  entry: SettingsSurfaceEntrySnapshot,
+  settings: SettingsSurfaceSnapshot
+): string | null {
+  if (!AUTONOMY_MANAGED_KEYS.has(entry.key)) return null;
+  if (String(findValue(settings, 'autonomyMode') ?? '') !== 'autonomous') return null;
+  return 'Managed by Autonomy Mode (autonomous). Set Autonomy Mode to Supervised to edit this directly.';
+}
+
 function SettingControl({
   entry,
   onUpdate,
+  disabled = false,
 }: {
   entry: SettingsSurfaceEntrySnapshot;
   onUpdate(key: string, value: unknown): void;
+  disabled?: boolean;
 }) {
   const inputStyle: React.CSSProperties = {
     background: 'var(--surface-2)',
@@ -133,8 +152,9 @@ function SettingControl({
         type="checkbox"
         checked={Boolean(entry.value)}
         data-setting={entry.key}
+        disabled={disabled}
         onChange={(e) => onUpdate(entry.key, e.currentTarget.checked)}
-        style={{ cursor: 'pointer', accentColor: 'var(--accent)' }}
+        style={{ cursor: disabled ? 'not-allowed' : 'pointer', accentColor: 'var(--accent)' }}
       />
     );
   }
@@ -204,13 +224,14 @@ function SettingControl({
                 <input
                   type="checkbox"
                   checked={checked}
+                  disabled={disabled}
                   onChange={(e) => {
                     const next = e.currentTarget.checked
                       ? [...currentArray, opt]
                       : currentArray.filter((v) => v !== opt);
                     onUpdate(entry.key, next);
                   }}
-                  style={{ accentColor: 'var(--accent)', cursor: 'pointer' }}
+                  style={{ accentColor: 'var(--accent)', cursor: disabled ? 'not-allowed' : 'pointer' }}
                 />
                 <span style={{ color: 'var(--fg)' }}>{opt}</span>
               </label>
@@ -264,15 +285,17 @@ function SettingEntry({
   settings: SettingsSurfaceSnapshot;
 }) {
   const error = crossValidate(entry, settings);
+  const managedNote = autonomyManagedNote(entry, settings);
+  const disabled = managedNote !== null;
   const isCheckbox = entry.control === 'boolean';
 
   return (
-    <div style={{ display: 'grid', gap: 4, padding: '10px 0', borderBottom: '1px solid color-mix(in srgb, var(--border) 60%, transparent)' }}>
+    <div style={{ display: 'grid', gap: 4, padding: '10px 0', borderBottom: '1px solid color-mix(in srgb, var(--border) 60%, transparent)', opacity: disabled ? 0.6 : 1 }}>
       {/* Label row */}
       <div style={{ display: 'flex', alignItems: isCheckbox ? 'center' : 'flex-start', flexDirection: isCheckbox ? 'row' : 'column', gap: isCheckbox ? 8 : 4 }}>
         {isCheckbox ? (
           <>
-            <SettingControl entry={entry} onUpdate={onUpdate} />
+            <SettingControl entry={entry} onUpdate={onUpdate} disabled={disabled} />
             <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--fg)' }}>
               {entry.title}
               {entry.isNew && <NewBadge />}
@@ -284,10 +307,15 @@ function SettingEntry({
               {entry.title}
               {entry.isNew && <NewBadge />}
             </label>
-            <SettingControl entry={entry} onUpdate={onUpdate} />
+            <SettingControl entry={entry} onUpdate={onUpdate} disabled={disabled} />
           </>
         )}
       </div>
+
+      {/* Autonomy-managed note */}
+      {managedNote && (
+        <div style={{ fontSize: 11, color: 'var(--accent)', marginTop: 2 }}>{managedNote}</div>
+      )}
 
       {/* Error */}
       {error && (

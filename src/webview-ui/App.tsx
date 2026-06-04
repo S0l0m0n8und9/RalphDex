@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { RalphDashboardState, RalphDoctrineProposalActionPayload, RalphWebviewMessage } from '../ui/uiTypes';
-import type { WizardInboundMessage, WizardOutboundMessage, WizardState } from '../webview/prdCreationWizardTypes';
+import type { PrdWizardTaskDraft, WizardInboundMessage, WizardOutboundMessage, WizardState } from '../webview/prdCreationWizardTypes';
 import { DashboardShell } from './components/DashboardShell';
 import { PrdCreationWizard } from './components/PrdCreationWizard';
 import { SidebarShell } from './components/SidebarShell';
@@ -44,14 +44,52 @@ export function applyOptimisticSettingUpdate(
   };
 }
 
+function updateWizardTask(
+  state: WizardState,
+  taskId: string,
+  apply: (task: PrdWizardTaskDraft) => PrdWizardTaskDraft
+): WizardState {
+  if (!state.draft) {
+    return state;
+  }
+  return {
+    ...state,
+    draft: {
+      ...state.draft,
+      tasks: state.draft.tasks.map((task) => (task.id === taskId ? apply(task) : task))
+    }
+  };
+}
+
+// Apply field edits to local wizard state synchronously. Without this, the
+// wizard's controlled inputs render against unchanged state on each keystroke,
+// so React resets the DOM value and the caret jumps to the end of the field.
+// The host echoes the same value back shortly after, so this only fixes the
+// per-keystroke reset — it does not diverge from server state.
 export function applyOptimisticWizardMessage(
   state: WizardState,
   message: WizardInboundMessage
 ): WizardState {
-  if (message.type === 'set-step') {
-    return { ...state, step: message.step, warning: null, error: null };
+  switch (message.type) {
+    case 'set-step':
+      return { ...state, step: message.step, warning: null, error: null };
+    case 'update-field':
+      return { ...state, [message.field]: message.value };
+    case 'update-draft-prd-text':
+      return state.draft ? { ...state, draft: { ...state.draft, prdText: message.value } } : state;
+    case 'update-task-title':
+      return updateWizardTask(state, message.taskId, (task) => ({ ...task, title: message.title }));
+    case 'update-task-notes':
+      return updateWizardTask(state, message.taskId, (task) => ({ ...task, notes: message.value }));
+    case 'update-task-acceptance':
+      return updateWizardTask(state, message.taskId, (task) => ({ ...task, acceptance: message.value.split('\n') }));
+    case 'update-task-dependencies':
+      return updateWizardTask(state, message.taskId, (task) => ({ ...task, dependsOn: message.value.split('\n'), dependencies: undefined }));
+    case 'update-task-tier':
+      return updateWizardTask(state, message.taskId, (task) => ({ ...task, tier: message.tier }));
+    default:
+      return state;
   }
-  return state;
 }
 
 export function App({ mode, initialState }: AppProps) {
