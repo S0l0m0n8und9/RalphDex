@@ -519,9 +519,8 @@ export function decideLoopContinuation(input: RalphStopDecisionInput): RalphLoop
     };
   }
 
-  if (input.onlyActionableTasksRequireReplacement) {
+  if (input.onlyActionableTasksRequireReplacement && input.currentResult.executionStatus !== 'failed') {
     if (input.autoReplenishBacklog
-      && input.currentResult.executionStatus !== 'failed'
       && !hasBacklogReplenishmentLedgerDrift(input.preflightDiagnostics)) {
       return {
         shouldContinue: true,
@@ -532,7 +531,9 @@ export function decideLoopContinuation(input: RalphStopDecisionInput): RalphLoop
     return {
       shouldContinue: false,
       stopReason: 'no_actionable_task',
-      message: 'Only seed/placeholder tasks remain and auto-replenishment is disabled; replace the seed backlog with real work.'
+      message: input.autoReplenishBacklog
+        ? 'Only seed/placeholder tasks remain, but backlog replenishment is blocked by task-ledger drift; resolve the drift, then replace the seed backlog with real work.'
+        : 'Only seed/placeholder tasks remain and auto-replenishment is disabled; replace the seed backlog with real work.'
     };
   }
 

@@ -1084,6 +1084,41 @@ test('decideLoopContinuation hard-stops a seed-only backlog when auto-replenish 
   assert.match(decision.message, /auto-replenishment is disabled/i);
 });
 
+test('a failed seed-only iteration falls through to execution_failed (not the misleading no_actionable_task message)', () => {
+  const current = iterationResult({
+    selectedTaskId: 'T2',
+    executionStatus: 'failed',
+    execution: { exitCode: 1, providerErrorKind: 'unknown' }
+  });
+  const decision = decideLoopContinuation(stopDecisionInput({
+    currentResult: current,
+    hasActionableTask: true,
+    autoReplenishBacklog: true,
+    onlyActionableTasksRequireReplacement: true
+  }));
+  assert.equal(decision.shouldContinue, false);
+  assert.equal(decision.stopReason, 'execution_failed');
+});
+
+test('seed-only with autoReplenish true but ledger drift stops with no_actionable_task mentioning ledger drift', () => {
+  const current = iterationResult({
+    selectedTaskId: 'T2',
+    backlog: { remainingTaskCount: 1, actionableTaskAvailable: true }
+  });
+  const decision = decideLoopContinuation(stopDecisionInput({
+    currentResult: current,
+    hasActionableTask: true,
+    autoReplenishBacklog: true,
+    onlyActionableTasksRequireReplacement: true,
+    preflightDiagnostics: [
+      diagnostic({ severity: 'error', code: 'ledger_drift', message: 'Task ledger has drifted.' })
+    ]
+  }));
+  assert.equal(decision.shouldContinue, false);
+  assert.equal(decision.stopReason, 'no_actionable_task');
+  assert.match(decision.message, /ledger drift/i);
+});
+
 test('decideLoopContinuation stops with non_retryable_provider_error on a non-retryable failure', () => {
   const current = iterationResult({
     executionStatus: 'failed',
