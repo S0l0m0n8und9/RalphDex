@@ -2,6 +2,32 @@
 
 All notable changes to Ralphdex are documented here.
 
+## [1.3.0] — 2026-06-05
+
+An operator-visibility release: new dashboard surfaces backed by a durable runtime event journal, safer artifact lifecycle handling, and a batch of reliability fixes. No breaking changes to commands, settings, or workspace state.
+
+### Added
+
+- **Run Trust Timeline** — a dashboard panel shows the execution-intent preview before a run and a per-run timeline afterward (iteration, review, recovery, and branch-SCM events) with a file-level diff summary, sourced from a new typed, append-only runtime event journal.
+- **PRD/backlog reconciliation** — the dashboard surfaces proposals that reconcile `.ralph/prd.md` scope against the task backlog, scoped to the live PRD scope so archived history does not produce false orphans.
+- **Artifact registry** — a canonical artifact registry and relationship index ties iteration provenance, diagnostics, and run artifacts together.
+- **Safer runtime cleanup** — "Clean Up Old Run Artifacts" now offers a dry-run preview, writes an audit manifest of what would be removed, and repairs latest-pointer references.
+- **Codex model readiness diagnostics** — preflight and status surface whether the configured Codex model is reachable.
+- **Windows shell-compatibility warning** — bash-style validation commands are flagged on hosts whose shell cannot run them.
+
+### Changed
+
+- **Validation evidence required before done** — a task is only reconciled to `done` once validation-command evidence is recorded for the iteration.
+- **Model-tiering config conflicts surfaced** — a disagreement between `ralphCodex.enableModelTiering` and `ralphCodex.modelTiering.enabled` is now reported at config-read time instead of being silently resolved.
+- **Non-retryable provider errors escalate** — provider failures such as authentication errors are escalated immediately instead of being retried, and the provider-error kind is stamped onto the iteration summary.
+- **Seed-task replenishment contract** — a seed-only backlog routes into backlog replenishment rather than the planning gate, and seed tasks are marked as requiring replacement.
+- **Hardened CLI shim automation contract** — the shim emits JSON on stdout even when argument parsing fails, redacts stderr in `--json` mode, and honors the `--` end-of-options marker.
+
+### Internal
+
+- **Headless UI test harness** — `test/ui` now runs under a jsdom + `@testing-library/react` harness with a mocked `acquireVsCodeApi`, covering click handlers, effects, and the full webview↔host message round-trip without a browser or Extension Development Host.
+- Added a React-first UI ownership guard, extended extension-host webview smoke coverage, full-workflow contract tests, and many new unit tests across the event journal, artifact registry, reconciliation, shim, and preflight modules.
+
 ## [1.2.0] — 2026-05-29
 
 A quality-first release: stronger fundamentals, a clearer first-run and operator flow, and a large internal cleanup. No breaking changes to commands, settings, or workspace state.
