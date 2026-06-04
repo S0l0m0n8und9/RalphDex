@@ -357,50 +357,112 @@
             "id": "ralphdex.createPrd",
             "title": "Create your PRD and task backlog",
             "description": "Scaffold `.ralph/` with a product brief and a starter task backlog.\n[Open PRD Wizard](command:ralphCodex.openPrdWizard)",
-            "media": { "markdown": "media/walkthrough/01-prd.md" },
-            "completionEvents": ["onCommand:ralphCodex.openPrdWizard"]
+            "media": {
+              "markdown": "media/walkthrough/01-prd.md"
+            },
+            "completionEvents": [
+              "onCommand:ralphCodex.openPrdWizard"
+            ]
           },
           {
             "id": "ralphdex.checkProvider",
             "title": "Confirm your AI provider",
             "description": "Ralphdex runs iterations through a provider CLI or Azure endpoint. Confirm yours is ready in the First-Run Readiness card.\n[Show Status](command:ralphCodex.showRalphStatus)",
-            "media": { "markdown": "media/walkthrough/02-provider.md" },
-            "completionEvents": ["onCommand:ralphCodex.showRalphStatus"]
+            "media": {
+              "markdown": "media/walkthrough/02-provider.md"
+            },
+            "completionEvents": [
+              "onCommand:ralphCodex.showRalphStatus"
+            ]
           },
           {
             "id": "ralphdex.runIteration",
             "title": "Run your first iteration",
             "description": "Execute one deterministic Ralph cycle and inspect its stop reason.\n[Run Single Iteration](command:ralphCodex.runRalphIteration)",
-            "media": { "markdown": "media/walkthrough/03-iterate.md" },
-            "completionEvents": ["onCommand:ralphCodex.runRalphIteration"]
+            "media": {
+              "markdown": "media/walkthrough/03-iterate.md"
+            },
+            "completionEvents": [
+              "onCommand:ralphCodex.runRalphIteration"
+            ]
           },
           {
             "id": "ralphdex.readDashboard",
             "title": "Read the dashboard",
             "description": "See what happened and why, with plain-language stop reasons and artifact links.\n[Show Status](command:ralphCodex.showRalphStatus)",
-            "media": { "markdown": "media/walkthrough/04-dashboard.md" }
+            "media": {
+              "markdown": "media/walkthrough/04-dashboard.md"
+            }
           }
         ]
       }
     ],
     "menus": {
       "commandPalette": [
-        { "command": "ralphCodex.openLatestRalphSummary", "when": "false" },
-        { "command": "ralphCodex.openLatestProvenanceBundle", "when": "false" },
-        { "command": "ralphCodex.openLatestPromptEvidence", "when": "false" },
-        { "command": "ralphCodex.openLatestCliTranscript", "when": "false" },
-        { "command": "ralphCodex.openLatestPipelineRun", "when": "false" },
-        { "command": "ralphCodex.revealLatestProvenanceBundleDirectory", "when": "false" },
-        { "command": "ralphCodex.openDoctrineFolder", "when": "false" },
-        { "command": "ralphCodex.openDoctrineInvariants", "when": "false" },
-        { "command": "ralphCodex.openDoctrineBoundaries", "when": "false" },
-        { "command": "ralphCodex.openDoctrineAgents", "when": "false" },
-        { "command": "ralphCodex.openLatestDoctrineProposal", "when": "false" },
-        { "command": "ralphCodex.applyLatestDoctrineProposal", "when": "false" },
-        { "command": "ralphCodex.rejectLatestDoctrineProposal", "when": "false" },
-        { "command": "ralphCodex.applyLatestTaskDecompositionProposal", "when": "false" },
-        { "command": "ralphCodex.showDashboard", "when": "false" },
-        { "command": "ralphCodex.openDashboard", "when": "false" }
+        {
+          "command": "ralphCodex.openLatestRalphSummary",
+          "when": "false"
+        },
+        {
+          "command": "ralphCodex.openLatestProvenanceBundle",
+          "when": "false"
+        },
+        {
+          "command": "ralphCodex.openLatestPromptEvidence",
+          "when": "false"
+        },
+        {
+          "command": "ralphCodex.openLatestCliTranscript",
+          "when": "false"
+        },
+        {
+          "command": "ralphCodex.openLatestPipelineRun",
+          "when": "false"
+        },
+        {
+          "command": "ralphCodex.revealLatestProvenanceBundleDirectory",
+          "when": "false"
+        },
+        {
+          "command": "ralphCodex.openDoctrineFolder",
+          "when": "false"
+        },
+        {
+          "command": "ralphCodex.openDoctrineInvariants",
+          "when": "false"
+        },
+        {
+          "command": "ralphCodex.openDoctrineBoundaries",
+          "when": "false"
+        },
+        {
+          "command": "ralphCodex.openDoctrineAgents",
+          "when": "false"
+        },
+        {
+          "command": "ralphCodex.openLatestDoctrineProposal",
+          "when": "false"
+        },
+        {
+          "command": "ralphCodex.applyLatestDoctrineProposal",
+          "when": "false"
+        },
+        {
+          "command": "ralphCodex.rejectLatestDoctrineProposal",
+          "when": "false"
+        },
+        {
+          "command": "ralphCodex.applyLatestTaskDecompositionProposal",
+          "when": "false"
+        },
+        {
+          "command": "ralphCodex.showDashboard",
+          "when": "false"
+        },
+        {
+          "command": "ralphCodex.openDashboard",
+          "when": "false"
+        }
       ]
     },
     "configuration": {
@@ -1266,7 +1328,7 @@
     "check:ledger": "node ./scripts/check-ledger.js",
     "prompt:calibrate": "node ./scripts/calibrate-prompt-budget.js",
     "check:prompt-budget": "node ./scripts/validate-prompt-budget.js",
-    "test": "npm run compile:tests && node --require ./test/register-vscode-stub.cjs --test ./out-test/test/*.js ./out-test/test/ui/*.js ./out-test/test/webview/*.js",
+    "test": "npm run compile:tests && node --require ./test/register-vscode-stub.cjs --test ./out-test/test/*.js ./out-test/test/webview/*.js && node --require ./test/register-vscode-stub.cjs --require ./test/register-dom.cjs --test ./out-test/test/ui/*.js",
     "test:activation": "npm run compile && npm run compile:tests && node ./out-test/test/vscode/runActivationSmoke.js",
     "test:e2e-pipeline": "node ./scripts/run-e2e-pipeline-smoke.js",
     "test:e2e-orchestration": "node ./scripts/run-e2e-orchestration-smoke.js",
@@ -1283,6 +1345,9 @@
     "publish:dry-run": "npm run package"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^22.19.15",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
@@ -1290,6 +1355,7 @@
     "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^3.7.1",
     "esbuild": "^0.28.0",
+    "jsdom": "^29.1.1",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "typescript": "^5.8.2"
