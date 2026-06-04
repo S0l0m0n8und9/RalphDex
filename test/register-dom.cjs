@@ -68,7 +68,15 @@ const webviewApi = {
   }
 };
 
+// Mirror the real webview runtime, which throws on any acquire after the first.
+// src/webview-ui/bridge/vscode.ts caches the result so it only acquires once; a
+// component that acquires a second time would crash in production, and now in tests too.
+let apiAcquired = false;
 global.acquireVsCodeApi = function acquireVsCodeApi() {
+  if (apiAcquired) {
+    throw new Error('An instance of the VS Code API has already been acquired');
+  }
+  apiAcquired = true;
   return webviewApi;
 };
 
