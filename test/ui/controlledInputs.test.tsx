@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test, { afterEach, beforeEach } from 'node:test';
 import { act, cleanup, fireEvent, render } from '@testing-library/react';
-import { App } from '../../src/webview-ui/App';
+import { App, applyOptimisticWizardMessage } from '../../src/webview-ui/App';
+import type { PrdWizardTaskDraft } from '../../src/webview/prdCreationWizardTypes';
 import type { RalphDashboardState } from '../../src/ui/uiTypes';
 import type { SettingsSurfaceEntrySnapshot, SettingsSurfaceSnapshot } from '../../src/config/settingsSurface';
 import type { WizardState } from '../../src/webview/prdCreationWizardTypes';
@@ -54,6 +55,17 @@ test('wizard draft PRD textarea reflects an edit immediately', () => {
   const textarea = container.querySelector('[data-action="draft-prd-text"]') as HTMLTextAreaElement;
   fireEvent.change(textarea, { target: { value: 'Xhello' } });
   assert.equal(textarea.value, 'Xhello');
+});
+
+test('clearing acceptance/dependencies stores an empty array, not a one-empty-string array', () => {
+  const task = { id: 'T1', title: 't', status: 'todo', acceptance: ['a'], dependsOn: ['x'] } as unknown as PrdWizardTaskDraft;
+  const base = makeWizardState({ step: 5, draft: { prdText: '', tasks: [task] } });
+
+  const afterAcceptance = applyOptimisticWizardMessage(base, { type: 'update-task-acceptance', taskId: 'T1', value: '' });
+  assert.deepEqual(afterAcceptance.draft?.tasks[0].acceptance, []);
+
+  const afterDeps = applyOptimisticWizardMessage(base, { type: 'update-task-dependencies', taskId: 'T1', value: '' });
+  assert.deepEqual((afterDeps.draft?.tasks[0] as { dependsOn?: unknown }).dependsOn, []);
 });
 
 // ---------------------------------------------------------------------------

@@ -82,9 +82,9 @@ export function applyOptimisticWizardMessage(
     case 'update-task-notes':
       return updateWizardTask(state, message.taskId, (task) => ({ ...task, notes: message.value }));
     case 'update-task-acceptance':
-      return updateWizardTask(state, message.taskId, (task) => ({ ...task, acceptance: message.value.split('\n') }));
+      return updateWizardTask(state, message.taskId, (task) => ({ ...task, acceptance: message.value ? message.value.split('\n') : [] }));
     case 'update-task-dependencies':
-      return updateWizardTask(state, message.taskId, (task) => ({ ...task, dependsOn: message.value.split('\n'), dependencies: undefined }));
+      return updateWizardTask(state, message.taskId, (task) => ({ ...task, dependsOn: message.value ? message.value.split('\n') : [], dependencies: undefined }));
     case 'update-task-tier':
       return updateWizardTask(state, message.taskId, (task) => ({ ...task, tier: message.tier }));
     default:
