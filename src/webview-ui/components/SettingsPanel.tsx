@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { SettingsSurfaceEntrySnapshot, SettingsSurfaceSectionSnapshot, SettingsSurfaceSnapshot } from '../../config/settingsSurface';
+import { AUTONOMY_MANAGED_KEYS } from '../../config/autonomyManagedKeys';
 import { Btn } from './primitives/Card';
 
 export interface SettingsPanelProps {
@@ -107,19 +108,15 @@ function crossValidate(
 // Setting control
 // ---------------------------------------------------------------------------
 
-/**
- * Settings whose effective value is force-derived in readConfig when
- * autonomyMode is 'autonomous' (see readConfig effectiveAutonomy). Editing them
- * directly while autonomous has no effect — the resolved value is overridden —
- * so the panel disables them and explains how to take control.
- */
-const AUTONOMY_MANAGED_KEYS = new Set(['autoReplenishBacklog', 'autoApplyRemediation']);
+// Force-derived under autonomous mode; sourced from the shared list so the panel
+// and readConfig cannot drift (see src/config/autonomyManagedKeys.ts).
+const AUTONOMY_MANAGED_KEY_SET = new Set<string>(AUTONOMY_MANAGED_KEYS);
 
 function autonomyManagedNote(
   entry: SettingsSurfaceEntrySnapshot,
   settings: SettingsSurfaceSnapshot
 ): string | null {
-  if (!AUTONOMY_MANAGED_KEYS.has(entry.key)) return null;
+  if (!AUTONOMY_MANAGED_KEY_SET.has(entry.key)) return null;
   if (String(findValue(settings, 'autonomyMode') ?? '') !== 'autonomous') return null;
   return 'Managed by Autonomy Mode (autonomous). Set Autonomy Mode to Supervised to edit this directly.';
 }
