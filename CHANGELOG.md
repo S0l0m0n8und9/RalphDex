@@ -2,6 +2,17 @@
 
 All notable changes to Ralphdex are documented here.
 
+## [1.3.1] — 2026-06-05
+
+A bug-fix release for webview interaction issues reported against 1.3.0.
+
+### Fixed
+
+- **PRD wizard text fields** — editing any field (objective, tech stack, out-of-scope, conventions, the draft PRD, and task title/notes/acceptance/dependencies) no longer bounces the caret to the end on every keystroke. Edits apply optimistically so the controlled inputs stay in sync with what you type.
+- **Settings checkboxes that "wouldn't untick"** — settings whose effective value is force-derived from another setting are now shown disabled with an explanation, instead of silently reverting when you click them:
+  - **Auto Replenish Backlog** and **Auto Apply Remediation** are managed by Autonomy Mode — set it to `supervised` to edit them directly.
+  - **Enable Model Tiering** is overridden by the legacy `ralphCodex.enableModelTiering` alias when it conflicts with `modelTiering.enabled`; change or remove that alias to edit tiering from the panel.
+
 ## [1.3.0] — 2026-06-05
 
 An operator-visibility release: new dashboard surfaces backed by a durable runtime event journal, safer artifact lifecycle handling, and a batch of reliability fixes. No breaking changes to commands, settings, or workspace state.
