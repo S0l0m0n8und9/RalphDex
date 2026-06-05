@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import type { SettingsSurfaceEntrySnapshot, SettingsSurfaceSectionSnapshot, SettingsSurfaceSnapshot } from '../../config/settingsSurface';
-import { AUTONOMY_MANAGED_KEYS } from '../../config/autonomyManagedKeys';
 import { Btn } from './primitives/Card';
 
 export interface SettingsPanelProps {
@@ -107,19 +106,6 @@ function crossValidate(
 // ---------------------------------------------------------------------------
 // Setting control
 // ---------------------------------------------------------------------------
-
-// Force-derived under autonomous mode; sourced from the shared list so the panel
-// and readConfig cannot drift (see src/config/autonomyManagedKeys.ts).
-const AUTONOMY_MANAGED_KEY_SET = new Set<string>(AUTONOMY_MANAGED_KEYS);
-
-function autonomyManagedNote(
-  entry: SettingsSurfaceEntrySnapshot,
-  settings: SettingsSurfaceSnapshot
-): string | null {
-  if (!AUTONOMY_MANAGED_KEY_SET.has(entry.key)) return null;
-  if (String(findValue(settings, 'autonomyMode') ?? '') !== 'autonomous') return null;
-  return 'Managed by Autonomy Mode (autonomous). Set Autonomy Mode to Supervised to edit this directly.';
-}
 
 function SettingControl({
   entry,
@@ -282,7 +268,7 @@ function SettingEntry({
   settings: SettingsSurfaceSnapshot;
 }) {
   const error = crossValidate(entry, settings);
-  const managedNote = autonomyManagedNote(entry, settings);
+  const managedNote = entry.managedNote ?? null;
   const disabled = managedNote !== null;
   const isCheckbox = entry.control === 'boolean';
 

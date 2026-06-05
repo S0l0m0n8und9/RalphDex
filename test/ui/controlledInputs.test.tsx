@@ -92,18 +92,10 @@ test('clearing acceptance/dependencies stores an empty array, not a one-empty-st
 // Settings checkboxes
 // ---------------------------------------------------------------------------
 
-function booleanEntry(key: string, value: boolean): SettingsSurfaceEntrySnapshot {
+function booleanEntry(key: string, value: boolean, managedNote: string | null = null): SettingsSurfaceEntrySnapshot {
   return {
     key, manifestKey: `ralphCodex.${key}`, sectionId: 'loop-dynamics', title: key,
-    description: '', control: 'boolean', defaultValue: true, value, isNew: false,
-  };
-}
-
-function enumEntry(key: string, value: string): SettingsSurfaceEntrySnapshot {
-  return {
-    key, manifestKey: `ralphCodex.${key}`, sectionId: 'loop-dynamics', title: key,
-    description: '', control: 'enum', defaultValue: 'autonomous', value, isNew: false,
-    options: ['supervised', 'autonomous'],
+    description: '', control: 'boolean', defaultValue: true, value, isNew: false, managedNote,
   };
 }
 
@@ -150,18 +142,18 @@ test('unmanaged checkbox stays unticked after a faithful host echo (value=false)
   assert.equal((container.querySelector('[data-setting="stopOnHumanReviewNeeded"]') as HTMLInputElement).checked, false);
 });
 
-test('autonomy-managed checkbox is disabled with an explanatory note when autonomyMode is autonomous', () => {
-  const surface = loopSection([enumEntry('autonomyMode', 'autonomous'), booleanEntry('autoReplenishBacklog', true)]);
+test('a checkbox carrying a managedNote is disabled and shows the note', () => {
+  const surface = loopSection([booleanEntry('autoReplenishBacklog', true, 'Managed by Autonomy Mode (autonomous). Set Autonomy Mode to Supervised to edit this directly.')]);
   const { container } = render(<App mode="dashboard" initialState={makeDashboardState(surface)} />);
   const box = container.querySelector('[data-setting="autoReplenishBacklog"]') as HTMLInputElement;
-  assert.equal(box.disabled, true, 'managed checkbox should be disabled under autonomous mode');
+  assert.equal(box.disabled, true, 'a managed checkbox should be disabled');
   assert.ok(container.textContent?.includes('Managed by Autonomy Mode'), 'should show the managed note');
 });
 
-test('autonomy-managed checkbox is editable under supervised mode', () => {
-  const surface = loopSection([enumEntry('autonomyMode', 'supervised'), booleanEntry('autoReplenishBacklog', false)]);
+test('a checkbox without a managedNote is editable', () => {
+  const surface = loopSection([booleanEntry('autoReplenishBacklog', false, null)]);
   const { container } = render(<App mode="dashboard" initialState={makeDashboardState(surface)} />);
   const box = container.querySelector('[data-setting="autoReplenishBacklog"]') as HTMLInputElement;
-  assert.equal(box.disabled, false, 'managed checkbox should be editable under supervised mode');
+  assert.equal(box.disabled, false, 'an unmanaged checkbox should be editable');
   assert.ok(!container.textContent?.includes('Managed by Autonomy Mode'));
 });

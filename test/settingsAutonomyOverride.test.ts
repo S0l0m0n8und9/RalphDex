@@ -38,6 +38,46 @@ test('supervised mode honors a stored autoReplenishBacklog=false', () => {
   assert.equal(readConfig(wsFolder).autoReplenishBacklog, false);
 });
 
+// The reporter's own settings.json had enableModelTiering=true with
+// modelTiering.enabled=false. The flat alias wins, so the nested value resolves
+// back to true and the "Enable Model Tiering" checkbox cannot be unticked.
+test('flat enableModelTiering alias overrides nested modelTiering.enabled', () => {
+  harness.reset();
+  harness.setWorkspaceFolders([wsFolder]);
+  harness.setConfiguration({ enableModelTiering: true, modelTiering: { enabled: false } });
+
+  const cfg = readConfig(wsFolder);
+  assert.equal(cfg.modelTiering.enabled, true, 'flat alias forces enabled true');
+  assert.ok(cfg.modelTieringEnableConflict, 'the flat/nested conflict is detected');
+});
+
+function entryByKey(surface: ReturnType<typeof buildSettingsSurfaceSnapshot>, key: string) {
+  return surface.sections.flatMap((s) => s.entries).find((e) => e.key === key);
+}
+
+test('buildSettingsSurfaceSnapshot annotates force-derived settings with a managedNote', () => {
+  harness.reset();
+  harness.setWorkspaceFolders([wsFolder]);
+  // autonomyMode defaults to autonomous; plus a model-tiering flat/nested conflict.
+  harness.setConfiguration({ enableModelTiering: true, modelTiering: { enabled: false } });
+
+  const surface = buildSettingsSurfaceSnapshot(readConfig(wsFolder));
+  assert.ok(entryByKey(surface, 'autoReplenishBacklog')?.managedNote, 'autonomy-managed under autonomous default');
+  assert.ok(entryByKey(surface, 'autoApplyRemediation')?.managedNote, 'autonomy-managed under autonomous default');
+  assert.ok(entryByKey(surface, 'modelTiering.enabled')?.managedNote, 'model-tiering managed under flat-alias conflict');
+});
+
+test('buildSettingsSurfaceSnapshot leaves freely-editable settings unmanaged', () => {
+  harness.reset();
+  harness.setWorkspaceFolders([wsFolder]);
+  harness.setConfiguration({ autonomyMode: 'supervised' });
+
+  const surface = buildSettingsSurfaceSnapshot(readConfig(wsFolder));
+  assert.equal(entryByKey(surface, 'autoReplenishBacklog')?.managedNote ?? null, null);
+  assert.equal(entryByKey(surface, 'stopOnHumanReviewNeeded')?.managedNote ?? null, null);
+  assert.equal(entryByKey(surface, 'modelTiering.enabled')?.managedNote ?? null, null);
+});
+
 // Locks the Settings panel's AUTONOMY_MANAGED_KEYS list to readConfig's actual
 // behavior: every listed key must genuinely be force-overridden under autonomous
 // mode. Removing an override in readConfig without updating the shared list (or

@@ -1,6 +1,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { DEFAULT_CONFIG } from './defaults';
+import { AUTONOMY_MANAGED_KEYS } from './autonomyManagedKeys';
 import type { RalphCodexConfig } from './types';
 
 export type SettingsSectionId =
@@ -56,6 +57,14 @@ export interface SettingsSurfaceMetadata {
 export interface SettingsSurfaceEntrySnapshot extends SettingsSurfaceEntryMetadata {
   value: unknown;
   isNew: boolean;
+  /**
+   * When set, this setting's effective value is force-derived from another
+   * setting (e.g. autonomyMode, or the enableModelTiering alias), so editing it
+   * directly has no effect. The Settings panel disables the control and shows
+   * this note. Computed here — the config layer — so the panel and readConfig
+   * cannot drift.
+   */
+  managedNote?: string | null;
 }
 
 export interface SettingsSurfaceSectionSnapshot extends SettingsSurfaceSectionMetadata {
@@ -330,6 +339,24 @@ export function getSettingsSurfaceMetadata(): SettingsSurfaceMetadata {
   return cachedMetadata;
 }
 
+const AUTONOMY_MANAGED_KEY_SET = new Set<string>(AUTONOMY_MANAGED_KEYS);
+
+/**
+ * If a setting's resolved value is force-derived from another setting, return an
+ * operator-facing note explaining why it cannot be edited directly. Mirrors the
+ * forcing logic in readConfig (effectiveAutonomy; the enableModelTiering alias).
+ */
+function computeManagedNote(config: RalphCodexConfig, key: string): string | null {
+  if (AUTONOMY_MANAGED_KEY_SET.has(key) && config.autonomyMode === 'autonomous') {
+    return 'Managed by Autonomy Mode (autonomous). Set Autonomy Mode to Supervised to edit this directly.';
+  }
+  if (key === 'modelTiering.enabled' && config.modelTieringEnableConflict) {
+    const flatValue = config.modelTieringEnableConflict.flatValue;
+    return `Overridden by ralphCodex.enableModelTiering (=${flatValue}). Change or remove that setting to edit model tiering here.`;
+  }
+  return null;
+}
+
 export function buildSettingsSurfaceSnapshot(
   config: RalphCodexConfig,
   options?: {
@@ -361,6 +388,7 @@ export function buildSettingsSurfaceSnapshot(
             ...entry,
             value: getConfigValue(config, entry.key),
             isNew: newSettingKeys.has(entry.key),
+            managedNote: computeManagedNote(config, entry.key),
             ...(options && options.length > 0 ? { options } : {})
           };
         });

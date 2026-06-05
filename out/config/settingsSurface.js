@@ -42,6 +42,7 @@ exports.writeSettingsDiscoveryState = writeSettingsDiscoveryState;
 const fs = __importStar(require("node:fs"));
 const path = __importStar(require("node:path"));
 const defaults_1 = require("./defaults");
+const autonomyManagedKeys_1 = require("./autonomyManagedKeys");
 const SETTINGS_DISCOVERY_STATE_KEY = 'ralphCodex.settingsSurfaceDiscovery';
 const SECTION_METADATA = [
     {
@@ -258,6 +259,22 @@ function getSettingsSurfaceMetadata() {
     };
     return cachedMetadata;
 }
+const AUTONOMY_MANAGED_KEY_SET = new Set(autonomyManagedKeys_1.AUTONOMY_MANAGED_KEYS);
+/**
+ * If a setting's resolved value is force-derived from another setting, return an
+ * operator-facing note explaining why it cannot be edited directly. Mirrors the
+ * forcing logic in readConfig (effectiveAutonomy; the enableModelTiering alias).
+ */
+function computeManagedNote(config, key) {
+    if (AUTONOMY_MANAGED_KEY_SET.has(key) && config.autonomyMode === 'autonomous') {
+        return 'Managed by Autonomy Mode (autonomous). Set Autonomy Mode to Supervised to edit this directly.';
+    }
+    if (key === 'modelTiering.enabled' && config.modelTieringEnableConflict) {
+        const flatValue = config.modelTieringEnableConflict.flatValue;
+        return `Overridden by ralphCodex.enableModelTiering (=${flatValue}). Change or remove that setting to edit model tiering here.`;
+    }
+    return null;
+}
 function buildSettingsSurfaceSnapshot(config, options) {
     const metadata = getSettingsSurfaceMetadata();
     const newSettingKeys = new Set(options?.newSettingKeys ?? []);
@@ -282,6 +299,7 @@ function buildSettingsSurfaceSnapshot(config, options) {
                     ...entry,
                     value: getConfigValue(config, entry.key),
                     isNew: newSettingKeys.has(entry.key),
+                    managedNote: computeManagedNote(config, entry.key),
                     ...(options && options.length > 0 ? { options } : {})
                 };
             });
