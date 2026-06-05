@@ -6,7 +6,7 @@
     "ralphCodex.cliProvider": "claude",
     "ralphCodex.promptBudgetProfile": "claude",
     "ralphCodex.ralphIterationCap": 15,
-    "ralphCodex.model": "claude-opus-4-7",
+    "ralphCodex.model": "claude-opus-4-8",
     "ralphCodex.agentId": "build",
     "ralphCodex.claudeMaxTurns": 125,
     "ralphCodex.scmStrategy": "commit-on-done",
@@ -20,12 +20,12 @@
             "reasoningEffort": "medium"
         },
         "medium": {
-            "model": "claude-opus-4-7",
+            "model": "claude-opus-4-8",
             "provider": "claude",
             "reasoningEffort": "medium"
         },
         "complex": {
-            "model": "claude-opus-4-7",
+            "model": "claude-opus-4-8",
             "provider": "claude",
             "reasoningEffort": "high"
         }
@@ -41,5 +41,7 @@
     "ralphCodex.autoApplyRemediation": [
         "decompose_task",
         "mark_blocked"
-    ]
+    ],
+    "ralphCodex.reasoningEffort": "high",
+    "ralphCodex.autoReplenishBacklog": false
 }
