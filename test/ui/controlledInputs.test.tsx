@@ -57,6 +57,26 @@ test('wizard draft PRD textarea reflects an edit immediately', () => {
   assert.equal(textarea.value, 'Xhello');
 });
 
+test('every wizard task-edit message applies optimistically to local state', () => {
+  const task = { id: 'T1', title: 't', status: 'todo', notes: '', tier: '', acceptance: [], dependsOn: [] } as unknown as PrdWizardTaskDraft;
+  const base = makeWizardState({ step: 5, draft: { prdText: '', tasks: [task] } });
+
+  const title = applyOptimisticWizardMessage(base, { type: 'update-task-title', taskId: 'T1', title: 'New title' });
+  assert.equal(title.draft?.tasks[0].title, 'New title');
+
+  const notes = applyOptimisticWizardMessage(base, { type: 'update-task-notes', taskId: 'T1', value: 'a note' });
+  assert.equal((notes.draft?.tasks[0] as { notes?: string }).notes, 'a note');
+
+  const tier = applyOptimisticWizardMessage(base, { type: 'update-task-tier', taskId: 'T1', tier: 'complex' });
+  assert.equal((tier.draft?.tasks[0] as { tier?: string }).tier, 'complex');
+
+  const acceptance = applyOptimisticWizardMessage(base, { type: 'update-task-acceptance', taskId: 'T1', value: 'one\ntwo' });
+  assert.deepEqual(acceptance.draft?.tasks[0].acceptance, ['one', 'two']);
+
+  const deps = applyOptimisticWizardMessage(base, { type: 'update-task-dependencies', taskId: 'T1', value: 'x\ny' });
+  assert.deepEqual((deps.draft?.tasks[0] as { dependsOn?: unknown }).dependsOn, ['x', 'y']);
+});
+
 test('clearing acceptance/dependencies stores an empty array, not a one-empty-string array', () => {
   const task = { id: 'T1', title: 't', status: 'todo', acceptance: ['a'], dependsOn: ['x'] } as unknown as PrdWizardTaskDraft;
   const base = makeWizardState({ step: 5, draft: { prdText: '', tasks: [task] } });

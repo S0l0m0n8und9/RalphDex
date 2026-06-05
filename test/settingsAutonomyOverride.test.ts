@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readConfig } from '../src/config/readConfig';
 import { buildSettingsSurfaceSnapshot } from '../src/config/settingsSurface';
+import { AUTONOMY_MANAGED_KEYS } from '../src/config/autonomyManagedKeys';
 
 interface VscodeStubHarness {
   reset(): void;
@@ -35,4 +36,20 @@ test('supervised mode honors a stored autoReplenishBacklog=false', () => {
   harness.setConfiguration({ autonomyMode: 'supervised', autoReplenishBacklog: false });
 
   assert.equal(readConfig(wsFolder).autoReplenishBacklog, false);
+});
+
+// Locks the Settings panel's AUTONOMY_MANAGED_KEYS list to readConfig's actual
+// behavior: every listed key must genuinely be force-overridden under autonomous
+// mode. Removing an override in readConfig without updating the shared list (or
+// listing a key that isn't actually managed) fails here.
+test('every autonomy-managed key is force-overridden under autonomous mode', () => {
+  for (const key of AUTONOMY_MANAGED_KEYS) {
+    harness.reset();
+    harness.setWorkspaceFolders([wsFolder]);
+    const storedOff = key === 'autoApplyRemediation' ? [] : false;
+    harness.setConfiguration({ [key]: storedOff });
+
+    const resolved = (readConfig(wsFolder) as unknown as Record<string, unknown>)[key];
+    assert.notDeepEqual(resolved, storedOff, `${key} should be force-overridden under autonomous mode`);
+  }
 });
