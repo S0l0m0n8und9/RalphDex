@@ -8,7 +8,7 @@ import {
   detectNoProgressSignals
 } from '../src/ralph/loopLogic';
 import { reportsAlreadySatisfied } from '../src/ralph/iteration/OutcomeClassifier';
-import { DEFAULT_RALPH_AGENT_ID, RalphIterationResult, RalphPreflightDiagnostic } from '../src/ralph/types';
+import { DEFAULT_RALPH_AGENT_ID, RalphCompletionClassification, RalphIterationResult, RalphPreflightDiagnostic } from '../src/ralph/types';
 
 function iterationResult(overrides: Partial<RalphIterationResult> = {}): RalphIterationResult {
   return {
@@ -1365,4 +1365,89 @@ test('decideLoopContinuation stops with verifier_suspect after repeated success+
 
   assert.equal(decision.stopReason, 'verifier_suspect');
   assert.equal(decision.shouldContinue, false);
+});
+
+// ---------------------------------------------------------------------------
+// T224 regression: a task that perpetually reports partial_progress / no_progress
+// while the validation command keeps failing IDENTICALLY (e.g. a broken
+// `npm run validate` shell invocation) never tripped any stop heuristic and
+// ground through 15 iterations. The no_progress counter reset on each
+// partial_progress, failureSignature() is null for partial_progress, and the
+// existing verifier_suspect signal requires file changes (which a stuck task
+// that makes no edits does not produce). The stop must key off the repeated
+// identical verifier failure itself, independent of the progress label.
+// ---------------------------------------------------------------------------
+
+function stuckOnIdenticalValidationFailure(
+  classification: RalphCompletionClassification,
+  signature: string
+): RalphIterationResult {
+  return iterationResult({
+    selectedTaskId: 'T224',
+    executionStatus: 'succeeded',
+    verificationStatus: 'failed',
+    completionClassification: classification,
+    // No 'validation_failed_despite_execution_success' signal: the stuck task
+    // produced no relevant file changes, so the existing verifier_suspect path
+    // never accumulates.
+    noProgressSignals: ['same_task_selected_repeatedly', 'same_validation_failure_signature'],
+    verification: {
+      ...iterationResult().verification,
+      validationFailureSignature: signature
+    }
+  });
+}
+
+test('decideLoopContinuation stops with verifier_suspect when validation fails identically without file changes despite partial_progress', () => {
+  const sig = "npm run validate::exit:1::'\"npm run validate\"' is not recognized as an internal or external command";
+  const decision = decideLoopContinuation(stopDecisionInput({
+    currentResult: stuckOnIdenticalValidationFailure('partial_progress', sig),
+    // Mixed partial_progress / no_progress, mirroring the real T224 history so
+    // the trailing-no_progress counter never reaches its threshold.
+    previousIterations: [
+      stuckOnIdenticalValidationFailure('partial_progress', sig),
+      stuckOnIdenticalValidationFailure('no_progress', sig)
+    ],
+    hasActionableTask: true,
+    stopOnHumanReviewNeeded: false,
+    noProgressThreshold: 10,
+    repeatedFailureThreshold: 2
+  }));
+
+  assert.equal(decision.stopReason, 'verifier_suspect');
+  assert.equal(decision.shouldContinue, false);
+});
+
+test('decideLoopContinuation does NOT stop with verifier_suspect when the validation failure signature differs each iteration', () => {
+  const decision = decideLoopContinuation(stopDecisionInput({
+    currentResult: stuckOnIdenticalValidationFailure('partial_progress', 'npm test::exit:1::error C in moduleC'),
+    // Evolving failures indicate the task is genuinely working through problems,
+    // not stuck on one broken gate — the loop must continue.
+    previousIterations: [
+      stuckOnIdenticalValidationFailure('partial_progress', 'npm test::exit:1::error A in moduleA'),
+      stuckOnIdenticalValidationFailure('partial_progress', 'npm test::exit:1::error B in moduleB')
+    ],
+    hasActionableTask: true,
+    stopOnHumanReviewNeeded: false,
+    noProgressThreshold: 10,
+    repeatedFailureThreshold: 2
+  }));
+
+  assert.notEqual(decision.stopReason, 'verifier_suspect');
+  assert.equal(decision.shouldContinue, true);
+});
+
+test('decideLoopContinuation does NOT stop on a single identical validation failure below threshold', () => {
+  const sig = 'npm run validate::exit:1::not recognized';
+  const decision = decideLoopContinuation(stopDecisionInput({
+    currentResult: stuckOnIdenticalValidationFailure('partial_progress', sig),
+    previousIterations: [],
+    hasActionableTask: true,
+    stopOnHumanReviewNeeded: false,
+    noProgressThreshold: 10,
+    repeatedFailureThreshold: 2
+  }));
+
+  assert.notEqual(decision.stopReason, 'verifier_suspect');
+  assert.equal(decision.shouldContinue, true);
 });
