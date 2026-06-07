@@ -418,6 +418,37 @@ function decideLoopContinuation(input) {
             message: 'Execution succeeded and files changed, but validation failed identically across iterations. The validation command itself is the likely culprit — review it before retrying.'
         };
     }
+    // A task can fail verification with an identical validation signature on the
+    // same task across many iterations while never tripping the heuristics above:
+    // the trailing-no_progress counter resets whenever the agent reports
+    // partial_progress, failureSignature() is null for non-terminal
+    // classifications, and the verifier_suspect check above requires the
+    // file-change-gated `validation_failed_despite_execution_success` signal that
+    // a stuck task making no edits never produces. Catch that directly — a
+    // repeated identical validation failure on the same task is a suspect verifier
+    // (or task framing) regardless of the progress label or whether files changed.
+    // Restricted to non-terminal classifications (failureSignature === null) so it
+    // never preempts the blocked/failed/needs_human_review handling below.
+    const currentValidationFailureSignature = input.currentResult.verification.validationFailureSignature;
+    if (input.currentResult.executionStatus === 'succeeded'
+        && input.currentResult.verificationStatus === 'failed'
+        && currentValidationFailureSignature
+        && failureSignature(input.currentResult) === null) {
+        const normalizedCurrent = normalizeFailureMessage(currentValidationFailureSignature);
+        const repeatedValidationFailureCount = countTrailingMatches(history, (item) => item.selectedTaskId === input.currentResult.selectedTaskId
+            && (item.agentId ?? types_1.DEFAULT_RALPH_AGENT_ID) === agentId
+            && item.executionStatus === 'succeeded'
+            && item.verificationStatus === 'failed'
+            && item.verification.validationFailureSignature != null
+            && normalizeFailureMessage(item.verification.validationFailureSignature) === normalizedCurrent);
+        if (repeatedValidationFailureCount >= input.repeatedFailureThreshold) {
+            return {
+                shouldContinue: false,
+                stopReason: 'verifier_suspect',
+                message: `Validation failed identically across ${repeatedValidationFailureCount} consecutive iterations on the same task despite repeated attempts; the validation command or task framing is the likely culprit — review it before retrying.`
+            };
+        }
+    }
     const currentFailureSignature = failureSignature(input.currentResult);
     if (currentFailureSignature) {
         const repeatedFailureCount = countTrailingSameTaskFailures(history, input.currentResult.selectedTaskId, agentId, currentFailureSignature);
