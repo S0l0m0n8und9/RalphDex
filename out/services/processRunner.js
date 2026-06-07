@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProcessTimeoutError = exports.ProcessLaunchError = exports.PROCESS_RUN_STDERR_MAX_BYTES = exports.PROCESS_RUN_STDOUT_MAX_BYTES = void 0;
 exports.setProcessRunnerOverride = setProcessRunnerOverride;
 exports.runProcess = runProcess;
+exports.resolveProcessLaunch = resolveProcessLaunch;
 const child_process_1 = require("child_process");
 exports.PROCESS_RUN_STDOUT_MAX_BYTES = 2 * 1024 * 1024; // 2 MiB
 exports.PROCESS_RUN_STDERR_MAX_BYTES = 512 * 1024; // 512 KiB
@@ -180,7 +181,8 @@ async function runProcess(command, args, options) {
         const child = (0, child_process_1.spawn)(launch.command, launch.args, {
             cwd: options.cwd,
             shell: launch.shell,
-            env
+            env,
+            windowsVerbatimArguments: launch.windowsVerbatimArguments
         });
         const stdoutBuffer = new RollingUtf8Buffer(exports.PROCESS_RUN_STDOUT_MAX_BYTES);
         const stderrBuffer = new RollingUtf8Buffer(exports.PROCESS_RUN_STDERR_MAX_BYTES);
@@ -262,19 +264,46 @@ async function runProcess(command, args, options) {
         }
     });
 }
-function buildProcessLaunch(command, args, options) {
-    const shell = options.shell ?? false;
-    if (process.platform !== 'win32' || !shell) {
+/**
+ * Resolves how a command is handed to {@link spawn}.
+ *
+ * The Windows shell path deliberately does NOT use Node's `shell: true`. Node's
+ * cmd command-building is version-fragile: the batch-file hardening in
+ * CVE-2024-27980 changed how a `shell:true` command containing spaces is quoted,
+ * and the VS Code extension-host (Electron) Node delivers a multi-word command
+ * such as `npm run validate` to cmd.exe as a single quoted token
+ * (`"npm run validate"`), which cmd reports as an unknown program. That broke the
+ * validation verifier on Windows (it ran `runProcess('npm run validate', [], {
+ * shell:true })`) identically on every iteration.
+ *
+ * Instead we build the exact, known-good command line ourselves and invoke
+ * cmd.exe with `shell:false` + `windowsVerbatimArguments:true`. Wrapping the
+ * command in one outer quote pair lets `cmd /s` strip exactly that pair, leaving
+ * the original command (including its own internal quotes and `&&`) intact.
+ *
+ * Exported for unit testing across platforms; production passes
+ * `process.platform` and the resolved ComSpec.
+ */
+function resolveProcessLaunch(command, args, shell, platform, comspec) {
+    if (platform !== 'win32' || !shell) {
         return { command, args, shell };
     }
     if (args.length === 0) {
-        return { command, args, shell };
+        return {
+            command: comspec,
+            args: ['/d', '/s', '/c', `"${command}"`],
+            shell: false,
+            windowsVerbatimArguments: true
+        };
     }
     return {
         command: buildWindowsShellCommand(command, args),
         args: [],
         shell: true
     };
+}
+function buildProcessLaunch(command, args, options) {
+    return resolveProcessLaunch(command, args, options.shell ?? false, process.platform, process.env.ComSpec || process.env.COMSPEC || 'cmd.exe');
 }
 function buildWindowsShellCommand(command, args) {
     return [quoteWindowsShellArg(command), ...args.map(quoteWindowsShellArg)].join(' ');

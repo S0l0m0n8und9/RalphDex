@@ -231,7 +231,8 @@ export async function runProcess(command: string, args: string[], options: Proce
     const child = spawn(launch.command, launch.args, {
       cwd: options.cwd,
       shell: launch.shell,
-      env
+      env,
+      windowsVerbatimArguments: launch.windowsVerbatimArguments
     });
 
     const stdoutBuffer = new RollingUtf8Buffer(PROCESS_RUN_STDOUT_MAX_BYTES);
@@ -326,18 +327,51 @@ export async function runProcess(command: string, args: string[], options: Proce
   });
 }
 
-function buildProcessLaunch(
+export interface ResolvedProcessLaunch {
+  command: string;
+  args: string[];
+  shell: boolean;
+  windowsVerbatimArguments?: boolean;
+}
+
+/**
+ * Resolves how a command is handed to {@link spawn}.
+ *
+ * The Windows shell path deliberately does NOT use Node's `shell: true`. Node's
+ * cmd command-building is version-fragile: the batch-file hardening in
+ * CVE-2024-27980 changed how a `shell:true` command containing spaces is quoted,
+ * and the VS Code extension-host (Electron) Node delivers a multi-word command
+ * such as `npm run validate` to cmd.exe as a single quoted token
+ * (`"npm run validate"`), which cmd reports as an unknown program. That broke the
+ * validation verifier on Windows (it ran `runProcess('npm run validate', [], {
+ * shell:true })`) identically on every iteration.
+ *
+ * Instead we build the exact, known-good command line ourselves and invoke
+ * cmd.exe with `shell:false` + `windowsVerbatimArguments:true`. Wrapping the
+ * command in one outer quote pair lets `cmd /s` strip exactly that pair, leaving
+ * the original command (including its own internal quotes and `&&`) intact.
+ *
+ * Exported for unit testing across platforms; production passes
+ * `process.platform` and the resolved ComSpec.
+ */
+export function resolveProcessLaunch(
   command: string,
   args: string[],
-  options: ProcessRunOptions
-): { command: string; args: string[]; shell: boolean } {
-  const shell = options.shell ?? false;
-  if (process.platform !== 'win32' || !shell) {
+  shell: boolean,
+  platform: NodeJS.Platform,
+  comspec: string
+): ResolvedProcessLaunch {
+  if (platform !== 'win32' || !shell) {
     return { command, args, shell };
   }
 
   if (args.length === 0) {
-    return { command, args, shell };
+    return {
+      command: comspec,
+      args: ['/d', '/s', '/c', `"${command}"`],
+      shell: false,
+      windowsVerbatimArguments: true
+    };
   }
 
   return {
@@ -345,6 +379,20 @@ function buildProcessLaunch(
     args: [],
     shell: true
   };
+}
+
+function buildProcessLaunch(
+  command: string,
+  args: string[],
+  options: ProcessRunOptions
+): ResolvedProcessLaunch {
+  return resolveProcessLaunch(
+    command,
+    args,
+    options.shell ?? false,
+    process.platform,
+    process.env.ComSpec || process.env.COMSPEC || 'cmd.exe'
+  );
 }
 
 function buildWindowsShellCommand(command: string, args: string[]): string {

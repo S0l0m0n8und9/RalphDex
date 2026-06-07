@@ -6,10 +6,57 @@ import {
   PROCESS_RUN_STDERR_MAX_BYTES,
   PROCESS_RUN_STDOUT_MAX_BYTES,
   ProcessTimeoutError,
+  resolveProcessLaunch,
   runProcess,
   setProcessRunnerOverride
 } from '../src/services/processRunner';
 import os from 'node:os';
+
+// ---------------------------------------------------------------------------
+// T224 regression: on Windows, `runProcess('npm run validate', [], { shell:true })`
+// (args===0) was handed straight to Node's shell:true path. That path's cmd
+// command-building is version-fragile — VS Code's extension-host (Electron) Node
+// delivered the multi-word command to cmd.exe as a single quoted token
+// (`"npm run validate"`), which cmd reported as an unknown program, so the
+// validation verifier failed identically every iteration. resolveProcessLaunch
+// must emit a deterministic `cmd /d /s /c "<command>"` invocation (shell:false,
+// windowsVerbatimArguments) instead of relying on Node's shell:true.
+// ---------------------------------------------------------------------------
+
+test('resolveProcessLaunch routes a win32 shell command with no args through cmd.exe verbatim', () => {
+  const launch = resolveProcessLaunch('npm run validate', [], true, 'win32', 'C:\\WINDOWS\\system32\\cmd.exe');
+  assert.equal(launch.shell, false);
+  assert.equal(launch.windowsVerbatimArguments, true);
+  assert.equal(launch.command, 'C:\\WINDOWS\\system32\\cmd.exe');
+  assert.deepEqual(launch.args, ['/d', '/s', '/c', '"npm run validate"']);
+});
+
+test('resolveProcessLaunch never hands a bare multi-word command to a win32 shell:true spawn', () => {
+  const launch = resolveProcessLaunch('npm run validate', [], true, 'win32', 'cmd.exe');
+  assert.notEqual(launch.shell, true);
+  assert.notEqual(launch.command, 'npm run validate');
+});
+
+test('resolveProcessLaunch leaves posix shell commands to Node shell handling', () => {
+  assert.deepEqual(
+    resolveProcessLaunch('npm run validate', [], true, 'linux', '/bin/sh'),
+    { command: 'npm run validate', args: [], shell: true }
+  );
+});
+
+test('resolveProcessLaunch leaves non-shell invocations unchanged on win32', () => {
+  assert.deepEqual(
+    resolveProcessLaunch('git', ['status'], false, 'win32', 'cmd.exe'),
+    { command: 'git', args: ['status'], shell: false }
+  );
+});
+
+test('resolveProcessLaunch keeps the quoted buildWindowsShellCommand path for win32 shell commands with args', () => {
+  const launch = resolveProcessLaunch('npm', ['run', 'validate'], true, 'win32', 'cmd.exe');
+  assert.equal(launch.shell, true);
+  assert.deepEqual(launch.args, []);
+  assert.equal(launch.command, '"npm" "run" "validate"');
+});
 
 function successfulEchoCommand(text: string): { command: string; args: string[] } {
   if (process.platform === 'win32') {
@@ -90,6 +137,24 @@ test('runProcess executes shell command strings when shell is true and no argv a
     });
     assert.equal(result.code, 0);
     assert.equal(result.stdout, 'shell-ok');
+  } finally {
+    setProcessRunnerOverride(null);
+  }
+});
+
+test('runProcess runs a bare multi-word shell command end-to-end (validation-verifier shape)', async () => {
+  setProcessRunnerOverride(null);
+  try {
+    // Mirrors the validation verifier exactly: a whole command string, no argv,
+    // shell:true. On Windows this must reach the program (not be misparsed as a
+    // single quoted token), which was the T224 failure.
+    const result = await runProcess('git --version', [], {
+      cwd: os.tmpdir(),
+      shell: true,
+      timeoutMs: 10000
+    });
+    assert.equal(result.code, 0);
+    assert.match(result.stdout, /git version/);
   } finally {
     setProcessRunnerOverride(null);
   }
